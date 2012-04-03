@@ -6,8 +6,9 @@
   (:use :common-lisp))
 (in-package #:cldomain)
 
-(asdf:oos 'asdf:load-op 'getopt)
-
+(let ((*standard-output* *error-output*))
+  (asdf:oos 'asdf:load-op 'getopt)
+)
 
 (defun load-quicklisp ()
   ;; use the local quicklisp if it is there
@@ -91,12 +92,14 @@ characters in string S to STREAM."
 (defun json-documentation (package-name)
   (let ((package (find-package package-name)))
     (princ "{")
-    (do-external-symbols (sym package)
-      (format t "\"~A\": \"" sym)
-      (write-json-chars
-       (or (inspect-docstring sym) "")
-       *standard-output*)
-      (princ "\", "))
+    (let ((first-loop t))
+      (do-external-symbols (sym package)
+        (if first-loop (setq first-loop nil) (princ ", "))
+        (format t "\"~A\": \"" sym)
+        (write-json-chars
+         (or (inspect-docstring sym) "")
+         *standard-output*)
+        (princ "\"")))
     (format t "}~%")))
 
 
