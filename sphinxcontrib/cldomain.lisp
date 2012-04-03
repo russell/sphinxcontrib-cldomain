@@ -1,4 +1,56 @@
-(asdf:oos 'asdf:load-op 'cl-git)
+#!/usr/bin/sbcl --script
+
+(require 'asdf)
+
+(defpackage :cldomain
+  (:use :common-lisp))
+(in-package #:cldomain)
+
+(asdf:oos 'asdf:load-op 'getopt)
+
+
+(defun load-quicklisp ()
+  ;; use the local quicklisp if it is there
+  #-quicklisp
+  (let ((quicklisp-init (merge-pathnames "quicklisp/setup.lisp"
+                                         (user-homedir-pathname))))
+    (when (probe-file quicklisp-init)
+      (load quicklisp-init)))
+  )
+
+
+(load-quicklisp)
+
+
+(defun argv ()
+  (or
+   #+SBCL sb-ext:*posix-argv*
+   #+LISPWORKS system:*line-arguments-list*
+   #+CMU extensions:*command-line-words*
+   nil))
+
+
+(defun main ()
+  (multiple-value-bind (unused-args args invalid-args)
+      (getopt:getopt (argv) '(("package" :required)("path" :required)))
+    (cond
+      (invalid-args
+       (print "Invalid arguments"))
+      ((< 1 (length unused-args))
+       (print "Unused args"))
+      ((= 2 (length args))
+       (push (pathname (cdr (assoc "path" args :test #'equalp))) asdf:*central-registry*)
+       (let ((my-package (intern (string-upcase (cdr (assoc "package" args :test #'equalp))))))
+         (let ((*standard-output* *error-output*))
+           #+quicklisp
+           (ql:quickload my-package :prompt nil)
+           #-quicklisp
+           (asdf:oos 'asdf:load-op my-package))
+         (json-documentation my-package)))
+
+      (t
+       (princ "missing args")))))
+
 
 (defun inspect-docstring (sym)
   (documentation sym (cond ((boundp sym)
@@ -7,6 +59,7 @@
 			    'function)
 			   ((compiler-macro-function sym)
 			    'macro))))
+
 
 (defparameter +json-lisp-escaped-chars+
   `((#\" . #\")
@@ -39,14 +92,12 @@ characters in string S to STREAM."
   (let ((package (find-package package-name)))
     (princ "{")
     (do-external-symbols (sym package)
-      (princ "\"")
-      (princ sym)
-      (princ "\": \"")
+      (format t "\"~A\": \"" sym)
       (write-json-chars
-       (if (inspect-docstring sym)
-	   (inspect-docstring sym)
-	   "") *standard-output*)
+       (or (inspect-docstring sym) "")
+       *standard-output*)
       (princ "\", "))
-    (princ "}")))
+    (format t "}~%")))
 
 
+(main)
