@@ -32,10 +32,10 @@ from sphinx.util.docfields import Field, GroupedField
 from sphinx.util.docfields import DocFieldTransformer
 
 
-upper_symbols = re.compile("(^|\s)([^a-z\s\"]*[A-Z]{2,}[^a-z\s\"]*)($|\s)")
+upper_symbols = re.compile("(^|\s)([^a-z\s\"`]*[A-Z]{2,}[^a-z\s\"`:]*)($|\s)")
 
 doc_strings = {}
-
+args = {}
 
 def bool_option(arg):
     """Used to convert flag options to directives.  (Instead of
@@ -76,7 +76,8 @@ def _read_from(tokens):
 lisp_types = {
     "defun": "function",
     "defmacro": "macro",
-    "defparameter": "parameter",
+    "defparameter": "variable",
+    "defvar": "variable",
 }
 
 
@@ -95,47 +96,61 @@ class CLsExp(ObjectDescription):
     }
 
     def handle_signature(self, sig, signode):
-        sexp = _read(sig)
         symbol_name = []
         type = []
 
-        def render_sexp(sexp, signode):
+        def render_sexp(sexp, signode=None, prepend_node=None):
             desc_sexplist = addnodes.desc_parameterlist()
             desc_sexplist.child_text_separator = ' '
-            signode.append(desc_sexplist)
+            if prepend_node:
+                desc_sexplist.append(prepend_node)
+            if signode:
+                signode.append(desc_sexplist)
             symbol = False
             for atom in sexp:
                 if isinstance(atom, list):
                     render_sexp(atom, desc_sexplist)
-                elif symbol:
-                    desc_sexplist.append(addnodes.desc_name(atom, atom))
-                    symbol = False
-                    symbol_name.append(atom)
                 else:
                     symbol = render_atom(atom, desc_sexplist)
+            return desc_sexplist
 
         def render_atom(token, signode, noemph=True):
             "add syntax hi-lighting to interesting atoms"
 
             if token.startswith("&") or token.startswith(":"):
                 signode.append(addnodes.desc_parameter(token, token))
-            elif token in lisp_types:
-                signode.append(addnodes.desc_annotation(token, token))
-                type.append(token)
-                return True
             else:
                 signode.append(addnodes.desc_parameter(token, token))
 
-        render_sexp(sexp, signode)
+        package = self.env.temp_data.get('cl:package')
+
+        objtype = self.get_signature_prefix(sig)
+        signode.append(addnodes.desc_annotation(objtype, objtype))
+        lisp_args = args[package].get(sig.upper(), "")
+
+        if lisp_args.strip():
+            function_name = addnodes.desc_name(sig, sig + " ")
+        else:
+            function_name = addnodes.desc_name(sig, sig)
+
+        if not lisp_args.strip() and self.objtype in ["function"]:
+            lisp_args = "()"
+        if lisp_args.strip():
+            arg_list = render_sexp(_read(lisp_args), prepend_node=function_name)
+            signode.append(arg_list)
+        else:
+            signode.append(function_name)
+
+        symbol_name = sig
         if not symbol_name:
             raise Exception("Unknown symbol type for signature %s" % sig)
-        return type[0], symbol_name[0].upper()
+        return objtype.strip(), symbol_name.upper()
 
     def get_index_text(self, name, type):
-        if type in lisp_types:
-            return _('%s (Lisp %s)') % (name, lisp_types[type])
-        else:
-            return ''
+        return _('%s (Lisp %s)') % (name, type)
+
+    def get_signature_prefix(self, sig):
+        return self.objtype + ' '
 
     def add_target_and_index(self, name, sig, signode):
         # note target
@@ -205,7 +220,7 @@ class CLCurrentPackage(Directive):
     def run(self):
         env = self.state.document.settings.env
         env.temp_data['cl:package'] = self.arguments[0].upper()
-        index_package(self.arguments[0].upper())
+        #index_package(self.arguments[0].upper())
         return []
 
 
@@ -231,14 +246,14 @@ class CLDomain(Domain):
         'package': ObjType(l_('package'), 'package'),
         'function': ObjType(l_('function'), 'function'),
         'macro': ObjType(l_('macro'), 'macro'),
-        'parameter': ObjType(l_('parameter'), 'parameter'),
+        'variable': ObjType(l_('variable'), 'variable'),
     }
 
     directives = {
         'package': CLCurrentPackage,
         'function': CLsExp,
         'macro': CLsExp,
-        'parameter': CLsExp,
+        'variable': CLsExp,
     }
 
     roles = {
@@ -293,28 +308,40 @@ class CLDomain(Domain):
             yield (refname, refname, type, docname, refname, 1)
 
 
-def index_package(package, extra_args=""):
+def index_package(package, package_path, extra_args=""):
     """Call an external lisp program that will return a dictionary of
     doc strings for all public symbols."""
     lisp_script = path.join(path.dirname(path.realpath(__file__)),
                             "cldomain.lisp")
-    command = "sbcl --noinform --disable-ldb --lose-on-corruption --end-runtime-options --noprint --non-interactive --load %s" % lisp_script
-    output = subprocess.check_output(
-        command + extra_args + " --eval '(json-documentation :%s)'" % package,
-        shell=True)
+    command = "%s --package %s --path %s" % (lisp_script, package,
+                                             package_path)
+    output = subprocess.check_output(command + extra_args, shell=True)
     output = "\n".join([line for line in output.split("\n")
                         if not line.startswith(";")])
-    doc_strings[package] = eval(output)
-    for k, v in doc_strings[package].items():
+    lisp_data = eval(output)
+    doc_strings[package] = {}
+    for k, v in lisp_data.items():
         doc_strings[package][k] = re.sub(upper_symbols,
-                                         "\g<1>:cl:symbol:`~\g<2>`\g<3>", v)
+                                         "\g<1>:cl:symbol:`~\g<2>`\g<3>", v[1])
+
+    args[package] = {}
+
+    def lower_symbols(text):
+        if '"' in text:
+            return text
+        if text.startswith(package):
+            return text[len(package) + 2:].lower()
+        return text.lower()
+    for k, v in lisp_data.items():
+        v_arg = v[0].replace('(', ' ( ').replace(')', ' ) ')
+        args[package][k] = " ".join(map(lower_symbols, v_arg.split(" ")))
 
 
 def load_packages(app):
-    if not hasattr(app.config, "lisp_packages"):
+    if not app.config.lisp_packages:
         return
     for key, value in app.config.lisp_packages.iteritems():
-        index_package(key)
+        index_package(key.upper(), value)
 
 
 def uppercase_symbols(app, docname, source):
@@ -327,5 +354,6 @@ def uppercase_symbols(app, docname, source):
 
 def setup(app):
     app.add_domain(CLDomain)
+    app.add_config_value('lisp_packages', {}, 'env')
     app.connect('builder-inited', load_packages)
-    app.connect('source-read', uppercase_symbols)
+    #app.connect('source-read', uppercase_symbols)
