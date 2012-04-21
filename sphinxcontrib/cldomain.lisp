@@ -62,6 +62,8 @@
        (print-usage)))))
 
 
+(require 'sb-introspect)
+
 (defun inspect-docstring (sym)
   (documentation sym (cond ((boundp sym)
 			    'variable)
@@ -69,6 +71,15 @@
 			    'function)
 			   ((compiler-macro-function sym)
 			    'macro))))
+
+
+(defun inspect-arglist (sym)
+  (cond ((boundp sym)
+	 nil)
+	((fboundp sym)
+	 (sb-introspect:function-lambda-list sym))
+	((compiler-macro-function sym)
+	 (sb-introspect:function-lambda-list sym))))
 
 
 (defparameter +json-lisp-escaped-chars+
@@ -104,11 +115,14 @@ characters in string S to STREAM."
     (let ((first-loop t))
       (do-external-symbols (sym package)
         (if first-loop (setq first-loop nil) (princ ", "))
-        (format t "\"~A\": \"" sym)
+        (format t "\"~A\": [\"" sym)
+        (if (inspect-arglist sym)
+            (write-json-chars (prin1-to-string (inspect-arglist sym)) *standard-output*))
+        (princ "\", \"")
         (write-json-chars
          (or (inspect-docstring sym) "")
          *standard-output*)
-        (princ "\"")))
+        (princ "\"]")))
     (format t "}~%")))
 
 
