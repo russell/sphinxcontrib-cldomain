@@ -30,15 +30,23 @@
    #+CMU extensions:*command-line-words*
    nil))
 
+(defun print-message (message)
+  (format t "~A~%" message))
+
+(defun print-usage ()
+  (format t "./cldomain.lisp --package <package name> --path <package path> ~%"))
+
 
 (defun main ()
   (multiple-value-bind (unused-args args invalid-args)
       (getopt:getopt (argv) '(("package" :required)("path" :required)))
     (cond
       (invalid-args
-       (print "Invalid arguments"))
+       (print-message "Invalid arguments")
+       (print-usage))
       ((< 1 (length unused-args))
-       (print "Unused args"))
+       (print-message "Unused args")
+       (print-usage))
       ((= 2 (length args))
        (push (pathname (cdr (assoc "path" args :test #'equalp))) asdf:*central-registry*)
        (let ((my-package (intern (string-upcase (cdr (assoc "package" args :test #'equalp))))))
@@ -50,7 +58,8 @@
          (json-documentation my-package)))
 
       (t
-       (princ "missing args")))))
+       (print-message "missing args")
+       (print-usage)))))
 
 
 (defun inspect-docstring (sym)
