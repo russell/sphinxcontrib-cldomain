@@ -22,22 +22,27 @@
 (in-package #:cldomain)
 
 (let ((*standard-output* *error-output*))
-  (asdf:oos 'asdf:load-op 'getopt)
-)
+  (asdf:oos 'asdf:load-op 'getopt))
 
 (defun load-quicklisp ()
   ;; use the local quicklisp if it is there
   #-quicklisp
-  (let ((quicklisp-init (merge-pathnames "quicklisp/setup.lisp"
-                                         (user-homedir-pathname))))
+  (let* ((quicklisp-path
+           (car (remove-if #'null
+                           (mapcar #'probe-file
+                                   (list (merge-pathnames "quicklisp/setup.lisp"
+                                                          (user-homedir-pathname))
+                                         (merge-pathnames ".quicklisp/setup.lisp"
+                                                          (user-homedir-pathname)))))))
+         (quicklisp-init quicklisp-path))
     (when (probe-file quicklisp-init)
-      (load quicklisp-init)))
-  )
+      (load quicklisp-init))))
 
 
 (load-quicklisp)
-
-
+(let ((*standard-output* *error-output*))
+  (eval '(ql:quickload 'swank))
+  (eval '(ql:quickload 'cl-json)))
 (defun argv ()
   (or
    #+SBCL sb-ext:*posix-argv*
@@ -51,7 +56,6 @@
 (defun print-usage ()
   (format t "./cldomain.lisp --package <package name> --path <package path> ~%"))
 
-
 (defun main ()
   (multiple-value-bind (unused-args args invalid-args)
       (getopt:getopt (argv) '(("package" :required)("path" :required)))
@@ -64,81 +68,41 @@
        (print-usage))
       ((= 2 (length args))
        (push (pathname (cdr (assoc "path" args :test #'equalp))) asdf:*central-registry*)
-       (let ((my-package (intern (string-upcase (cdr (assoc "package" args :test #'equalp))))))
+       (let ((my-package (string-upcase (cdr (assoc "package" args :test #'equalp)))))
          (let ((*standard-output* *error-output*))
            #+quicklisp
            (ql:quickload my-package :prompt nil)
            #-quicklisp
            (asdf:oos 'asdf:load-op my-package))
-         (json-documentation my-package)))
-
+         (let* ((swank::*buffer-package* (find-package (intern (string-upcase "CL-USER"))))
+                (swank::*buffer-readtable* (copy-readtable)))
+           (json:encode-json-alist
+            (let ((package-symbols nil))
+              (dolist (sym (swank:apropos-list-for-emacs "" t nil my-package) package-symbols)
+                (let* ((sym-name (cadr sym))
+                       (sym-type (caddr sym))
+                       (sym-docstring (cadddr sym)))
+                  (when (and (> (length sym-name) (length my-package))
+                             (string= (subseq sym-name 0 (length my-package))
+                                      (string-upcase my-package)))
+                    (labels ((symbols-to-local (symbols)
+                               (cond
+                                 ((listp symbols)
+                                  (mapcar #'symbols-to-local symbols))
+                                 ((and (symbolp symbols) (eq (symbol-package symbols) (find-package 'KEYWORD)))
+                                  symbols)
+                                 ((symbolp symbols)
+                                  (intern (symbol-name symbols)))
+                                 (t symbols))))
+                      (let* ((sym-args (case sym-type
+                                         (:FUNCTION
+                                          (format nil "~S" (mapcar #'symbols-to-local
+                                                                   (swank::%arglist (intern (subseq sym-name (1+ (length my-package))) my-package)))))
+                                         (otherwise ""))))
+                        (push (list (subseq sym-name (1+ (length my-package))) sym-type sym-args (if (eq :NOT-DOCUMENTED sym-docstring) "" sym-docstring)
+                                            ) package-symbols)))))))))))
       (t
        (print-message "missing args")
        (print-usage)))))
-
-
-(require 'sb-introspect)
-
-(defun inspect-docstring (sym)
-  (documentation sym (cond ((boundp sym)
-			    'variable)
-			   ((fboundp sym)
-			    'function)
-			   ((compiler-macro-function sym)
-			    'macro))))
-
-
-(defun inspect-arglist (sym)
-  (cond ((boundp sym)
-	 nil)
-	((fboundp sym)
-	 (sb-introspect:function-lambda-list sym))
-	((compiler-macro-function sym)
-	 (sb-introspect:function-lambda-list sym))))
-
-
-(defparameter +json-lisp-escaped-chars+
-  `((#\" . #\")
-    (#\\ . #\\)
-    (#\/ . #\/)
-    (#\b . #\Backspace)
-    (#\f . ,(code-char 12))
-    (#\n . #\Newline)
-    (#\r . #\Return)
-    (#\t . #\Tab)))
-
-
-(defun write-json-chars (s stream)
-  "Write JSON representations (chars or escape sequences) of
-characters in string S to STREAM."
-  (loop for ch across s
-     for code = (char-code ch)
-     with special
-     if (setq special (car (rassoc ch +json-lisp-escaped-chars+)))
-       do (write-char #\\ stream) (write-char special stream)
-     else if (< #x1f code #x7f)
-       do (write-char ch stream)
-     else
-       do (let ((special '#.(rassoc-if #'consp +json-lisp-escaped-chars+)))
-            (destructuring-bind (esc . (width . radix)) special
-              (format stream "\\~C~V,V,'0R" esc radix width code)))))
-
-
-(defun json-documentation (package-name)
-  (let ((package (find-package package-name)))
-    (princ "{")
-    (let ((first-loop t))
-      (do-external-symbols (sym package)
-        (if first-loop (setq first-loop nil) (princ ", "))
-        (format t "\"~A\": [\"" sym)
-        (if (inspect-arglist sym)
-            (write-json-chars (prin1-to-string (inspect-arglist sym)) *standard-output*))
-        (princ "\", \"")
-        (write-json-chars
-         (or (inspect-docstring sym) "")
-         *standard-output*)
-        (princ "\"]")))
-    (format t "}~%")))
-
 
 (main)

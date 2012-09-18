@@ -48,6 +48,7 @@ from sphinx.util.docfields import DocFieldTransformer
 upper_symbols = re.compile("(^|\s)([^a-z\s\"`]*[A-Z]{2,}[^a-z\s\"`:]*)($|\s)")
 
 doc_strings = {}
+types = {}
 args = {}
 
 
@@ -336,7 +337,11 @@ def index_package(package, package_path, extra_args=""):
     doc_strings[package] = {}
     for k, v in lisp_data.items():
         doc_strings[package][k] = re.sub(upper_symbols,
-                                         "\g<1>:cl:symbol:`~\g<2>`\g<3>", v[1])
+                                         "\g<1>:cl:symbol:`~\g<2>`\g<3>", v[2])
+
+    types[package] = {}
+    for k, v in lisp_data.items():
+        types[package][k] = v[1]
 
     args[package] = {}
 
@@ -347,8 +352,12 @@ def index_package(package, package_path, extra_args=""):
             return text[len(package) + 2:].lower()
         return text.lower()
     for k, v in lisp_data.items():
-        v_arg = v[0].replace('(', ' ( ').replace(')', ' ) ')
-        args[package][k] = " ".join(map(lower_symbols, v_arg.split(" ")))
+        if v[1] == "NIL":
+            args[package][k] = ""
+        else:
+            v_arg = v[1].replace('(', ' ( ').replace(')', ' ) ')
+            args[package][k] = " ".join(map(lower_symbols, v_arg.split(" ")))
+    print args
 
 
 def load_packages(app):
