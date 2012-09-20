@@ -93,11 +93,18 @@
                                   symbols)
                                  ((symbolp symbols)
                                   (intern (symbol-name symbols)))
-                                 (t symbols))))
+                                 (t symbols)))
+                             (func-or-macro-args (sym-name package)
+                               (format nil "~S"
+                                       (mapcar #'symbols-to-local
+                                               (swank::%arglist
+                                                (intern (subseq sym-name (1+ (length my-package)))
+                                                        my-package))))))
                       (let* ((sym-args (case sym-type
                                          (:FUNCTION
-                                          (format nil "~S" (mapcar #'symbols-to-local
-                                                                   (swank::%arglist (intern (subseq sym-name (1+ (length my-package))) my-package)))))
+                                          (func-or-macro-args sym-name my-package))
+                                         (:MACRO
+                                          (func-or-macro-args sym-name my-package))
                                          (otherwise ""))))
                         (push (list (subseq sym-name (1+ (length my-package))) sym-type sym-args (if (eq :NOT-DOCUMENTED sym-docstring) "" sym-docstring)
                                             ) package-symbols)))))))))))
