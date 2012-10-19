@@ -56,6 +56,52 @@
 (defun print-usage ()
   (format t "./cldomain.lisp --package <package name> --path <package path> ~%"))
 
+(defun symbols-to-json (package)
+  (let ((my-package (string-upcase package)))
+    (let ((*standard-output* *error-output*))
+      #+quicklisp
+      (ql:quickload my-package :prompt nil)
+      #-quicklisp
+      (asdf:oos 'asdf:load-op my-package))
+    (let* ((swank::*buffer-package* (find-package (intern (string-upcase "CL-USER"))))
+           (swank::*buffer-readtable* (copy-readtable)))
+      (let ((package-symbols nil))
+        (json:with-object (*standard-output*)
+          (dolist (sym (swank:apropos-list-for-emacs "" t nil my-package) package-symbols)
+            (let* ((sym-name (cadr sym))
+                   (sym-type (caddr sym))
+                   (sym-docstring (cadddr sym)))
+              (when (and (> (length sym-name) (length my-package))
+                         (string= (subseq sym-name 0 (length my-package))
+                                  (string-upcase my-package)))
+                (labels ((symbols-to-local (symbols)
+                           (cond
+                             ((listp symbols)
+                              (mapcar #'symbols-to-local symbols))
+                             ((and (symbolp symbols) (eq (symbol-package symbols) (find-package 'KEYWORD)))
+                              symbols)
+                             ((symbolp symbols)
+                              (intern (symbol-name symbols)))
+                             (t symbols)))
+                         (func-or-macro-args (sym-name package)
+                           (format nil "~S"
+                                   (mapcar #'symbols-to-local
+                                           (swank::arglist
+                                            (intern (subseq sym-name (1+ (length my-package)))
+                                                    my-package))))))
+                  (let* ((sym-args
+                           (case sym-type
+                             (:FUNCTION
+                              (func-or-macro-args sym-name my-package))
+                             (:MACRO
+                              (func-or-macro-args sym-name my-package))
+                             (otherwise ""))))
+                    (json:as-object-member ((subseq sym-name (1+ (length my-package))) *standard-output*)
+                     (json:with-object (*standard-output*)
+                       (json:encode-object-member 'type sym-type)
+                       (json:encode-object-member 'arguments sym-args)
+                       (json:encode-object-member 'docstring (if (eq :NOT-DOCUMENTED sym-docstring) "" sym-docstring))))))))))))))
+
 (defun main ()
   (multiple-value-bind (unused-args args invalid-args)
       (getopt:getopt (argv) '(("package" :required)("path" :required)))
@@ -68,46 +114,7 @@
        (print-usage))
       ((= 2 (length args))
        (push (pathname (cdr (assoc "path" args :test #'equalp))) asdf:*central-registry*)
-       (let ((my-package (string-upcase (cdr (assoc "package" args :test #'equalp)))))
-         (let ((*standard-output* *error-output*))
-           #+quicklisp
-           (ql:quickload my-package :prompt nil)
-           #-quicklisp
-           (asdf:oos 'asdf:load-op my-package))
-         (let* ((swank::*buffer-package* (find-package (intern (string-upcase "CL-USER"))))
-                (swank::*buffer-readtable* (copy-readtable)))
-           (json:encode-json-alist
-            (let ((package-symbols nil))
-              (dolist (sym (swank:apropos-list-for-emacs "" t nil my-package) package-symbols)
-                (let* ((sym-name (cadr sym))
-                       (sym-type (caddr sym))
-                       (sym-docstring (cadddr sym)))
-                  (when (and (> (length sym-name) (length my-package))
-                             (string= (subseq sym-name 0 (length my-package))
-                                      (string-upcase my-package)))
-                    (labels ((symbols-to-local (symbols)
-                               (cond
-                                 ((listp symbols)
-                                  (mapcar #'symbols-to-local symbols))
-                                 ((and (symbolp symbols) (eq (symbol-package symbols) (find-package 'KEYWORD)))
-                                  symbols)
-                                 ((symbolp symbols)
-                                  (intern (symbol-name symbols)))
-                                 (t symbols)))
-                             (func-or-macro-args (sym-name package)
-                               (format nil "~S"
-                                       (mapcar #'symbols-to-local
-                                               (swank::%arglist
-                                                (intern (subseq sym-name (1+ (length my-package)))
-                                                        my-package))))))
-                      (let* ((sym-args (case sym-type
-                                         (:FUNCTION
-                                          (func-or-macro-args sym-name my-package))
-                                         (:MACRO
-                                          (func-or-macro-args sym-name my-package))
-                                         (otherwise ""))))
-                        (push (list (subseq sym-name (1+ (length my-package))) sym-type sym-args (if (eq :NOT-DOCUMENTED sym-docstring) "" sym-docstring)
-                                            ) package-symbols)))))))))))
+       (symbols-to-json (cdr (assoc "package" args :test #'equalp))))
       (t
        (print-message "missing args")
        (print-usage)))))
