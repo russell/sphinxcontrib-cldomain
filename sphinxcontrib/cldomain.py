@@ -267,6 +267,7 @@ class CLDomain(Domain):
     directives = {
         'package': CLCurrentPackage,
         'function': CLsExp,
+        'genericfunction': CLsExp,
         'macro': CLsExp,
         'variable': CLsExp,
     }

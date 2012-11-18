@@ -56,6 +56,48 @@
 (defun print-usage ()
   (format t "./cldomain.lisp --package <package name> --path <package path> ~%"))
 
+(defun symbols-to-local (symbols)
+  (cond
+    ((listp symbols)
+     (mapcar #'symbols-to-local symbols))
+    ((and (symbolp symbols) (eq (symbol-package symbols) (find-package 'KEYWORD)))
+     symbols)
+    ((symbolp symbols)
+     (intern (symbol-name symbols)))
+    (t symbols)))
+
+(defun func-or-macro-args (sym-name sym-package lambda-list-func)
+  (format nil "~S"
+          (mapcar #'symbols-to-local
+                  (funcall
+                   lambda-list-func
+                   (intern (subseq sym-name (1+ (length sym-package)))
+                           sym-package)))))
+
+(defun convert-classes-to-names (sym)
+  (cond
+    ((equal "EQL-SPECIALIZER" (symbol-name (class-name (class-of sym))))
+     (slot-value sym 'SB-PCL::%TYPE))
+    (t
+     (swank-mop:class-name sym))))
+
+(defun specializers (gf)
+  (loop :for syms
+        :in (mapcar #'swank-mop:method-specializers
+                    (sb-mop:generic-function-methods gf))
+        :collect (mapcar #'convert-classes-to-names syms)))
+
+(defun symbol-args (symbol package type)
+  "look up symbol args and convert them to a string."
+  (case type
+    (:function
+     (func-or-macro-args symbol package #'swank::arglist))
+    (:macro
+     (func-or-macro-args symbol package #'swank::arglist))
+    (:generic-function
+     (func-or-macro-args symbol package #'swank::arglist))
+    (otherwise "")))
+
 (defun symbols-to-json (package)
   (let ((my-package (string-upcase package)))
     (let ((*standard-output* *error-output*))
@@ -74,33 +116,16 @@
               (when (and (> (length sym-name) (length my-package))
                          (string= (subseq sym-name 0 (length my-package))
                                   (string-upcase my-package)))
-                (labels ((symbols-to-local (symbols)
-                           (cond
-                             ((listp symbols)
-                              (mapcar #'symbols-to-local symbols))
-                             ((and (symbolp symbols) (eq (symbol-package symbols) (find-package 'KEYWORD)))
-                              symbols)
-                             ((symbolp symbols)
-                              (intern (symbol-name symbols)))
-                             (t symbols)))
-                         (func-or-macro-args (sym-name package)
-                           (format nil "~S"
-                                   (mapcar #'symbols-to-local
-                                           (swank::arglist
-                                            (intern (subseq sym-name (1+ (length my-package)))
-                                                    my-package))))))
-                  (let* ((sym-args
-                           (case sym-type
-                             (:FUNCTION
-                              (func-or-macro-args sym-name my-package))
-                             (:MACRO
-                              (func-or-macro-args sym-name my-package))
-                             (otherwise ""))))
-                    (json:as-object-member ((subseq sym-name (1+ (length my-package))) *standard-output*)
-                     (json:with-object (*standard-output*)
-                       (json:encode-object-member 'type sym-type)
-                       (json:encode-object-member 'arguments sym-args)
-                       (json:encode-object-member 'docstring (if (eq :NOT-DOCUMENTED sym-docstring) "" sym-docstring))))))))))))))
+                (json:as-object-member ((subseq sym-name (1+ (length my-package))) *standard-output*)
+                  (json:with-object (*standard-output*)
+                    (json:encode-object-member 'type sym-type)
+                    (json:encode-object-member 'arguments
+                                               (symbol-args sym-name my-package sym-type))
+                    (when (eq sym-type :generic-function)
+                      (json:encode-object-member 'specializers
+                                                 (specializers (symbol-function (intern (subseq sym-name (1+ (length my-package))) my-package)))))
+                    (json:encode-object-member 'docstring
+                                               (if (eq :not-documented sym-docstring) "" sym-docstring))))))))))))
 
 (defun main ()
   (multiple-value-bind (unused-args args invalid-args)
