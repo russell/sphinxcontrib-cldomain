@@ -24,22 +24,33 @@
 (let ((*standard-output* *error-output*))
   (asdf:oos 'asdf:load-op 'getopt))
 
-(defun load-quicklisp ()
-  ;; use the local quicklisp if it is there
-  #-quicklisp
-  (let* ((quicklisp-path
-           (car (remove-if #'null
-                           (mapcar #'probe-file
-                                   (list (merge-pathnames "quicklisp/setup.lisp"
-                                                          (user-homedir-pathname))
-                                         (merge-pathnames ".quicklisp/setup.lisp"
-                                                          (user-homedir-pathname)))))))
-         (quicklisp-init quicklisp-path))
-    (when (probe-file quicklisp-init)
-      (load quicklisp-init))))
+(defun find-quicklisp ()
+  "try and find quicklisp"
+  (car
+   (handler-bind
+       ((file-error
+         (lambda (c)
+           (declare (ignore c))
+           (invoke-restart 'skip-path))))
+     (loop :for path
+        :in (mapcar (lambda (path)
+                      (merge-pathnames (make-pathname :directory (list :relative path))
+                                       (user-homedir-pathname)))
+                    (list "quicklisp" ".quicklisp"))
+        :when (restart-case
+                  (truename path)
+                (skip-path () nil))
+        :collect path))))
+
+;#-quicklisp
+(let ((quicklisp-init (merge-pathnames (make-pathname :name "setup"
+                                                      :type "lisp")
+                                       (find-quicklisp))))
+  (if (probe-file quicklisp-init)
+    (load quicklisp-init)
+    (error "Can't Find Quicklisp")))
 
 
-(load-quicklisp)
 (let ((*standard-output* *error-output*))
   (eval '(ql:quickload 'swank))
   (eval '(ql:quickload 'cl-json)))
