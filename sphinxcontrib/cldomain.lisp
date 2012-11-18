@@ -138,7 +138,8 @@
        (print-message "Unused args")
        (print-usage))
       ((= 2 (length args))
-       (push (pathname (cdr (assoc "path" args :test #'equalp))) asdf:*central-registry*)
+       (push (truename (pathname (cdr (assoc "path" args :test #'equalp))))
+             asdf:*central-registry*)
        (symbols-to-json (cdr (assoc "package" args :test #'equalp))))
       (t
        (print-message "missing args")
