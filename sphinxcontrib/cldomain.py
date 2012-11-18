@@ -48,6 +48,7 @@ from sphinx.util.docfields import DocFieldTransformer
 upper_symbols = re.compile("(^|\s)([^a-z\s\"`]*[A-Z]{2,}[^a-z\s\"`:]*)($|\s)")
 
 doc_strings = {}
+types = {}
 args = {}
 
 
@@ -266,6 +267,7 @@ class CLDomain(Domain):
     directives = {
         'package': CLCurrentPackage,
         'function': CLsExp,
+        'genericfunction': CLsExp,
         'macro': CLsExp,
         'variable': CLsExp,
     }
@@ -334,9 +336,16 @@ def index_package(package, package_path, extra_args=""):
                         if not line.startswith(";")])
     lisp_data = eval(output)
     doc_strings[package] = {}
+    # extract doc strings
     for k, v in lisp_data.items():
-        doc_strings[package][k] = re.sub(upper_symbols,
-                                         "\g<1>:cl:symbol:`~\g<2>`\g<3>", v[1])
+        doc_strings[package][k] = re.sub(
+            upper_symbols,
+            "\g<1>:cl:symbol:`~\g<2>`\g<3>", v["docstring"])
+
+    # extract type information
+    types[package] = {}
+    for k, v in lisp_data.items():
+        types[package][k] = v["type"]
 
     args[package] = {}
 
@@ -346,9 +355,14 @@ def index_package(package, package_path, extra_args=""):
         if text.startswith(package):
             return text[len(package) + 2:].lower()
         return text.lower()
+    # extract arguments
     for k, v in lisp_data.items():
-        v_arg = v[0].replace('(', ' ( ').replace(')', ' ) ')
-        args[package][k] = " ".join(map(lower_symbols, v_arg.split(" ")))
+        if v["arguments"] == "NIL":
+            args[package][k] = ""
+        else:
+            v_arg = v["arguments"].replace('(', ' ( ').replace(')', ' ) ')
+            args[package][k] = " ".join(map(lower_symbols, v_arg.split(" ")))
+    print args
 
 
 def load_packages(app):
