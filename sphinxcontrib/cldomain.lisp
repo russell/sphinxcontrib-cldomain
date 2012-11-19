@@ -67,6 +67,14 @@
 (defun print-usage ()
   (format t "./cldomain.lisp --package <package name> --path <package path> ~%"))
 
+(defun symbol-to-local (symbol package)
+  (assert (stringp package))
+  (cond
+    ((symbolp symbol)
+     (symbol-to-local (symbol-name symbol) package))
+    ((stringp symbol)
+     (subseq symbol (1+ (length package))))))
+
 (defun symbols-to-local (symbols)
   (cond
     ((listp symbols)
@@ -116,25 +124,30 @@
       (ql:quickload my-package :prompt nil)
       #-quicklisp
       (asdf:oos 'asdf:load-op my-package))
-    (let* ((swank::*buffer-package* (find-package (intern (string-upcase "CL-USER"))))
+    (let* ((swank::*buffer-package* (find-package
+                                     (intern
+                                      (string-upcase "CL-USER"))))
            (swank::*buffer-readtable* (copy-readtable)))
       (let ((package-symbols nil))
         (json:with-object (*standard-output*)
-          (dolist (sym (swank:apropos-list-for-emacs "" t nil my-package) package-symbols)
+          (dolist (sym (swank:apropos-list-for-emacs "" t nil my-package)
+                       package-symbols)
+            (break)
             (let* ((sym-name (cadr sym))
                    (sym-type (caddr sym))
                    (sym-docstring (cadddr sym)))
               (when (and (> (length sym-name) (length my-package))
                          (string= (subseq sym-name 0 (length my-package))
                                   (string-upcase my-package)))
-                (json:as-object-member ((subseq sym-name (1+ (length my-package))) *standard-output*)
+                (json:as-object-member ((symbol-to-local sym-name my-package)
+                                        *standard-output*)
                   (json:with-object (*standard-output*)
                     (json:encode-object-member 'type sym-type)
                     (json:encode-object-member 'arguments
                                                (symbol-args sym-name my-package sym-type))
                     (when (eq sym-type :generic-function)
                       (json:encode-object-member 'specializers
-                                                 (specializers (symbol-function (intern (subseq sym-name (1+ (length my-package))) my-package)))))
+                                                 (specializers (symbol-function (intern (symbol-to-local sym-name my-package) my-package)))))
                     (json:encode-object-member 'docstring
                                                (if (eq :not-documented sym-docstring) "" sym-docstring))))))))))))
 
