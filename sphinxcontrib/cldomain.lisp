@@ -1,4 +1,3 @@
-#!/usr/bin/sbcl --script
 ;; cldomain is a Common Lisp domain for the Sphinx documentation tool.
 ;; Copyright (C) 2011-2012 Russell Sim <russell.sim@gmail.com>
 
@@ -15,45 +14,14 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(require 'asdf)
+(in-package :cl-user)
 
-(defpackage :cldomain
-  (:use :common-lisp))
-(in-package #:cldomain)
+(defpackage :sphinxcontrib.cldomain
+  (:use #:common-lisp #:getopt #:json)
+  (:export #:main))
 
-(let ((*standard-output* *error-output*))
-  (asdf:oos 'asdf:load-op 'getopt))
+(in-package :sphinxcontrib.cldomain)
 
-(defun find-quicklisp ()
-  "try and find quicklisp"
-  (car
-   (handler-bind
-       ((file-error
-         (lambda (c)
-           (declare (ignore c))
-           (invoke-restart 'skip-path))))
-     (loop :for path
-        :in (mapcar (lambda (path)
-                      (merge-pathnames (make-pathname :directory (list :relative path))
-                                       (user-homedir-pathname)))
-                    (list "quicklisp" ".quicklisp"))
-        :when (restart-case
-                  (truename path)
-                (skip-path () nil))
-        :collect path))))
-
-;#-quicklisp
-(let ((quicklisp-init (merge-pathnames (make-pathname :name "setup"
-                                                      :type "lisp")
-                                       (find-quicklisp))))
-  (if (probe-file quicklisp-init)
-    (load quicklisp-init)
-    (error "Can't Find Quicklisp")))
-
-
-(let ((*standard-output* *error-output*))
-  (eval '(ql:quickload 'swank))
-  (eval '(ql:quickload 'cl-json)))
 (defun argv ()
   (or
    #+SBCL sb-ext:*posix-argv*
@@ -67,6 +35,8 @@
 (defun print-usage ()
   (format t "./cldomain.lisp --package <package name> --path <package path> ~%"))
 
+;; TODO this is a really crap name, it's more like a symbol string to
+;; local or trim package name
 (defun symbol-to-local (symbol package)
   (assert (stringp package))
   (cond
@@ -117,39 +87,46 @@
      (func-or-macro-args symbol package #'swank::arglist))
     (otherwise "")))
 
+(defun intern* (symbol)
+  "Take a symbol in the form of a string e.g. \"CL-GIT:GIT-AUTHOR\"
+  and return the interned symbol."
+  (destructuring-bind (package name)
+      (loop :for i = 0 :then (1+ j)
+            :as j = (position #\: symbol :start i)
+            :when (subseq symbol i j)
+              :collect (subseq symbol i j)
+            :while j)
+    (intern name package)))
+
+(defun symbol-to-json ())
+
 (defun symbols-to-json (package)
   (let ((my-package (string-upcase package)))
-    (let ((*standard-output* *error-output*))
-      #+quicklisp
-      (ql:quickload my-package :prompt nil)
-      #-quicklisp
-      (asdf:oos 'asdf:load-op my-package))
-    (let* ((swank::*buffer-package* (find-package
-                                     (intern
-                                      (string-upcase "CL-USER"))))
+    (let* ((swank::*buffer-package* (find-package 'CL-USER))
            (swank::*buffer-readtable* (copy-readtable)))
-      (let ((package-symbols nil))
-        (json:with-object (*standard-output*)
-          (dolist (sym (swank:apropos-list-for-emacs "" t nil my-package)
-                       package-symbols)
-            (break)
-            (let* ((sym-name (cadr sym))
-                   (sym-type (caddr sym))
-                   (sym-docstring (cadddr sym)))
-              (when (and (> (length sym-name) (length my-package))
-                         (string= (subseq sym-name 0 (length my-package))
-                                  (string-upcase my-package)))
-                (json:as-object-member ((symbol-to-local sym-name my-package)
-                                        *standard-output*)
-                  (json:with-object (*standard-output*)
-                    (json:encode-object-member 'type sym-type)
-                    (json:encode-object-member 'arguments
-                                               (symbol-args sym-name my-package sym-type))
-                    (when (eq sym-type :generic-function)
-                      (json:encode-object-member 'specializers
-                                                 (specializers (symbol-function (intern (symbol-to-local sym-name my-package) my-package)))))
-                    (json:encode-object-member 'docstring
-                                               (if (eq :not-documented sym-docstring) "" sym-docstring))))))))))))
+      (let ((package-symbols nil)
+            (*json-output* *standard-output*))
+        (with-object ()
+          (dolist (sym (swank:apropos-list-for-emacs "" t nil my-package) package-symbols)
+            (destructuring-bind  (&key designator macro function generic-function)
+                sym
+                (let* ((sym-name (cadr sym))
+                       (sym-type (caddr sym))
+                       (sym-docstring (cadddr sym)))
+                  (when (and (> (length sym-name) (length my-package))
+                             (string= (subseq sym-name 0 (length my-package))
+                                      (string-upcase my-package)))
+                    (as-object-member ((symbol-to-local sym-name my-package))
+                      (with-object ()
+                        (encode-object-member 'type sym-type)
+                        (encode-object-member 'arguments
+                                              (symbol-args sym-name my-package sym-type))
+                        (when (eq sym-type :generic-function)
+                          (let ((classes (specializers (symbol-function (intern sym-name)))))
+                            (print classes)
+                            (encode-object-member 'specializers classes)))
+                        (encode-object-member 'docstring
+                                              (if (eq :not-documented sym-docstring) "" sym-docstring)))))))))))))
 
 (defun main ()
   (multiple-value-bind (unused-args args invalid-args)
@@ -162,11 +139,15 @@
        (print-message "Unused args")
        (print-usage))
       ((= 2 (length args))
-       (push (truename (pathname (cdr (assoc "path" args :test #'equalp))))
-             asdf:*central-registry*)
-       (symbols-to-json (cdr (assoc "package" args :test #'equalp))))
+       (let ((package-path (truename (pathname (cdr (assoc "path" args :test #'equalp)))))
+             (my-package (cdr (assoc "package" args :test #'equalp))))
+         (push package-path asdf:*central-registry*)
+         (let ((*standard-output* *error-output*))
+           #+quicklisp
+           (ql:quickload my-package :prompt nil)
+           #-quicklisp
+           (asdf:oos 'asdf:load-op my-package))
+         (symbols-to-json my-package)))
       (t
        (print-message "missing args")
        (print-usage)))))
-
-(main)
