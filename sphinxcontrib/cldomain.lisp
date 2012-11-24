@@ -17,7 +17,7 @@
 (in-package :cl-user)
 
 (defpackage :sphinxcontrib.cldomain
-  (:use #:common-lisp #:getopt #:json #:closer-mop #:alexandria)
+  (:use #:closer-common-lisp #:getopt #:json #:closer-mop #:alexandria)
   (:export #:main))
 
 (in-package :sphinxcontrib.cldomain)
@@ -114,7 +114,7 @@ object member."
                           (encode-object-member 'arguments (format nil "~S" (swank::arglist symbol))))
                         (when type
                           (encode-object-member 'arguments (format nil "~S" (class-args symbol)))
-                          (encode-object-member 'slots (format nil "~S" (encode-object-class symbol))))
+                          (as-object-member ('slots) (encode-object-class symbol)))
                         (when generic-function
                           (let ((classes (specializers (symbol-function symbol))))
                             (encode-object-member 'specializers classes))))))))))))))
