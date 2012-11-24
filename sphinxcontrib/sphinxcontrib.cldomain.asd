@@ -18,7 +18,7 @@
 
 
 (defsystem :sphinxcontrib.cldomain
-  :depends-on (:swank :getopt :cl-json)
+  :depends-on (:swank :getopt :cl-json :alexandria :closer)
   :description "A documentation tool."
   :components ((:static-file "sphinxcontrib.cldomain.asd")
                (:file "cldomain")))

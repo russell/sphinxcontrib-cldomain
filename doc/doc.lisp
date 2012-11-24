@@ -19,7 +19,9 @@
 (defpackage :sphinxcontrib.cldomain.doc
   (:use #:common-lisp)
   (:export #:example-function
-           #:example-function1))
+           #:example-function1
+           #:example-class
+           #:ex-generic))
 
 (in-package :sphinxcontrib.cldomain.doc)
 
@@ -35,5 +37,18 @@
   (list arg1 arg2 arg3))
 
 
-(defgeneric genfunc (arg1 arg2 &optional arg3)
+(defclass example-class ()
+  ((slot1 :initarg :slot1 :accessor slot1
+          :initform "default"
+          :documentation "the first slot.")
+   (slot2 :initarg :slot2 :accessor slot2
+          :documentation "the second slot."))
+  (:documentation "An example class."))
+
+
+(defgeneric ex-generic (arg1 arg2 &optional arg3)
   (:documentation "A test generic function."))
+
+
+(defmethod ex-generic ((arg1 example-class) (arg2 (eql :test)) &optional arg3)
+  (list arg1 arg2 arg3))

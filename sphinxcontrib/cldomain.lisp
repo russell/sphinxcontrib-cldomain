@@ -17,7 +17,7 @@
 (in-package :cl-user)
 
 (defpackage :sphinxcontrib.cldomain
-  (:use #:common-lisp #:getopt #:json)
+  (:use #:common-lisp #:getopt #:json #:closer-mop #:alexandria)
   (:export #:main))
 
 (in-package :sphinxcontrib.cldomain)
@@ -67,7 +67,23 @@
 object member."
   (encode-object-member
    type
-   (documentation sym type)))
+   (documentation sym (if (eq type 'generic-function) 'function type))))
+
+(defun class-args (class)
+  (loop :for slot :in (class-direct-slots (find-class class))
+        :collect (car (slot-definition-initargs slot))))
+
+(defun encode-object-class (sym)
+  (with-array ()
+    (dolist (slot (class-direct-slots (find-class sym)))
+      (as-array-member ()
+        (with-object ()
+          (encode-object-member 'name (slot-definition-name slot))
+          (encode-object-member 'initarg (write-to-string (car (slot-definition-initargs slot))))
+          (encode-object-member 'readers (write-to-string (car (slot-definition-readers slot))))
+          (encode-object-member 'writers (write-to-string (car (slot-definition-writers slot))))
+          (encode-object-member 'type (write-to-string (class-name (class-of slot))))
+          (encode-object-member 'documentation (documentation slot t)))))))
 
 (defun symbols-to-json (package)
   (let ((my-package (string-upcase package)))
@@ -90,13 +106,15 @@ object member."
                                        (setf ,setf)
                                        (variable ,variable)
                                        (type ,type)))
-                          (let ((doc (if (eq (cadr sym) :not-documented)
-                                         ""
-                                         (cadr sym))))
-                            (when doc
-                              (encode-object-documentation symbol (car sym)))))
+                          (when (cadr sym)
+                            (if (eq (cadr sym) :not-documented)
+                                (encode-object-member (car sym) "")
+                                (encode-object-documentation symbol (car sym)))))
                         (when (or function macro generic-function)
                           (encode-object-member 'arguments (format nil "~S" (swank::arglist symbol))))
+                        (when type
+                          (encode-object-member 'arguments (format nil "~S" (class-args symbol)))
+                          (encode-object-member 'slots (format nil "~S" (encode-object-class symbol))))
                         (when generic-function
                           (let ((classes (specializers (symbol-function symbol))))
                             (encode-object-member 'specializers classes))))))))))))))

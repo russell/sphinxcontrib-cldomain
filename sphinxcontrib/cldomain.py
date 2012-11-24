@@ -44,7 +44,8 @@ from sphinx.util.compat import Directive
 from sphinx.util.docfields import Field, GroupedField
 from sphinx.util.docfields import DocFieldTransformer
 
-ALL_TYPES = ["macro", "function", "genericFunction", "setf", "variable", "type"]
+ALL_TYPES = ["macro", "function", "genericFunction",
+             "setf", "variable", "type"]
 upper_symbols = re.compile("([^a-z\s\"`]*[A-Z]{2,}[^a-z\s\"`:]*)($|\s)")
 
 DOC_STRINGS = {}
@@ -92,6 +93,13 @@ def _read_from(tokens):
 
 def resolve_string(package, symbol, objtype):
     possible_strings = DOC_STRINGS.get(package).get(symbol, {})
+
+    # XXX This isn't the best, the objtype is generic but the
+    # docstring will be under genericFunction because of the JSON
+    # encoder and changing the directive name doesn't seem to help
+    # either.
+    if objtype == "generic":
+        objtype = "genericFunction"
     string = possible_strings.get(objtype, "")
     return string
 
@@ -264,13 +272,14 @@ class CLDomain(Domain):
         'macro': ObjType(l_('macro'), 'macro'),
         'variable': ObjType(l_('variable'), 'variable'),
         'type': ObjType(l_('type'), 'type'),
+        'generic': ObjType(l_('generic'), 'generic'),
         'method': ObjType(l_('method'), 'method'),
     }
 
     directives = {
         'package': CLCurrentPackage,
         'function': CLsExp,
-        'genericfunction': CLsExp,
+        'generic': CLsExp,
         'macro': CLsExp,
         'variable': CLsExp,
         'type': CLsExp,
@@ -351,7 +360,6 @@ def index_package(package, package_path, extra_args=""):
             DOC_STRINGS[package][k][type] = re.sub(
                 upper_symbols,
                 ":cl:symbol:`~\g<1>`\g<2>", v[type])
-
         # extract specializers
         if "specializers" in v:
             SPECIALIZERS[package][k] = v["specializers"]
@@ -366,7 +374,9 @@ def index_package(package, package_path, extra_args=""):
         return text.lower()
     # extract arguments
     for k, v in lisp_data.items():
-        if v["arguments"] == "NIL":
+        if not v.get("arguments"):
+            pass
+        elif v["arguments"] == "NIL":
             ARGS[package][k] = ""
         else:
             v_arg = v["arguments"].replace('(', ' ( ').replace(')', ' ) ')
