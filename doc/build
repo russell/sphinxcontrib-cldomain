@@ -1,0 +1,16 @@
+#!/bin/bash
+DIR=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
+if [ ! -d "$DIR/.venv" ]; then
+    virtualenv -p python2.7 $DIR/.venv
+fi
+set -e
+export VIRTUAL_ENV=$DIR/.venv
+export PATH=$VIRTUAL_ENV/bin:$PATH
+
+pip freeze | grep -q Sphinx || pip install sphinx
+
+pip freeze | grep -q sphinxcontrib-googleanalytics || pip install sphinxcontrib-googleanalytics
+
+export PYTHONPATH=$DIR/../:$PYTHONPATH
+
+sphinx-build -b html -E $DIR $DIR/html
