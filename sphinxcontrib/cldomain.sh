@@ -14,4 +14,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+DIR=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
+
+sbcl --noinform --non-interactive \
+    --load $DIR/cldomain-init.lisp \
+    --load $DIR/cldomain.lisp \
+    --eval "(sphinxcontrib.cldomain:main)" $@
 

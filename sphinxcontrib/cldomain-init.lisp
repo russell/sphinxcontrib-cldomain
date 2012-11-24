@@ -51,6 +51,3 @@
 
 (let ((*standard-output* *error-output*))
   (eval '(ql:quickload 'sphinxcontrib.cldomain)))
-
-
-(sphinxcontrib.cldomain:main)

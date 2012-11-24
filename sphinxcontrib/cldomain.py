@@ -44,12 +44,13 @@ from sphinx.util.compat import Directive
 from sphinx.util.docfields import Field, GroupedField
 from sphinx.util.docfields import DocFieldTransformer
 
-
+TYPES = ["macro", "function", "genericFunction", "setf", "variable", "type"]
 upper_symbols = re.compile("(^|\s)([^a-z\s\"`]*[A-Z]{2,}[^a-z\s\"`:]*)($|\s)")
 
 doc_strings = {}
 types = {}
 args = {}
+specializers = {}
 
 
 def bool_option(arg):
@@ -88,12 +89,11 @@ def _read_from(tokens):
         return token
 # end of http://norvig.com/lispy.html
 
-lisp_types = {
-    "defun": "function",
-    "defmacro": "macro",
-    "defparameter": "variable",
-    "defvar": "variable",
-}
+
+def resolve_string(package, symbol, objtype):
+    possible_strings = doc_strings.get(package).get(symbol, {})
+    string = possible_strings.get(objtype, "")
+    return string
 
 
 class CLsExp(ObjectDescription):
@@ -151,7 +151,8 @@ class CLsExp(ObjectDescription):
         if not lisp_args.strip() and self.objtype in ["function"]:
             lisp_args = "()"
         if lisp_args.strip():
-            arg_list = render_sexp(_read(lisp_args), prepend_node=function_name)
+            arg_list = render_sexp(_read(lisp_args),
+                                   prepend_node=function_name)
             signode.append(arg_list)
         else:
             signode.append(function_name)
@@ -200,7 +201,8 @@ class CLsExp(ObjectDescription):
         if "nodoc" not in self.options:
             package = self.env.temp_data.get('cl:package')
             node = addnodes.desc_content()
-            string = doc_strings.get(package).get(self.names[0][1], "")
+            string = resolve_string(package, self.names[0][1], self.objtype)
+            import pdb; pdb.set_trace()
             lines = string2lines(string)
             self.state.nested_parse(StringList(lines), 0, node)
             if (result[1][1].children and
@@ -262,6 +264,8 @@ class CLDomain(Domain):
         'function': ObjType(l_('function'), 'function'),
         'macro': ObjType(l_('macro'), 'macro'),
         'variable': ObjType(l_('variable'), 'variable'),
+        'type': ObjType(l_('type'), 'type'),
+        'method': ObjType(l_('method'), 'method'),
     }
 
     directives = {
@@ -270,6 +274,8 @@ class CLDomain(Domain):
         'genericfunction': CLsExp,
         'macro': CLsExp,
         'variable': CLsExp,
+        'type': CLsExp,
+        'method': CLsExp,
     }
 
     roles = {
@@ -328,7 +334,7 @@ def index_package(package, package_path, extra_args=""):
     """Call an external lisp program that will return a dictionary of
     doc strings for all public symbols."""
     lisp_script = path.join(path.dirname(path.realpath(__file__)),
-                            "cldomain.lisp")
+                            "cldomain.sh")
     command = "%s --package %s --path %s" % (lisp_script, package,
                                              package_path)
     output = subprocess.check_output(command + extra_args, shell=True)
@@ -336,16 +342,20 @@ def index_package(package, package_path, extra_args=""):
                         if not line.startswith(";")])
     lisp_data = eval(output)
     doc_strings[package] = {}
-    # extract doc strings
+    specializers[package] = {}
     for k, v in lisp_data.items():
-        doc_strings[package][k] = re.sub(
-            upper_symbols,
-            "\g<1>:cl:symbol:`~\g<2>`\g<3>", v["docstring"])
+        # extract doc strings
+        doc_strings[package][k] = {}
+        for type in TYPES:
+            if not type in v:
+                continue
+            doc_strings[package][k][type] = re.sub(
+                upper_symbols,
+                "\g<1>:cl:symbol:`~\g<2>`\g<3>", v[type])
 
-    # extract type information
-    types[package] = {}
-    for k, v in lisp_data.items():
-        types[package][k] = v["type"]
+        # extract specializers
+        if "specializers" in v:
+            specializers[package][k] = v["specializers"]
 
     args[package] = {}
 

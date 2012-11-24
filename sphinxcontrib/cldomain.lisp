@@ -35,34 +35,6 @@
 (defun print-usage ()
   (format t "./cldomain.lisp --package <package name> --path <package path> ~%"))
 
-;; TODO this is a really crap name, it's more like a symbol string to
-;; local or trim package name
-(defun symbol-to-local (symbol package)
-  (assert (stringp package))
-  (cond
-    ((symbolp symbol)
-     (symbol-to-local (symbol-name symbol) package))
-    ((stringp symbol)
-     (subseq symbol (1+ (length package))))))
-
-(defun symbols-to-local (symbols)
-  (cond
-    ((listp symbols)
-     (mapcar #'symbols-to-local symbols))
-    ((and (symbolp symbols) (eq (symbol-package symbols) (find-package 'KEYWORD)))
-     symbols)
-    ((symbolp symbols)
-     (intern (symbol-name symbols)))
-    (t symbols)))
-
-(defun func-or-macro-args (sym-name sym-package lambda-list-func)
-  (format nil "~S"
-          (mapcar #'symbols-to-local
-                  (funcall
-                   lambda-list-func
-                   (intern (subseq sym-name (1+ (length sym-package)))
-                           sym-package)))))
-
 (defun convert-classes-to-names (sym)
   (cond
     ((equal "EQL-SPECIALIZER" (symbol-name (class-name (class-of sym))))
@@ -74,18 +46,7 @@
   (loop :for syms
         :in (mapcar #'swank-mop:method-specializers
                     (sb-mop:generic-function-methods gf))
-        :collect (mapcar #'convert-classes-to-names syms)))
-
-(defun symbol-args (symbol package type)
-  "look up symbol args and convert them to a string."
-  (case type
-    (:function
-     (func-or-macro-args symbol package #'swank::arglist))
-    (:macro
-     (func-or-macro-args symbol package #'swank::arglist))
-    (:generic-function
-     (func-or-macro-args symbol package #'swank::arglist))
-    (otherwise "")))
+        :collect (format nil "~S" (mapcar #'convert-classes-to-names syms))))
 
 (defun intern* (symbol)
   "Take a symbol in the form of a string e.g. \"CL-GIT:GIT-AUTHOR\"
@@ -98,7 +59,8 @@
             :while j)
     (intern name package)))
 
-(defun symbol-to-json ())
+(defun encode-when-object-member (type value)
+  (when value (encode-object-member type value)))
 
 (defun symbols-to-json (package)
   (let ((my-package (string-upcase package)))
@@ -108,25 +70,29 @@
             (*json-output* *standard-output*))
         (with-object ()
           (dolist (sym (swank:apropos-list-for-emacs "" t nil my-package) package-symbols)
-            (destructuring-bind  (&key designator macro function generic-function)
+            (destructuring-bind  (&key designator macro function generic-function setf variable type)
                 sym
-                (let* ((sym-name (cadr sym))
-                       (sym-type (caddr sym))
-                       (sym-docstring (cadddr sym)))
-                  (when (and (> (length sym-name) (length my-package))
-                             (string= (subseq sym-name 0 (length my-package))
-                                      (string-upcase my-package)))
-                    (as-object-member ((symbol-to-local sym-name my-package))
+                (let* ((symbol (intern* designator)))
+                  (when (string= (package-name (symbol-package symbol))
+                                 (string-upcase my-package))
+                    (as-object-member ((symbol-name symbol))
                       (with-object ()
-                        (encode-object-member 'type sym-type)
-                        (encode-object-member 'arguments
-                                              (symbol-args sym-name my-package sym-type))
-                        (when (eq sym-type :generic-function)
-                          (let ((classes (specializers (symbol-function (intern sym-name)))))
-                            (print classes)
-                            (encode-object-member 'specializers classes)))
-                        (encode-object-member 'docstring
-                                              (if (eq :not-documented sym-docstring) "" sym-docstring)))))))))))))
+                        (dolist (sym `((macro ,macro)
+                                       (function ,function)
+                                       (generic-function ,generic-function)
+                                       (setf ,setf)
+                                       (variable ,variable)
+                                       (type ,type)))
+                          (let ((doc (if (eq (cadr sym) :not-documented)
+                                         ""
+                                         (cadr sym))))
+                            (when doc
+                              (encode-object-member (car sym) doc))))
+                        (when (or function macro generic-function)
+                          (encode-object-member 'arguments (format nil "~S" (swank::arglist symbol))))
+                        (when generic-function
+                          (let ((classes (specializers (symbol-function symbol))))
+                            (encode-object-member 'specializers classes))))))))))))))
 
 (defun main ()
   (multiple-value-bind (unused-args args invalid-args)
