@@ -62,6 +62,13 @@
 (defun encode-when-object-member (type value)
   (when value (encode-object-member type value)))
 
+(defun encode-object-documentation (sym type)
+  "Encode documentation for a symbol as a JSON
+object member."
+  (encode-object-member
+   type
+   (documentation sym type)))
+
 (defun symbols-to-json (package)
   (let ((my-package (string-upcase package)))
     (let* ((swank::*buffer-package* (find-package 'CL-USER))
@@ -87,7 +94,7 @@
                                          ""
                                          (cadr sym))))
                             (when doc
-                              (encode-object-member (car sym) doc))))
+                              (encode-object-documentation symbol (car sym)))))
                         (when (or function macro generic-function)
                           (encode-object-member 'arguments (format nil "~S" (swank::arglist symbol))))
                         (when generic-function

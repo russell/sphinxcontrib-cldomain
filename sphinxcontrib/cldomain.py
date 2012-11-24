@@ -45,7 +45,7 @@ from sphinx.util.docfields import Field, GroupedField
 from sphinx.util.docfields import DocFieldTransformer
 
 ALL_TYPES = ["macro", "function", "genericFunction", "setf", "variable", "type"]
-upper_symbols = re.compile("(^|\s)([^a-z\s\"`]*[A-Z]{2,}[^a-z\s\"`:]*)($|\s)")
+upper_symbols = re.compile("([^a-z\s\"`]*[A-Z]{2,}[^a-z\s\"`:]*)($|\s)")
 
 DOC_STRINGS = {}
 TYPES = {}
@@ -202,7 +202,6 @@ class CLsExp(ObjectDescription):
             package = self.env.temp_data.get('cl:package')
             node = addnodes.desc_content()
             string = resolve_string(package, self.names[0][1], self.objtype)
-            import pdb; pdb.set_trace()
             lines = string2lines(string)
             self.state.nested_parse(StringList(lines), 0, node)
             if (result[1][1].children and
@@ -351,7 +350,7 @@ def index_package(package, package_path, extra_args=""):
                 continue
             DOC_STRINGS[package][k][type] = re.sub(
                 upper_symbols,
-                "\g<1>:cl:symbol:`~\g<2>`\g<3>", v[type])
+                ":cl:symbol:`~\g<1>`\g<2>", v[type])
 
         # extract specializers
         if "specializers" in v:
@@ -387,7 +386,7 @@ def uppercase_symbols(app, docname, source):
     sphinx references"""
     for i, line in enumerate(source):
         source[i] = re.sub(upper_symbols,
-                           "\g<1>:cl:symbol:`~\g<2>`\g<3>", line)
+                           ":cl:symbol:`~\g<1>`\g<2>", line)
 
 
 def setup(app):
