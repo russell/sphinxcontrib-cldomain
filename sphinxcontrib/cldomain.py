@@ -44,13 +44,13 @@ from sphinx.util.compat import Directive
 from sphinx.util.docfields import Field, GroupedField
 from sphinx.util.docfields import DocFieldTransformer
 
-TYPES = ["macro", "function", "genericFunction", "setf", "variable", "type"]
+ALL_TYPES = ["macro", "function", "genericFunction", "setf", "variable", "type"]
 upper_symbols = re.compile("(^|\s)([^a-z\s\"`]*[A-Z]{2,}[^a-z\s\"`:]*)($|\s)")
 
-doc_strings = {}
-types = {}
-args = {}
-specializers = {}
+DOC_STRINGS = {}
+TYPES = {}
+ARGS = {}
+SPECIALIZERS = {}
 
 
 def bool_option(arg):
@@ -91,7 +91,7 @@ def _read_from(tokens):
 
 
 def resolve_string(package, symbol, objtype):
-    possible_strings = doc_strings.get(package).get(symbol, {})
+    possible_strings = DOC_STRINGS.get(package).get(symbol, {})
     string = possible_strings.get(objtype, "")
     return string
 
@@ -141,7 +141,7 @@ class CLsExp(ObjectDescription):
 
         objtype = self.get_signature_prefix(sig)
         signode.append(addnodes.desc_annotation(objtype, objtype))
-        lisp_args = args[package].get(sig.upper(), "")
+        lisp_args = ARGS[package].get(sig.upper(), "")
 
         if lisp_args.strip():
             function_name = addnodes.desc_name(sig, sig + " ")
@@ -341,23 +341,23 @@ def index_package(package, package_path, extra_args=""):
     output = "\n".join([line for line in output.split("\n")
                         if not line.startswith(";")])
     lisp_data = eval(output)
-    doc_strings[package] = {}
-    specializers[package] = {}
+    DOC_STRINGS[package] = {}
+    SPECIALIZERS[package] = {}
     for k, v in lisp_data.items():
         # extract doc strings
-        doc_strings[package][k] = {}
-        for type in TYPES:
+        DOC_STRINGS[package][k] = {}
+        for type in ALL_TYPES:
             if not type in v:
                 continue
-            doc_strings[package][k][type] = re.sub(
+            DOC_STRINGS[package][k][type] = re.sub(
                 upper_symbols,
                 "\g<1>:cl:symbol:`~\g<2>`\g<3>", v[type])
 
         # extract specializers
         if "specializers" in v:
-            specializers[package][k] = v["specializers"]
+            SPECIALIZERS[package][k] = v["specializers"]
 
-    args[package] = {}
+    ARGS[package] = {}
 
     def lower_symbols(text):
         if '"' in text:
@@ -368,11 +368,11 @@ def index_package(package, package_path, extra_args=""):
     # extract arguments
     for k, v in lisp_data.items():
         if v["arguments"] == "NIL":
-            args[package][k] = ""
+            ARGS[package][k] = ""
         else:
             v_arg = v["arguments"].replace('(', ' ( ').replace(')', ' ) ')
-            args[package][k] = " ".join(map(lower_symbols, v_arg.split(" ")))
-    print args
+            ARGS[package][k] = " ".join(map(lower_symbols, v_arg.split(" ")))
+    print ARGS
 
 
 def load_packages(app):
