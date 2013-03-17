@@ -16,8 +16,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 DIR=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
 
+set -x
+
 sbcl --noinform --non-interactive \
     --load $DIR/cldomain-init.lisp \
+    --eval "(pushnew \""${DIR}"/\" asdf:*central-registry* :test #'equal)" \
+    --eval "(asdf:initialize-source-registry)" \
+    --eval "(let ((*standard-output* *error-output*)) (ql:quickload 'sphinxcontrib.cldomain))" \
     --load $DIR/cldomain.lisp \
     --eval "(sphinxcontrib.cldomain:main)" $@
-

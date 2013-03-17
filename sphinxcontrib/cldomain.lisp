@@ -67,7 +67,13 @@
 object member."
   (encode-object-member
    type
-   (documentation sym (if (eq type 'generic-function) 'function type))))
+   (documentation sym (cond
+                        ((eq type 'generic-function) 'function)
+                                        ; TODO i'm not sure this will
+                                        ; be portable, shouldn't this
+                                        ; be 'compiler-macro
+                        ((eq type 'macro) 'function)
+                        (t type)))))
 
 (defun class-args (class)
   (loop :for slot :in (class-direct-slots (find-class class))

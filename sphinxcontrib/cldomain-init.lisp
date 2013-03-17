@@ -47,7 +47,3 @@
   (if (probe-file quicklisp-init)
     (load quicklisp-init)
     (error "Can't Find Quicklisp")))
-
-
-(let ((*standard-output* *error-output*))
-  (eval '(ql:quickload 'sphinxcontrib.cldomain)))

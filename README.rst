@@ -4,7 +4,7 @@ CLDomain
 CLDomain is a Common Lisp domain for `Sphinx Documentation Generator`_.
 Sphinx is a mulit-language tool this project extends it's
 functionality to cover Common Lisp. The aim is to support
-documentation with the same ease that a Python project is documented.
+documentation with the same ease that a Python project.
 
 Currently the project only supports inspection based documentation of
 symbols, future versions will allow more manual creation of
@@ -30,6 +30,12 @@ The current sample of a function definition looks like ::
 
 and the `rendered example`_ shows the documentation string has been
 introspected and so has the function definition.
+
+TODO
+----
+
+* Add support for classes and slots
+* Interpret any indented documentation as a code block.
 
 
 .. _rendered example: http://cl-git.russellsim.org/#CL-GIT:ENSURE-GIT-REPOSITORY-EXIST

@@ -357,6 +357,7 @@ def index_package(package, package_path, extra_args=""):
         for type in ALL_TYPES:
             if not type in v:
                 continue
+            # enable symbol references for symbols
             DOC_STRINGS[package][k][type] = re.sub(
                 upper_symbols,
                 ":cl:symbol:`~\g<1>`\g<2>", v[type])
@@ -370,7 +371,7 @@ def index_package(package, package_path, extra_args=""):
         if '"' in text:
             return text
         if text.startswith(package):
-            return text[len(package) + 2:].lower()
+            return text[len(package) + 1:].lower()
         return text.lower()
     # extract arguments
     for k, v in lisp_data.items():
