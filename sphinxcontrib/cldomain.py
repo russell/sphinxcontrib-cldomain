@@ -437,7 +437,7 @@ def index_package(package, package_path, extra_args=""):
     output = subprocess.check_output(command + extra_args, shell=True)
     output = "\n".join([line for line in output.split("\n")
                         if not line.startswith(";")])
-    lisp_data = eval(output)
+    lisp_data = json.loads(output)
     DOC_STRINGS[package] = {}
     SPECIALIZERS[package] = {}
     for k, v in lisp_data.items():
