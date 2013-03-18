@@ -49,14 +49,15 @@
         :collect (format nil "~S" (mapcar #'convert-classes-to-names syms))))
 
 (defun intern* (symbol)
-  "Take a symbol in the form of a string e.g. \"CL-GIT:GIT-AUTHOR\"
-  and return the interned symbol."
+  "Take a symbol in the form of a string e.g. \"CL-GIT:GIT-AUTHOR\" or
+  \"CL-GIT::INDEX\" and return the interned symbol."
   (destructuring-bind (package name)
-      (loop :for i = 0 :then (1+ j)
-            :as j = (position #\: symbol :start i)
-            :when (subseq symbol i j)
-              :collect (subseq symbol i j)
-            :while j)
+      (remove-if (lambda (e) (equal e ""))
+       (loop :for i = 0 :then (1+ j)
+             :as j = (position #\: symbol :start i)
+             :when (subseq symbol i j)
+               :collect (subseq symbol i j)
+             :while j))
     (intern name package)))
 
 (defun encode-when-object-member (type value)
@@ -101,29 +102,29 @@ object member."
           (dolist (sym (swank:apropos-list-for-emacs "" t nil my-package) package-symbols)
             (destructuring-bind  (&key designator macro function generic-function setf variable type)
                 sym
-                (let* ((symbol (intern* designator)))
-                  (when (string= (package-name (symbol-package symbol))
-                                 (string-upcase my-package))
-                    (as-object-member ((symbol-name symbol))
-                      (with-object ()
-                        (dolist (sym `((macro ,macro)
-                                       (function ,function)
-                                       (generic-function ,generic-function)
-                                       (setf ,setf)
-                                       (variable ,variable)
-                                       (type ,type)))
-                          (when (cadr sym)
-                            (if (eq (cadr sym) :not-documented)
-                                (encode-object-member (car sym) "")
-                                (encode-object-documentation symbol (car sym)))))
-                        (when (or function macro generic-function)
-                          (encode-object-member 'arguments (format nil "~S" (swank::arglist symbol))))
-                        (when type
-                          (encode-object-member 'arguments (format nil "~S" (class-args symbol)))
-                          (as-object-member ('slots) (encode-object-class symbol)))
-                        (when generic-function
-                          (let ((classes (specializers (symbol-function symbol))))
-                            (encode-object-member 'specializers classes))))))))))))))
+              (multiple-value-bind (symbol internal) (intern* designator)
+                (when (eq (symbol-package symbol) (find-package (intern my-package)))
+                  (as-object-member ((symbol-name symbol))
+                    (with-object ()
+                      (dolist (sym `((macro ,macro)
+                                     (function ,function)
+                                     (generic-function ,generic-function)
+                                     (setf ,setf)
+                                     (variable ,variable)
+                                     (type ,type)))
+                        (when (cadr sym)
+                          (if (eq (cadr sym) :not-documented)
+                              (encode-object-member (car sym) "")
+                              (encode-object-documentation symbol (car sym)))))
+                      (when (or function macro generic-function)
+                        (encode-object-member 'arguments (format nil "~S" (swank::arglist symbol))))
+                      (when type
+                        (as-object-member ('slots) (encode-object-class symbol)))
+                      (when internal
+                        (encode-object-member 'internal t))
+                      (when generic-function
+                        (let ((classes (specializers (symbol-function symbol))))
+                          (encode-object-member 'specializers classes))))))))))))))
 
 (defun main ()
   (multiple-value-bind (unused-args args invalid-args)
