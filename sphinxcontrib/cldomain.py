@@ -93,7 +93,11 @@ def _read_from(tokens):
 
 
 def resolve_string(package, symbol, objtype):
-    possible_strings = DOC_STRINGS.get(package).get(symbol, {})
+    """
+    Resolve a symbols doc string. Will raise KeyError if the
+    symbol can't be found.
+    """
+    possible_strings = DOC_STRINGS.get(package, {})[symbol]
 
     # XXX This isn't the best, the objtype is generic but the
     # docstring will be under genericFunction because of the JSON
@@ -210,7 +214,13 @@ class CLsExp(ObjectDescription):
         if "nodoc" not in self.options:
             package = self.env.temp_data.get('cl:package')
             node = addnodes.desc_content()
-            string = resolve_string(package, self.names[0][1], self.objtype)
+            name = self.names[0][1]
+            try:
+                string = resolve_string(package, name, self.objtype)
+            except KeyError:
+                string = ""
+                self.state_machine.reporter.warning("Can't find symbol %s:%s" %
+                                                    (package, name))
             lines = string2lines(string)
             self.state.nested_parse(StringList(lines), 0, node)
             if (result[1][1].children and
@@ -399,7 +409,6 @@ def index_package(package, package_path, extra_args=""):
         else:
             v_arg = v["arguments"].replace('(', ' ( ').replace(')', ' ) ')
             ARGS[package][k] = " ".join(map(lower_symbols, v_arg.split(" ")))
-    print ARGS
 
 
 def load_packages(app):
