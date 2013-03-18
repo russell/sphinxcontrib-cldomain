@@ -109,18 +109,62 @@ def resolve_string(package, symbol, objtype):
     return string
 
 
+def specializer(s, state):
+    sexp = _read(s)
+    result = StringIO()
+    result.write("(")
+    for atom in sexp:
+        if isinstance(atom, list):
+            result.write("(")
+            result.write(" ".join([a.lower() for a in atom]))
+            result.write(") ")
+        else:
+            result.write(":cl:symbol:`~%s`" % atom.lower())
+    result.write(")")
+    node = nodes.line()
+    result.seek(0)
+    lines = string2lines(result.read())
+    state.nested_parse(StringList(lines), 0, node)
+    return node
+
+
+class SpecializerField(Field):
+    """
+    """
+    is_grouped = True
+    list_type = nodes.bullet_list
+
+    def __init__(self, name, names=(), label=None, rolename=None,
+                 can_collapse=False):
+        Field.__init__(self, name, names, label, True, rolename)
+        self.can_collapse = can_collapse
+
+    def make_field(self, domain, items):
+        fieldname = nodes.field_name('', self.label)
+        listnode = self.list_type()
+        for content in items:
+            par = nodes.paragraph()
+            par += content
+            listnode += nodes.list_item('', par)
+        fieldbody = nodes.field_body('', listnode)
+        return nodes.field('', fieldname, fieldbody)
+
+
 class CLsExp(ObjectDescription):
 
     doc_field_types = [
         GroupedField('parameter', label=l_('Parameters'),
                      names=('param', 'parameter', 'arg', 'argument',
                             'keyword', 'kwparam')),
+        SpecializerField('specializers', label=l_('Specializers')),
         Field('returnvalue', label=l_('Returns'), has_arg=False,
               names=('returns', 'return')),
     ]
 
     option_spec = {
-        'nodoc': bool_option, 'noindex': bool_option,
+        'nodoc': bool_option,
+        'noindex': bool_option,
+        'nospecializers': bool_option,
     }
 
     def handle_signature(self, sig, signode):
@@ -211,10 +255,25 @@ class CLsExp(ObjectDescription):
 
     def run(self):
         result = super(CLsExp, self).run()
+        package = self.env.temp_data.get('cl:package')
+        name = self.names[0][1]
+        description = result[1][1]
+        if self.objtype == "generic" and "nospecializers" not in self.options:
+            types = dict([(t.name, t) for t in self.doc_field_types])
+            field = types["specializers"]
+            specializers = SPECIALIZERS.get(package, {}).get(name)
+            if specializers:
+                if not description.children:
+                    description.append(addnodes.desc_content())
+                if not isinstance(description[0], nodes.field_list):
+                    description.insert(0, nodes.field_list())
+                spec = field.make_field(self.domain,
+                                        [specializer(s, self.state)
+                                         for s in specializers])
+                description[0].children.append(spec)
+
         if "nodoc" not in self.options:
-            package = self.env.temp_data.get('cl:package')
             node = addnodes.desc_content()
-            name = self.names[0][1]
             try:
                 string = resolve_string(package, name, self.objtype)
             except KeyError:
@@ -223,17 +282,21 @@ class CLsExp(ObjectDescription):
                                                     (package, name))
             lines = string2lines(string)
             self.state.nested_parse(StringList(lines), 0, node)
+            # result[1] is the content node,
+            # result[1][0] is the signature line
+            # result[1][1] is the fieldlist and description
+            # result[1][1][0] is the fieldlist
             if (result[1][1].children and
-                isinstance(result[1][1][0], nodes.field_list)):
-                cresult = result[1][1].deepcopy()
-                target = result[1][1]
+                isinstance(description[0], nodes.field_list)):
+                cresult = description.deepcopy()
+                target = description
                 target.clear()
                 target.append(cresult[0])
                 target.extend(node)
                 target.extend(cresult[1:])
             else:
-                cresult = result[1][1].deepcopy()
-                target = result[1][1]
+                cresult = description.deepcopy()
+                target = description
                 target.clear()
                 target.extend(node)
                 target.extend(cresult)
