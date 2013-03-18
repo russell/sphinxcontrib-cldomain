@@ -31,6 +31,7 @@ import re
 from os import path
 import json
 import subprocess
+from StringIO import StringIO
 from docutils import nodes
 from docutils.statemachine import string2lines, StringList
 
@@ -338,6 +339,21 @@ class CLDomain(Domain):
             yield (refname, refname, type, docname, refname, 1)
 
 
+def code_regions(text):
+    io = StringIO(text)
+    output = StringIO()
+    indent = False
+    for line in io:
+        if indent is False and (line.startswith(" ") or line.startswith("\t")):
+            output.write(".. code-block:: common-lisp\n\n")
+            indent = True
+        if indent is True and not (line.startswith(" ") or line.startswith("\t")):
+            indent = False
+        output.write(line)
+    output.seek(0)
+    return output.read()
+
+
 def index_package(package, package_path, extra_args=""):
     """Call an external lisp program that will return a dictionary of
     doc strings for all public symbols."""
@@ -358,9 +374,10 @@ def index_package(package, package_path, extra_args=""):
             if not type in v:
                 continue
             # enable symbol references for symbols
-            DOC_STRINGS[package][k][type] = re.sub(
-                upper_symbols,
-                ":cl:symbol:`~\g<1>`\g<2>", v[type])
+            text = re.sub(upper_symbols,
+                          ":cl:symbol:`~\g<1>`\g<2>", v[type])
+            text = code_regions(text)
+            DOC_STRINGS[package][k][type] = text
         # extract specializers
         if "specializers" in v:
             SPECIALIZERS[package][k] = v["specializers"]

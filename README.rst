@@ -35,7 +35,6 @@ TODO
 ----
 
 * Add support for classes and slots
-* Interpret any indented documentation as a code block.
 
 
 .. _rendered example: http://cl-git.russellsim.org/#CL-GIT:ENSURE-GIT-REPOSITORY-EXIST
