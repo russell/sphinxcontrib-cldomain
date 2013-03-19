@@ -460,8 +460,14 @@ def index_package(package, package_path, extra_args=""):
     def lower_symbols(text):
         if '"' in text:
             return text
-        if text.startswith(package):
-            return text[len(package) + 1:].lower()
+        if len(text.split("::")) > 1:
+            spackage, symbol = text.split("::")
+        elif len(text.split(":")) > 1:
+            spackage, symbol = text.split(":")
+        else:
+            spackage = ""
+        if spackage.lower() == package.lower():
+            return symbol.lower()
         return text.lower()
     # extract arguments
     for k, v in lisp_data.items():
