@@ -35,19 +35,6 @@
 (defun print-usage ()
   (format t "./cldomain.lisp --package <package name> --path <package path> ~%"))
 
-(defun convert-classes-to-names (sym)
-  (cond
-    ((equal "EQL-SPECIALIZER" (symbol-name (class-name (class-of sym))))
-     (slot-value sym 'SB-PCL::%TYPE))
-    (t
-     (swank-mop:class-name sym))))
-
-(defun specializers (gf)
-  (loop :for syms
-        :in (mapcar #'swank-mop:method-specializers
-                    (sb-mop:generic-function-methods gf))
-        :collect (format nil "~S" (mapcar #'convert-classes-to-names syms))))
-
 (defun intern* (symbol)
   "Take a symbol in the form of a string e.g. \"CL-GIT:GIT-AUTHOR\" or
   \"CL-GIT::INDEX\" and return the interned symbol."
@@ -62,6 +49,46 @@
 
 (defun encode-when-object-member (type value)
   (when value (encode-object-member type value)))
+
+(defun encode-class (symbol)
+  "encode a class as a string including the package."
+  (encode-symbol (class-name symbol)))
+
+(defun encode-symbol (symbol)
+  "encode the symbol as a string, including the package."
+  (concatenate
+   'string
+   (package-name (symbol-package symbol))
+   (if (multiple-value-bind
+             (sym status)
+           (find-symbol (symbol-name symbol) (package-name (symbol-package symbol)))
+         (declare (ignore sym))
+         (member status '(:inherited :external)))
+       ":" "::")
+   (symbol-name symbol)))
+
+(defun encode-specializer (atom)
+  "encode a single specializer lambda list"
+  (cond ((eq (type-of atom) 'eql-specializer)
+         (concatenate 'string "(EQ " (encode-symbol (eql-specializer-object atom)) ")"))
+        ((classp atom)
+         (encode-class atom))
+        (t (encode-symbol atom))))
+
+(defun encode-specializers (gf)
+  (loop :for syms
+        :in (mapcar #'swank-mop:method-specializers
+                    (sb-mop:generic-function-methods gf))
+        :collect (format nil "~a" (mapcar #'encode-specializer syms))))
+
+(defun encode-methods (generic-function)
+  (let ((methods (closer-mop:generic-function-methods generic-function)))
+    (with-object ()
+      (dolist (method methods)
+        (let ((specializer (closer-mop:method-specializers method)))
+          (encode-object-member
+           (mapcar #'encode-specializer specializer)
+           (documentation method t)))))))
 
 (defun encode-object-documentation (sym type)
   "Encode documentation for a symbol as a JSON
@@ -123,8 +150,9 @@ object member."
                       (when internal
                         (encode-object-member 'internal t))
                       (when generic-function
-                        (let ((classes (specializers (symbol-function symbol))))
-                          (encode-object-member 'specializers classes))))))))))))))
+                      ;; when generic function
+                        (as-object-member ("methods")
+                          (encode-methods (symbol-function symbol)))))))))))))))
 
 (defun main ()
   (multiple-value-bind (unused-args args invalid-args)
