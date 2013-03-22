@@ -152,14 +152,14 @@ class SpecializerField(Field):
 class SEXP(object):
     def __init__(self, sexp):
         if not isinstance(sexp, list):
-            self.sexp = _read(lisp_args)
+            self.sexp = _read(sexp)
         else:
             self.sexp = sexp
 
-    def as_parameterlist(function_name):
+    def as_parameterlist(self, function_name):
         return self.render_parameterlist(prepend_node=function_name)
 
-    def render_parameterlist(signode=None, prepend_node=None):
+    def render_parameterlist(self, signode=None, prepend_node=None):
         desc_sexplist = desc_parameterlist()
         if prepend_node:
             desc_sexplist.append(prepend_node)
@@ -175,7 +175,7 @@ class SEXP(object):
                 symbol = self.render_atom(atom, desc_sexplist)
         return desc_sexplist
 
-    def render_atom(token, signode, noemph=True):
+    def render_atom(self, token, signode, noemph=True):
         "add syntax hi-lighting to interesting atoms"
 
         if token.startswith("&") or token.startswith(":"):
@@ -261,47 +261,59 @@ class CLsExp(ObjectDescription):
         if indextext:
             self.indexnode['entries'].append(('single', indextext, name, ''))
 
-    def run(self):
-        result = super(CLsExp, self).run()
+    def run_add_doc(self, result):
         package = self.env.temp_data.get('cl:package')
         name = self.names[0][1]
         description = result[1][-1]
-        if "nodoc" not in self.options:
-            node = addnodes.desc_content()
-            try:
-                string = resolve_string(package, name, self.objtype)
-            except KeyError:
-                string = ""
-                self.state_machine.reporter.warning("Can't find symbol %s:%s" %
-                                                    (package, name))
-            lines = string2lines(string)
-            self.state.nested_parse(StringList(lines), 0, node)
-            # result[1] is the content node,
-            # result[1][0] is the signature line
-            # result[1][1] is the fieldlist and description
-            # result[1][1][0] is the fieldlist
-            if (result[1][1].children and
-                isinstance(description[0], nodes.field_list)):
-                cresult = description.deepcopy()
-                target = description
-                target.clear()
-                target.append(cresult[0])
-                target.extend(node)
-                target.extend(cresult[1:])
-            else:
-                cresult = description.deepcopy()
-                target = description
-                target.clear()
-                target.extend(node)
-                target.extend(cresult)
-        if self.objtype == "generic" and "nospecializers" not in self.options:
-            specializers = METHODS.get(package, {}).get(name).keys()
-            if specializers:
-                description.append(nodes.paragraph(text="Supported Objects"))
-                spec = nodes.bullet_list()
-                spec += [specializer(s, self.state) for s in specializers]
-                description.children.append(spec)
+        node = addnodes.desc_content()
+        try:
+            string = resolve_string(package, name, self.objtype)
+        except KeyError:
+            string = ""
+            self.state_machine.reporter.warning("Can't find symbol %s:%s" %
+                                                (package, name))
+        if not string:
+            return
+        lines = string2lines(string)
+        self.state.nested_parse(StringList(lines), 0, node)
+        # result[1] is the content node,
+        # result[1][0] is the signature line
+        # result[1][1] is the fieldlist and description
+        # result[1][1][0] is the fieldlist
+        if (result[1][1].children and
+            isinstance(description[0], nodes.field_list)):
+            cresult = description.deepcopy()
+            target = description
+            target.clear()
+            target.append(cresult[0])
+            target.extend(node)
+            target.extend(cresult[1:])
+        else:
+            cresult = description.deepcopy()
+            target = description
+            target.clear()
+            target.extend(node)
+            target.extend(cresult)
+        return result
 
+    def run_add_specializers(self, result):
+        package = self.env.temp_data.get('cl:package')
+        name = self.names[0][1]
+        description = result[1][-1]
+        specializers = METHODS.get(package, {}).get(name).keys()
+        if specializers:
+            description.append(nodes.paragraph(text="Supported Objects"))
+            spec = nodes.bullet_list()
+            spec += [specializer(s, self.state) for s in specializers]
+            description.children.append(spec)
+        return result
+
+    def run(self):
+        result = super(CLsExp, self).run()
+        if "nodoc" not in self.options:
+            self.run_add_doc(result)
+        if self.objtype == "generic" and "nospecializers" not in self.options:
+            self.run_add_specializers(result)
         return result
 
 
