@@ -150,6 +150,41 @@ class SpecializerField(Field):
         return nodes.field('', fieldname, fieldbody)
 
 
+class SEXP(object):
+    def __init__(self, sexp):
+        if not isinstance(sexp, list):
+            self.sexp = _read(lisp_args)
+        else:
+            self.sexp = sexp
+
+    def as_parameterlist(function_name):
+        return self.render_parameterlist(prepend_node=function_name)
+
+    def render_parameterlist(signode=None, prepend_node=None):
+        desc_sexplist = desc_parameterlist()
+        if prepend_node:
+            desc_sexplist.append(prepend_node)
+        if signode:
+            signode.append(desc_sexplist)
+        symbol = False
+        for atom in self.sexp:
+            if isinstance(atom, list):
+                # Disable rendering nested elements.
+                # render_sexp(atom, desc_sexplist)
+                symbol = self.render_atom(atom[0], desc_sexplist)
+            else:
+                symbol = self.render_atom(atom, desc_sexplist)
+        return desc_sexplist
+
+    def render_atom(token, signode, noemph=True):
+        "add syntax hi-lighting to interesting atoms"
+
+        if token.startswith("&") or token.startswith(":"):
+            signode.append(addnodes.desc_parameter(token, token))
+        else:
+            signode.append(addnodes.desc_parameter(token, token))
+
+
 class CLsExp(ObjectDescription):
 
     doc_field_types = [
@@ -170,30 +205,6 @@ class CLsExp(ObjectDescription):
     def handle_signature(self, sig, signode):
         symbol_name = []
         type = []
-
-        def render_sexp(sexp, signode=None, prepend_node=None):
-            desc_sexplist = addnodes.desc_parameterlist()
-            desc_sexplist.child_text_separator = ' '
-            if prepend_node:
-                desc_sexplist.append(prepend_node)
-            if signode:
-                signode.append(desc_sexplist)
-            symbol = False
-            for atom in sexp:
-                if isinstance(atom, list):
-                    render_sexp(atom, desc_sexplist)
-                else:
-                    symbol = render_atom(atom, desc_sexplist)
-            return desc_sexplist
-
-        def render_atom(token, signode, noemph=True):
-            "add syntax hi-lighting to interesting atoms"
-
-            if token.startswith("&") or token.startswith(":"):
-                signode.append(addnodes.desc_parameter(token, token))
-            else:
-                signode.append(addnodes.desc_parameter(token, token))
-
         package = self.env.temp_data.get('cl:package')
 
         objtype = self.get_signature_prefix(sig)
@@ -208,8 +219,8 @@ class CLsExp(ObjectDescription):
         if not lisp_args.strip() and self.objtype in ["function"]:
             lisp_args = "()"
         if lisp_args.strip():
-            arg_list = render_sexp(_read(lisp_args),
-                                   prepend_node=function_name)
+            sexp = SEXP(lisp_args)
+            arg_list = sexp.as_parameterlist(function_name)
             signode.append(arg_list)
         else:
             signode.append(function_name)
