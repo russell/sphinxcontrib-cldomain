@@ -52,7 +52,7 @@ upper_symbols = re.compile("([^a-z\s\"`]*[A-Z]{2,}[^a-z\s\"`:]*)($|\s)")
 DOC_STRINGS = {}
 TYPES = {}
 ARGS = {}
-SPECIALIZERS = {}
+METHODS = {}
 
 
 def bool_option(arg):
@@ -257,21 +257,7 @@ class CLsExp(ObjectDescription):
         result = super(CLsExp, self).run()
         package = self.env.temp_data.get('cl:package')
         name = self.names[0][1]
-        description = result[1][1]
-        if self.objtype == "generic" and "nospecializers" not in self.options:
-            types = dict([(t.name, t) for t in self.doc_field_types])
-            field = types["specializers"]
-            specializers = SPECIALIZERS.get(package, {}).get(name)
-            if specializers:
-                if not description.children:
-                    description.append(addnodes.desc_content())
-                if not isinstance(description[0], nodes.field_list):
-                    description.insert(0, nodes.field_list())
-                spec = field.make_field(self.domain,
-                                        [specializer(s, self.state)
-                                         for s in specializers])
-                description[0].children.append(spec)
-
+        description = result[1][-1]
         if "nodoc" not in self.options:
             node = addnodes.desc_content()
             try:
@@ -300,6 +286,14 @@ class CLsExp(ObjectDescription):
                 target.clear()
                 target.extend(node)
                 target.extend(cresult)
+        if self.objtype == "generic" and "nospecializers" not in self.options:
+            specializers = METHODS.get(package, {}).get(name).keys()
+            if specializers:
+                description.append(nodes.paragraph(text="Supported Objects"))
+                spec = nodes.bullet_list()
+                spec += [specializer(s, self.state) for s in specializers]
+                description.children.append(spec)
+
         return result
 
 
@@ -439,7 +433,7 @@ def index_package(package, package_path, extra_args=""):
                         if not line.startswith(";")])
     lisp_data = json.loads(output)
     DOC_STRINGS[package] = {}
-    SPECIALIZERS[package] = {}
+    METHODS[package] = {}
     for k, v in lisp_data.items():
         # extract doc strings
         DOC_STRINGS[package][k] = {}
@@ -451,9 +445,9 @@ def index_package(package, package_path, extra_args=""):
                           ":cl:symbol:`~\g<1>`\g<2>", v[type])
             text = code_regions(text)
             DOC_STRINGS[package][k][type] = text
-        # extract specializers
-        if "specializers" in v:
-            SPECIALIZERS[package][k] = v["specializers"]
+        # extract methods
+        if "methods" in v:
+            METHODS[package][k] = v["methods"]
 
     ARGS[package] = {}
 
