@@ -109,19 +109,18 @@ def resolve_string(package, symbol, objtype):
     return string
 
 
+class desc_parameterlist(addnodes.desc_parameterlist):
+    """Node for a common lisp parameter list."""
+    child_text_separator = ' '
+
+
 def specializer(s, state):
     sexp = _read(s)
     result = StringIO()
-    result.write("(")
     for atom in sexp:
-        if isinstance(atom, list):
-            result.write("(")
-            result.write(" ".join([a.lower() for a in atom]))
-            result.write(") ")
-        else:
-            result.write(":cl:symbol:`~%s`" % atom.lower())
-    result.write(")")
-    node = nodes.line()
+        if not isinstance(atom, list):
+            result.write(":cl:symbol:`~%s`" % atom)
+    node = nodes.list_item()
     result.seek(0)
     lines = string2lines(result.read())
     state.nested_parse(StringList(lines), 0, node)
@@ -191,7 +190,6 @@ class CLsExp(ObjectDescription):
         GroupedField('parameter', label=l_('Parameters'),
                      names=('param', 'parameter', 'arg', 'argument',
                             'keyword', 'kwparam')),
-        SpecializerField('specializers', label=l_('Specializers')),
         Field('returnvalue', label=l_('Returns'), has_arg=False,
               names=('returns', 'return')),
     ]
@@ -199,7 +197,6 @@ class CLsExp(ObjectDescription):
     option_spec = {
         'nodoc': bool_option,
         'noindex': bool_option,
-        'nospecializers': bool_option,
     }
 
     def handle_signature(self, sig, signode):
