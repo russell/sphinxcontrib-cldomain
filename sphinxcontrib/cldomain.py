@@ -53,6 +53,7 @@ DOC_STRINGS = {}
 TYPES = {}
 ARGS = {}
 METHODS = {}
+SLOTS = {}
 
 
 def bool_option(arg):
@@ -117,11 +118,7 @@ class desc_parameterlist(addnodes.desc_parameterlist):
 def specializer(sexp, state):
     result = StringIO()
     for atom in sexp:
-        if atom.startswith("("):
-            eql = _read(atom)
-            result.write(":cl:symbol:`~%s` " % eql[-1])
-        elif not isinstance(atom, list):
-            result.write(":cl:symbol:`~%s` " % atom)
+        result.write(":cl:symbol:`~%s` " % atom)
     node = nodes.list_item()
     result.seek(0)
     lines = string2lines(result.read())
@@ -457,7 +454,9 @@ def index_package(package, package_path, extra_args=""):
     lisp_data = json.loads(output)
     DOC_STRINGS[package] = {}
     METHODS[package] = {}
+    SLOTS[package] = {}
     for k, v in lisp_data.items():
+
         # extract doc strings
         DOC_STRINGS[package][k] = {}
         for type in ALL_TYPES:
@@ -468,11 +467,22 @@ def index_package(package, package_path, extra_args=""):
                           ":cl:symbol:`~\g<1>`\g<2>", v[type])
             text = code_regions(text)
             DOC_STRINGS[package][k][type] = text
+
         # extract methods
         if "methods" in v:
-            methods = dict([(tuple(json.loads(method)), doc)
+            def parse_method(method):
+                sexp = []
+                for atom in json.loads(method):
+                    if atom.startswith("("):
+                        eql = _read(atom)
+                        sexp.append(eql[-1])
+                    else:
+                        sexp.append(atom)
+                return tuple(sexp)
+            methods = dict([(parse_method(method), doc)
                             for method, doc in v["methods"].items()])
             METHODS[package][k] = methods
+
         # extract slots
         if "slots" in v:
             SLOTS[package][k] = v["slots"]
