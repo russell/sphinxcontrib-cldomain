@@ -34,11 +34,13 @@ introspected and so has the function definition.
 TODO
 ----
 
-* Add documentation for methods.
-* use cl-builder to generate a SHELL script to execute in a more portable way.
+* use cl-builder to generate a SHELL script to execute in a more
+  portable way.
 * Add support for classes and slots.
 * Link to texinfo generated doc.
 * document this project and provide an example.
+* when parsing text from doc strings, package names should be added to
+  un-scoped symbols.
 * source view, link function to original source code.  (Could use
   linkcode, this can link to code in an external repository.  Viewcode
   generates static html versions so will require more extensions to support CL)
