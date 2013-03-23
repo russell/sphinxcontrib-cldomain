@@ -118,11 +118,10 @@ def specializer(sexp, state):
     result = StringIO()
     for atom in sexp:
         if atom.startswith("("):
-            # TODO trim out the EQ specializers, we should do
-            # something with them, but they will require more parsing.
-            continue
-        if not isinstance(atom, list):
-            result.write(":cl:symbol:`~%s`" % atom)
+            eql = _read(atom)
+            result.write(":cl:symbol:`~%s` " % eql[-1])
+        elif not isinstance(atom, list):
+            result.write(":cl:symbol:`~%s` " % atom)
     node = nodes.list_item()
     result.seek(0)
     lines = string2lines(result.read())
