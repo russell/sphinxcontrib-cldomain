@@ -34,8 +34,13 @@ introspected and so has the function definition.
 TODO
 ----
 
-* Add support for classes and slots
-
+* Add documentation for methods.
+* use cl-builder to generate a SHELL script to execute in a more portable way.
+* Add support for classes and slots.
+* Link to texinfo generated doc.
+* source view, link function to original source code.  (Could use
+  linkcode, this can link to code in an external repository.  Viewcode
+  generates static html versions so will require more extensions to support CL)
 
 .. _rendered example: http://cl-git.russellsim.org/#CL-GIT:ENSURE-GIT-REPOSITORY-EXIST
 .. _cl-git: http://cl-git.russellsim.org/
