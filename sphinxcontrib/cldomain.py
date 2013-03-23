@@ -344,10 +344,11 @@ class CLXRefRole(XRefRole):
             target = target.lstrip('~')  # only has a meaning for the title
             # if the first character is a tilde, don't display the package
             if title[0:1] == '~':
-                title = title[1:]
-                dot = title.rfind(':')
-                if dot != -1:
-                    title = title[dot + 1:]
+                symbol = title[1:].split(':')
+                package = symbol[0]
+                title = symbol[-1]
+                if package == "KEYWORD":
+                    title = ":" + title
         return title, target
 
 
