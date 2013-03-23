@@ -103,15 +103,19 @@ def parse_specializer_symbol(symbol):
     return symbol
 
 
-def resolve_string(package, symbol, objtype, specializer=None):
+def resolve_string(state_machine, package, symbol, objtype, specializer=None):
     """
     Resolve a symbols doc string. Will raise KeyError if the
     symbol can't be found.
     """
     if objtype == "method":
+        spec = specializer[0].split(" ")[1:]
         method_doc = METHODS.get(package).get(symbol, {})
         key = tuple([parse_specializer_symbol(sym)
-                     for sym in specializer[0].split(" ")[1:]])
+                     for sym in spec])
+        if key not in method_doc:
+            state_machine.reporter.warning("Can't find method %s:%s specializer %s" %
+                                           (package, symbol, spec))
         return method_doc.get(key, "")
 
     possible_strings = DOC_STRINGS.get(package)[symbol]
@@ -284,7 +288,8 @@ class CLsExp(ObjectDescription):
         description = result[1][-1]
         node = addnodes.desc_content()
         try:
-            string = resolve_string(package, name, self.objtype,
+            string = resolve_string(self.state_machine, package,
+                                    name, self.objtype,
                                     self.arguments)
         except KeyError:
             string = ""
@@ -498,7 +503,15 @@ def index_package(package, package_path, extra_args=""):
                     else:
                         sexp.append(atom)
                 return tuple(sexp)
-            methods = dict([(parse_method(method), doc)
+
+            def parse_doc(doc):
+                if doc is None:
+                    doc = ""
+                doc = re.sub(upper_symbols,
+                             ":cl:symbol:`~\g<1>`\g<2>", doc)
+                return code_regions(doc)
+
+            methods = dict([(parse_method(method), parse_doc(doc))
                             for method, doc in v["methods"].items()])
             METHODS[package][k] = methods
 
