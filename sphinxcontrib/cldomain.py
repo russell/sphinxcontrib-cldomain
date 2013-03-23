@@ -30,6 +30,7 @@
 import re
 from os import path
 import json
+from collections import defaultdict
 import subprocess
 from StringIO import StringIO
 from docutils import nodes
@@ -49,11 +50,12 @@ ALL_TYPES = ["macro", "function", "genericFunction",
              "setf", "variable", "type"]
 upper_symbols = re.compile("([^a-z\s\"`]*[A-Z]{2,}[^a-z\s\"`:]*)($|\s)")
 
-DOC_STRINGS = {}
-TYPES = {}
-ARGS = {}
-METHODS = {}
-SLOTS = {}
+
+DOC_STRINGS = defaultdict(dict)
+TYPES = defaultdict(dict)
+ARGS = defaultdict(dict)
+METHODS = defaultdict(dict)
+SLOTS = defaultdict(dict)
 
 
 def bool_option(arg):
