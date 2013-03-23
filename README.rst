@@ -38,9 +38,12 @@ TODO
 * use cl-builder to generate a SHELL script to execute in a more portable way.
 * Add support for classes and slots.
 * Link to texinfo generated doc.
+* document this project and provide an example.
 * source view, link function to original source code.  (Could use
   linkcode, this can link to code in an external repository.  Viewcode
   generates static html versions so will require more extensions to support CL)
+* remove parens from function call display.  To match the SBCL and
+  TEXINFO generated documentation.
 
 .. _rendered example: http://cl-git.russellsim.org/#CL-GIT:ENSURE-GIT-REPOSITORY-EXIST
 .. _cl-git: http://cl-git.russellsim.org/
