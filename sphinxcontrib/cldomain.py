@@ -95,12 +95,26 @@ def _read_from(tokens):
 # end of http://norvig.com/lispy.html
 
 
-def resolve_string(package, symbol, objtype):
+def parse_specializer_symbol(symbol):
+    """parse symbols, for specializers"""
+    symbol = symbol.upper()
+    if symbol.startswith(":"):
+        return "KEYWORD" + symbol
+    return symbol
+
+
+def resolve_string(package, symbol, objtype, specializer=None):
     """
     Resolve a symbols doc string. Will raise KeyError if the
     symbol can't be found.
     """
-    possible_strings = DOC_STRINGS.get(package, {})[symbol]
+    if objtype == "method":
+        method_doc = METHODS.get(package).get(symbol, {})
+        key = tuple([parse_specializer_symbol(sym)
+                     for sym in specializer[0].split(" ")[1:]])
+        return method_doc.get(key, "")
+
+    possible_strings = DOC_STRINGS.get(package)[symbol]
 
     # XXX This isn't the best, the objtype is generic but the
     # docstring will be under genericFunction because of the JSON
@@ -204,8 +218,10 @@ class CLsExp(ObjectDescription):
         symbol_name = []
         type = []
         package = self.env.temp_data.get('cl:package')
-
         objtype = self.get_signature_prefix(sig)
+        sig_split = sig.split(" ")
+        sig = sig_split[0]
+        args = sig_split[1:]
         signode.append(addnodes.desc_annotation(objtype, objtype))
         lisp_args = ARGS[package].get(sig.upper(), "")
 
@@ -268,7 +284,8 @@ class CLsExp(ObjectDescription):
         description = result[1][-1]
         node = addnodes.desc_content()
         try:
-            string = resolve_string(package, name, self.objtype)
+            string = resolve_string(package, name, self.objtype,
+                                    self.arguments)
         except KeyError:
             string = ""
             self.state_machine.reporter.warning("Can't find symbol %s:%s" %
