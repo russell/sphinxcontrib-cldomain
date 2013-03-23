@@ -114,10 +114,13 @@ class desc_parameterlist(addnodes.desc_parameterlist):
     child_text_separator = ' '
 
 
-def specializer(s, state):
-    sexp = _read(s)
+def specializer(sexp, state):
     result = StringIO()
     for atom in sexp:
+        if atom.startswith("("):
+            # TODO trim out the EQ specializers, we should do
+            # something with them, but they will require more parsing.
+            continue
         if not isinstance(atom, list):
             result.write(":cl:symbol:`~%s`" % atom)
     node = nodes.list_item()
@@ -467,7 +470,12 @@ def index_package(package, package_path, extra_args=""):
             DOC_STRINGS[package][k][type] = text
         # extract methods
         if "methods" in v:
-            METHODS[package][k] = v["methods"]
+            methods = dict([(tuple(json.loads(method)), doc)
+                            for method, doc in v["methods"].items()])
+            METHODS[package][k] = methods
+        # extract slots
+        if "slots" in v:
+            SLOTS[package][k] = v["slots"]
 
     ARGS[package] = {}
 
