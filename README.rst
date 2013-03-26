@@ -34,7 +34,7 @@ introspected and so has the function definition.
 TODO
 ----
 
-* use cl-builder to generate a SHELL script to execute in a more
+* use cl-launch to generate a SHELL script to execute in a more
   portable way.
 * Add support for classes and slots.
 * Link to texinfo generated doc.
