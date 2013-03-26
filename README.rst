@@ -42,7 +42,7 @@ TODO
 * document this project and provide an example.
 * when parsing text from doc strings, package names should be added to
   un-scoped symbols.
- * still need to filter out symbols that are actually argumnets to the
+ * still need to filter out symbols that are actually arguments to the
    current function.
 * source view, link function to original source code.  (Could use
   linkcode, this can link to code in an external repository.  Viewcode
