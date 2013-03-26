@@ -22,6 +22,8 @@
 
 (in-package :sphinxcontrib.cldomain)
 
+(defvar *current-package* nil)
+
 (defun argv ()
   (or
    #+CL-LAUNCH cl-launch:*arguments*
@@ -55,18 +57,9 @@
   "encode a class as a string including the package."
   (encode-symbol (class-name symbol)))
 
-(defun encode-symbol (symbol)
+(defun encode-symbol (symbol &optional (ftm-string "~s"))
   "encode the symbol as a string, including the package."
-  (concatenate
-   'string
-   (package-name (symbol-package symbol))
-   (if (multiple-value-bind
-             (sym status)
-           (find-symbol (symbol-name symbol) (package-name (symbol-package symbol)))
-         (declare (ignore sym))
-         (member status '(:inherited :external)))
-       ":" "::")
-   (symbol-name symbol)))
+  (format nil ftm-string symbol))
 
 (defun encode-specializer (atom)
   "encode a single specializer lambda list"
@@ -89,20 +82,76 @@
         (let ((specializer (closer-mop:method-specializers method)))
           (encode-object-member
            (mapcar #'encode-specializer specializer)
-           (documentation method t)))))))
+           (scope-symbols-in-text
+            (or (documentation method t) ""))))))))
+
+
+(defun resolve-symbol (string &optional (package *current-package*))
+  "try and resolve an uppercase symbol to it's home with a package."
+  (let ((sym (find-symbol string package)))
+    (if sym (encode-symbol sym ":cl:symbol:`~~~s`")
+        string)))
+
+(defun scope-symbols-in-text (text)
+  (with-input-from-string (stream text)
+    (with-output-to-string (out)
+      (let ((possible-symbol nil)
+            (probably-example nil))
+        (do ((char (read-char stream nil)
+                   (read-char stream nil)))
+            ((null char))
+          (cond
+            ;; if probably an example and peek eol, then switch back.
+            ((and probably-example
+                  (peek-char nil stream nil)
+                  (eql (peek-char nil stream nil) #\Newline)
+                  (setf probably-example nil))
+             (write-char char out))
+            ;; new line, then indentation, probably an example.
+            ((and (eql char #\Newline)
+                  (peek-char nil stream nil)
+                  (eql (peek-char nil stream nil) #\Space)
+                  (setf probably-example t))
+             (write-char char out))
+            ;; already started building a symbol
+            ((and possible-symbol (upper-case-p char))
+             (push char possible-symbol))
+            ;; already building symbol, and hit a lower case letter.
+            ((and possible-symbol (lower-case-p char))
+             (write-string (coerce (reverse possible-symbol) 'string) out)
+             (write-char char out)
+             (setf possible-symbol nil))
+            ;; building a symbol and found some white space
+            ((and possible-symbol (not (upper-case-p char)))
+             (write-string (resolve-symbol (coerce (reverse possible-symbol) 'string))
+                           out)
+             (write-char char out)
+             (setf possible-symbol nil))
+            ;; if the current char is a white space, then check if the
+            ;; next is an uppercase
+            ((and (find char '(#\Newline #\Space #\Tab) :test #'eql)
+                  (peek-char nil stream nil)
+                  (upper-case-p (peek-char nil stream nil)))
+             (write-char char out)
+             (push (read-char stream nil) possible-symbol))
+            ;; else just write the character out
+            (t
+             (write-char char out))))))))
 
 (defun encode-object-documentation (sym type)
   "Encode documentation for a symbol as a JSON
 object member."
   (encode-object-member
    type
-   (documentation sym (cond
-                        ((eq type 'generic-function) 'function)
+   (scope-symbols-in-text
+    (or (documentation sym (cond
+                           ((eq type 'generic-function) 'function)
                                         ; TODO i'm not sure this will
                                         ; be portable, shouldn't this
                                         ; be 'compiler-macro
-                        ((eq type 'macro) 'function)
-                        (t type)))))
+                           ((eq type 'macro) 'function)
+                           (t type)))
+        ""))))
 
 (defun class-args (class)
   (loop :for slot :in (class-direct-slots (find-class class))
@@ -118,42 +167,41 @@ object member."
           (encode-object-member 'readers (write-to-string (car (slot-definition-readers slot))))
           (encode-object-member 'writers (write-to-string (car (slot-definition-writers slot))))
           (encode-object-member 'type (write-to-string (class-name (class-of slot))))
-          (encode-object-member 'documentation (documentation slot t)))))))
+          (encode-object-member 'documentation (scope-symbols-in-text (or (documentation slot t) ""))))))))
 
-(defun symbols-to-json (package)
-  (let ((my-package (string-upcase package)))
-    (let* ((swank::*buffer-package* (find-package 'CL-USER))
-           (swank::*buffer-readtable* (copy-readtable)))
-      (let ((package-symbols nil)
-            (*json-output* *standard-output*))
-        (with-object ()
-          (dolist (sym (swank:apropos-list-for-emacs "" t nil my-package) package-symbols)
-            (destructuring-bind  (&key designator macro function generic-function setf variable type)
-                sym
-              (multiple-value-bind (symbol internal) (intern* designator)
-                (when (eq (symbol-package symbol) (find-package (intern my-package)))
-                  (as-object-member ((symbol-name symbol))
-                    (with-object ()
-                      (dolist (sym `((macro ,macro)
-                                     (function ,function)
-                                     (generic-function ,generic-function)
-                                     (setf ,setf)
-                                     (variable ,variable)
-                                     (type ,type)))
-                        (when (cadr sym)
-                          (if (eq (cadr sym) :not-documented)
-                              (encode-object-member (car sym) "")
-                              (encode-object-documentation symbol (car sym)))))
-                      (when (or function macro generic-function)
-                        (encode-object-member 'arguments (format nil "~S" (swank::arglist symbol))))
-                      (when type
-                        (as-object-member ('slots) (encode-object-class symbol)))
-                      (when internal
-                        (encode-object-member 'internal t))
-                      (when generic-function
+(defun symbols-to-json (&optional (package *current-package*) )
+  (let* ((swank::*buffer-package* (find-package 'CL-USER))
+         (swank::*buffer-readtable* (copy-readtable)))
+    (let ((package-symbols nil)
+          (*json-output* *standard-output*))
+      (with-object ()
+        (dolist (sym (swank:apropos-list-for-emacs "" t nil (package-name package)) package-symbols)
+          (destructuring-bind  (&key designator macro function generic-function setf variable type)
+              sym
+            (multiple-value-bind (symbol internal) (intern* designator)
+              (when (eq (symbol-package symbol) package)
+                (as-object-member ((symbol-name symbol))
+                  (with-object ()
+                    (dolist (sym `((macro ,macro)
+                                   (function ,function)
+                                   (generic-function ,generic-function)
+                                   (setf ,setf)
+                                   (variable ,variable)
+                                   (type ,type)))
+                      (when (cadr sym)
+                        (if (eq (cadr sym) :not-documented)
+                            (encode-object-member (car sym) "")
+                            (encode-object-documentation symbol (car sym)))))
+                    (when (or function macro generic-function)
+                      (encode-object-member 'arguments (format nil "~S" (swank::arglist symbol))))
+                    (when type
+                      (as-object-member ('slots) (encode-object-class symbol)))
+                    (when internal
+                      (encode-object-member 'internal t))
+                    (when generic-function
                       ;; when generic function
-                        (as-object-member ("methods")
-                          (encode-methods (symbol-function symbol)))))))))))))))
+                      (as-object-member ("methods")
+                        (encode-methods (symbol-function symbol))))))))))))))
 
 (defun main ()
   (multiple-value-bind (unused-args args invalid-args)
@@ -174,7 +222,8 @@ object member."
            (ql:quickload my-package :prompt nil)
            #-quicklisp
            (asdf:oos 'asdf:load-op my-package))
-         (symbols-to-json my-package)))
+         (let ((*current-package* (find-package (intern (string-upcase my-package)))))
+           (symbols-to-json))))
       (t
        (print-message "missing args")
        (print-usage)))))

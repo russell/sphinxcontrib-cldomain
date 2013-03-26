@@ -566,10 +566,7 @@ def index_package(package, package_path, extra_args=""):
             if not type in v:
                 continue
             # enable symbol references for symbols
-            text = re.sub(upper_symbols,
-                          ":cl:symbol:`~\g<1>`\g<2>", v[type])
-            text = code_regions(text)
-            DOC_STRINGS[package][k][type] = text
+            DOC_STRINGS[package][k][type] = code_regions(v[type])
 
         # extract methods
         if "methods" in v:
@@ -586,8 +583,6 @@ def index_package(package, package_path, extra_args=""):
             def parse_doc(doc):
                 if doc is None:
                     doc = ""
-                doc = re.sub(upper_symbols,
-                             ":cl:symbol:`~\g<1>`\g<2>", doc)
                 return code_regions(doc)
 
             methods = dict([(parse_method(method), parse_doc(doc))
