@@ -89,10 +89,12 @@
 (defun resolve-symbol (string &optional (package *current-package*))
   "try and resolve an uppercase symbol to it's home with a package."
   (let ((sym (find-symbol string package)))
-    (if sym (encode-symbol sym ":cl:symbol:`~~~s`")
+    (when (eql (char string 0) #\:)
+      (setf sym (read-from-string string)))
+    (if sym (encode-symbol sym ":cl:symbol:`~~~S`")
         string)))
 
-(defun scope-symbols-in-text (text)
+(defun scope-symbols-in-text (text &optional ignore-symbols)
   (with-input-from-string (stream text)
     (with-output-to-string (out)
       (let ((possible-symbol nil)
@@ -125,13 +127,14 @@
             ((and possible-symbol (not (upper-case-p char)))
              (write-string (resolve-symbol (coerce (reverse possible-symbol) 'string))
                            out)
-             (write-char char out)
+             (unread-char char stream)
              (setf possible-symbol nil))
             ;; if the current char is a white space, then check if the
-            ;; next is an uppercase
+            ;; next is an uppercase, or a :
             ((and (find char '(#\Newline #\Space #\Tab) :test #'eql)
                   (peek-char nil stream nil)
-                  (upper-case-p (peek-char nil stream nil)))
+                  (or (upper-case-p (peek-char nil stream nil))
+                      (eql (peek-char nil stream nil) #\:)))
              (write-char char out)
              (push (read-char stream nil) possible-symbol))
             ;; else just write the character out

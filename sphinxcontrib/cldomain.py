@@ -447,7 +447,7 @@ class CLXRefRole(XRefRole):
                 symbol = title[1:].split(':')
                 package = symbol[0]
                 title = symbol[-1]
-                if package == "KEYWORD":
+                if target[0] == ":":
                     title = ":" + title
         return title, target
 
