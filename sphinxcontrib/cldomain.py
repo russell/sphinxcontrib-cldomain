@@ -130,9 +130,88 @@ def resolve_string(state_machine, package, symbol, objtype, specializer=None):
     return string
 
 
-class desc_parameterlist(addnodes.desc_parameterlist):
+class desc_clparameterlist(addnodes.desc_parameterlist):
     """Node for a common lisp parameter list."""
     child_text_separator = ' '
+
+# v is short for visit
+# d is short for depart
+
+
+def v_clparameterlist(self, node):
+    self.first_param = 1
+    self.param_separator = node.child_text_separator
+
+
+def d_clparameterlist(self, node):
+    pass
+
+
+def v_latex_clparameterlist(self, node):
+    self.body.append('}{')
+    self.first_param = 1
+    self.param_separator = node.child_text_separator
+
+
+def d_latex_clparameterlist(self, node):
+    self.body.append('}{')
+
+
+class desc_clparameter(addnodes.desc_parameter):
+    """Node for a common lisp parameter item."""
+
+
+def d_clparameter(self, node):
+    pass
+
+
+def v_html_clparameter(self, node):
+    if not self.first_param:
+        self.body.append(self.param_separator)
+    else:
+        self.first_param = 0
+    if not node.hasattr('noemph'):
+        self.body.append('<em>')
+
+
+def d_html_clparameter(self, node):
+    if not node.hasattr('noemph'):
+        self.body.append('</em>')
+
+
+def v_latex_clparameter(self, node):
+    if not self.first_param:
+        self.body.append(self.param_separator)
+    else:
+        self.first_param = 0
+    if not node.hasattr('noemph'):
+        self.body.append(r'\emph{')
+
+
+def d_latex_clparameter(self, node):
+    if not node.hasattr('noemph'):
+        self.body.append('}')
+
+
+def v_texinfo_clparameter(self, node):
+    if not self.first_param:
+        self.body.append(self.param_separator)
+    else:
+        self.first_param = 0
+    text = self.escape(node.astext())
+    # replace no-break spaces with normal ones
+    text = text.replace(u' ', '@w{ }')
+    self.body.append(text)
+    raise nodes.SkipNode
+
+
+def v_text_clparameter(self, node):
+    if not self.first_param:
+        self.add_text(self.param_separator)
+    else:
+        self.first_param = 0
+    self.add_text(node.astext())
+    raise nodes.SkipNode
 
 
 def specializer(sexp, state):
@@ -179,7 +258,7 @@ class SEXP(object):
         return self.render_parameterlist(prepend_node=function_name)
 
     def render_parameterlist(self, signode=None, prepend_node=None):
-        desc_sexplist = desc_parameterlist()
+        desc_sexplist = desc_clparameterlist()
         if prepend_node:
             desc_sexplist.append(prepend_node)
         if signode:
@@ -198,9 +277,9 @@ class SEXP(object):
         "add syntax hi-lighting to interesting atoms"
 
         if token.startswith("&") or token.startswith(":"):
-            signode.append(addnodes.desc_parameter(token, token))
+            signode.append(desc_clparameter(token, token))
         else:
-            signode.append(addnodes.desc_parameter(token, token))
+            signode.append(desc_clparameter(token, token))
 
 
 class CLsExp(ObjectDescription):
@@ -561,6 +640,16 @@ def uppercase_symbols(app, docname, source):
 
 def setup(app):
     app.add_domain(CLDomain)
+    app.add_node(desc_clparameterlist,
+                 html=(v_clparameterlist, d_clparameterlist),
+                 latex=(v_latex_clparameterlist, d_latex_clparameterlist),
+                 texinfo=(v_clparameterlist, d_clparameterlist),
+                 text=(v_clparameterlist, d_clparameterlist))
+    app.add_node(desc_clparameter,
+                 html=(v_html_clparameter, d_html_clparameter),
+                 latex=(v_latex_clparameter, d_latex_clparameter),
+                 texinfo=(v_texinfo_clparameter, d_clparameter),
+                 text=(v_text_clparameter, d_clparameter))
     app.add_config_value('lisp_packages', {}, 'env')
     app.connect('builder-inited', load_packages)
     #app.connect('source-read', uppercase_symbols)
