@@ -26,7 +26,7 @@
 
 (defun argv ()
   (or
-   #+CL-LAUNCH cl-launch:*arguments*
+   #+ASDF (uiop/image:command-line-arguments)
    #+SBCL sb-ext:*posix-argv*
    #+LISPWORKS system:*line-arguments-list*
    #+CMU extensions:*command-line-words*
