@@ -57,9 +57,20 @@
   "encode a class as a string including the package."
   (encode-symbol (class-name symbol)))
 
-(defun encode-symbol (symbol &optional (ftm-string "~s"))
+(defun encode-symbol (symbol &optional (ftm-string "~a"))
   "encode the symbol as a string, including the package."
-  (format nil ftm-string symbol))
+  (let ((sym-string (concatenate
+                      'string
+                      (package-name (symbol-package symbol))
+                      (if (multiple-value-bind
+                                (sym status)
+                              (find-symbol (symbol-name symbol) (package-name (symbol-package symbol)))
+                            (declare (ignore sym))
+                            (member status '(:inherited :external)))
+                          ":" "::")
+                      (symbol-name symbol))))
+    (format nil ftm-string sym-string)) )
+
 
 (defun encode-specializer (atom)
   "encode a single specializer lambda list"
@@ -91,7 +102,7 @@
   (let ((sym (find-symbol string package)))
     (when (eql (char string 0) #\:)
       (setf sym (read-from-string string)))
-    (if sym (encode-symbol sym ":cl:symbol:`~~~S`")
+    (if sym (encode-symbol sym ":cl:symbol:`~~~a`")
         string)))
 
 (defun scope-symbols-in-text (text &optional ignore-symbols)
