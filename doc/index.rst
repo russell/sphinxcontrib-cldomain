@@ -28,6 +28,6 @@ Repositories
 
 .. cl:function:: example-function1
 
-.. cl:generic:: ex-generic
-
 .. cl:type:: example-class
+                              
+.. cl:generic:: ex-generic

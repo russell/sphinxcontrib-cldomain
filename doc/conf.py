@@ -31,6 +31,7 @@ from os import path
 # ones.
 extensions = ['sphinx.ext.intersphinx',
               'sphinxcontrib.cldomain',
+              'sphinxcontrib.hyperspec',
               'sphinxcontrib.googleanalytics']
 
 # Add any paths that contain templates here, relative to this directory.

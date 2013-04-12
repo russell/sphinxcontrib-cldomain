@@ -25,9 +25,15 @@
 
 (in-package :sphinxcontrib.cldomain.doc)
 
+(defvar *example-variable* "value"
+  "This is an example variable.")
 
-(defun example-function (arg1 arg2 arg3)
-  "An example function, returns a list containing ARG1 ARG2 and ARG3."
+(defun example-function (arg1 arg2 arg3 &key (kw *example-variable*))
+  "The CL Domain will try and convert any uppercase symbols into
+reference for example EXAMPLE-FUNCTION or a hyperspec link LIST.  Any
+unmatched symbols are left as is ARG1, ARG2 and ARG3.  Explicit package
+references will also help resolve symbol sources COMMON-LISP:CAR.
+Keywords are also detected for example :KW."
   (list arg1 arg2 arg3))
 
 
