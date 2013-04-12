@@ -535,7 +535,7 @@ def code_regions(text):
     indent = False
     for line in io:
         if indent is False and (line.startswith(" ") or line.startswith("\t")):
-            output.write(".. code-block:: common-lisp\n\n")
+            output.write("\n.. code-block:: common-lisp\n\n")
             indent = True
         if indent is True and not (line.startswith(" ") or line.startswith("\t")):
             indent = False
