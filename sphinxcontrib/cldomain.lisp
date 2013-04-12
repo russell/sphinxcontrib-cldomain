@@ -18,7 +18,12 @@
 
 (defpackage :sphinxcontrib.cldomain
   (:use #:closer-common-lisp #:getopt #:json #:closer-mop #:alexandria)
-  (:export #:main))
+  (:export #:main
+           #:encode-symbol
+           #:resolve-symbol
+           #:*current-package*
+           #:intern*
+           #:find-best-symbol))
 
 (in-package :sphinxcontrib.cldomain)
 
@@ -38,44 +43,71 @@
 (defun print-usage ()
   (format t "./cldomain.lisp --package <package name> --path <package path> ~%"))
 
+(defun split-symbol-string (string)
+    (remove-if (lambda (e) (equal e ""))
+       (loop :for i = 0 :then (1+ j)
+             :as j = (position #\: string :start i)
+             :when (subseq string i j)
+               :collect (subseq string i j)
+             :while j)))
+
 (defun intern* (symbol)
   "Take a symbol in the form of a string e.g. \"CL-GIT:GIT-AUTHOR\" or
   \"CL-GIT::INDEX\" and return the interned symbol."
-  (destructuring-bind (package name)
-      (remove-if (lambda (e) (equal e ""))
-       (loop :for i = 0 :then (1+ j)
-             :as j = (position #\: symbol :start i)
-             :when (subseq symbol i j)
-               :collect (subseq symbol i j)
-             :while j))
-    (intern name package)))
+  (let ((symbol-parts (split-symbol-string symbol)))
+    (when (= (length symbol-parts) 2)
+        (destructuring-bind (package name)
+            symbol-parts
+          (intern name package)))))
+
+(defun find-symbol* (string &optional package)
+  (let ((symbol-parts (split-symbol-string string)))
+    (cond
+      ((= (length symbol-parts) 1)
+       (when (find-package package)
+         (find-symbol string (find-package package))))
+      ((= (length symbol-parts) 2)
+       (destructuring-bind (package-part name-part)
+           symbol-parts
+         (when (find-package package-part)
+           (find-symbol name-part
+                        (find-package
+                         package-part))))))))
 
 (defun encode-when-object-member (type value)
   (when value (encode-object-member type value)))
 
 (defun encode-class (symbol)
-  "encode a class as a string including the package."
+  "Encode a class as a string including the package."
   (encode-symbol (class-name symbol)))
 
 (defun encode-symbol (symbol &optional (ftm-string "~a"))
-  "encode the symbol as a string, including the package."
-  (let ((sym-string (concatenate
-                      'string
-                      (package-name (symbol-package symbol))
-                      (if (multiple-value-bind
-                                (sym status)
-                              (find-symbol (symbol-name symbol) (package-name (symbol-package symbol)))
-                            (declare (ignore sym))
-                            (member status '(:inherited :external)))
-                          ":" "::")
-                      (symbol-name symbol))))
-    (format nil ftm-string sym-string)) )
+  "Encode the symbol as a string, including the package.  If the value
+is a string then just return the string."
+  (let ((sym-string
+          (if (stringp symbol)
+              symbol
+              (concatenate
+               'string
+               (package-name (symbol-package symbol))
+               (if (multiple-value-bind
+                         (sym status)
+                       (find-symbol (symbol-name symbol)
+                                    (package-name
+                                     (symbol-package symbol)))
+                     (declare (ignore sym))
+                     (member status '(:inherited :external)))
+                   ":" "::")
+               (symbol-name symbol)))))
+    (format nil ftm-string sym-string)))
 
 
 (defun encode-specializer (atom)
   "encode a single specializer lambda list"
   (cond ((eq (type-of atom) 'eql-specializer)
-         (concatenate 'string "(EQ " (encode-symbol (eql-specializer-object atom)) ")"))
+         (concatenate 'string
+                      "(EQ " (encode-symbol
+                              (eql-specializer-object atom)) ")"))
         ((classp atom)
          (encode-class atom))
         (t (encode-symbol atom))))
@@ -96,61 +128,95 @@
            (scope-symbols-in-text
             (or (documentation method t) ""))))))))
 
-
 (defun resolve-symbol (string &optional (package *current-package*))
   "try and resolve an uppercase symbol to it's home with a package."
-  (let ((sym (find-symbol string package)))
-    (when (eql (char string 0) #\:)
-      (setf sym (read-from-string string)))
+  ;; if the first char is a : then this must be a keyword
+  (when (eql (char string 0) #\:)
+    (return-from resolve-symbol string))
+  (let ((sym (find-symbol* string package)))
     (if sym (encode-symbol sym ":cl:symbol:`~~~a`")
         string)))
 
+(defun find-best-symbol (symbols)
+  "try and find the best symbol, return the most appropriate and the
+remaining string."
+  (dolist (symbol symbols)
+    (let ((xref (resolve-symbol symbol)))
+      (when (not (equal xref symbol))
+          ;; then return the resolved symbol
+        (return-from find-best-symbol
+          (values xref (if (equal symbol (car symbols))
+                           ""  ; first symbol, so no remainder
+                           (subseq (car symbols) (length symbol))))))))
+  (values "" (car symbols)))
+
 (defun scope-symbols-in-text (text &optional ignore-symbols)
-  (with-input-from-string (stream text)
-    (with-output-to-string (out)
-      (let ((possible-symbol nil)
-            (probably-example nil))
-        (do ((char (read-char stream nil)
-                   (read-char stream nil)))
-            ((null char))
-          (cond
-            ;; if probably an example and peek eol, then switch back.
-            ((and probably-example
-                  (peek-char nil stream nil)
-                  (eql (peek-char nil stream nil) #\Newline)
-                  (setf probably-example nil))
-             (write-char char out))
-            ;; new line, then indentation, probably an example.
-            ((and (eql char #\Newline)
-                  (peek-char nil stream nil)
-                  (eql (peek-char nil stream nil) #\Space)
-                  (setf probably-example t))
-             (write-char char out))
-            ;; already started building a symbol
-            ((and possible-symbol (upper-case-p char))
-             (push char possible-symbol))
-            ;; already building symbol, and hit a lower case letter.
-            ((and possible-symbol (lower-case-p char))
-             (write-string (coerce (reverse possible-symbol) 'string) out)
-             (write-char char out)
-             (setf possible-symbol nil))
-            ;; building a symbol and found some white space
-            ((and possible-symbol (not (upper-case-p char)))
-             (write-string (resolve-symbol (coerce (reverse possible-symbol) 'string))
-                           out)
-             (unread-char char stream)
-             (setf possible-symbol nil))
-            ;; if the current char is a white space, then check if the
-            ;; next is an uppercase, or a :
-            ((and (find char '(#\Newline #\Space #\Tab) :test #'eql)
-                  (peek-char nil stream nil)
-                  (or (upper-case-p (peek-char nil stream nil))
-                      (eql (peek-char nil stream nil) #\:)))
-             (write-char char out)
-             (push (read-char stream nil) possible-symbol))
-            ;; else just write the character out
-            (t
-             (write-char char out))))))))
+  (flet ((whitespace-p (char)
+           (find char '(#\Newline #\Space #\Tab) :test #'eql)))
+    (with-input-from-string (stream text)
+      (with-output-to-string (out)
+        (let ((possible-symbol nil)
+              (possible-symbols nil)
+              (probably-example nil))
+          (do ((char (read-char stream nil)
+                     (read-char stream nil)))
+              ((null char))
+            (cond
+              ;; if probably an example and peek eol, then switch back.
+              ((and probably-example
+                    (peek-char nil stream nil)
+                    (eql (peek-char nil stream nil) #\Newline)
+                    (setf probably-example nil))
+               (write-char char out))
+              ;; new line, then indentation, probably an example.
+              ((and (eql char #\Newline)
+                    (peek-char nil stream nil)
+                    (eql (peek-char nil stream nil) #\Space)
+                    (setf probably-example t))
+               (write-char char out))
+              ;; already started building a symbol
+              ((and possible-symbol
+                    (or (upper-case-p char)
+                        (and (not (whitespace-p char))
+                             (not (lower-case-p char)))))
+               (push char possible-symbol)
+               ;; already building a symbol, something looks fishy one
+               ;; char ahead, so save each possible symbol.
+               (when (and possible-symbol
+                          (peek-char nil stream nil) ; check there is something there
+                          (not (upper-case-p (peek-char nil stream nil))))
+                 (push (coerce (reverse possible-symbol) 'string)
+                       possible-symbols)))
+              ;; already building symbol, and hit a lower case letter.
+              ((and possible-symbol (lower-case-p char))
+               (write-string (coerce (reverse possible-symbol) 'string) out)
+               (write-char char out)
+               (setf possible-symbol nil)
+               (setf possible-symbols nil))
+              ;; building a symbol and found some white space
+              ((and possible-symbol (not (upper-case-p char)))
+               (push (coerce (reverse possible-symbol) 'string)
+                     possible-symbols)
+               (multiple-value-bind (symbol rest)
+                   (find-best-symbol possible-symbols)
+                 (write-string symbol out)
+                 (write-string rest out))
+               (unread-char char stream)
+               (setf possible-symbol nil)
+               (setf possible-symbols nil))
+              ;; if the current char is a white space, then check if the
+              ;; next is an uppercase, or a :
+              ((and (whitespace-p char)
+                    (peek-char nil stream nil)
+                    (or (upper-case-p (peek-char nil stream nil))
+                        (eql (peek-char nil stream nil) #\:)))
+               (write-char char out)
+               (push (read-char stream nil) possible-symbol))
+              ;; else just write the character out
+              (t
+               (write-char char out))))
+          (when possible-symbol
+            (write-string (coerce (reverse possible-symbol) 'string) out)))))))
 
 (defun encode-object-documentation (sym type)
   "Encode documentation for a symbol as a JSON
