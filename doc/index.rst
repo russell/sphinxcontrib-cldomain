@@ -107,4 +107,4 @@ Methods
 
        .. cl:method:: example-generic
 
-.. cl:method:: example-generic example-class (eql :test)
+.. cl:method:: example-generic example-class :test

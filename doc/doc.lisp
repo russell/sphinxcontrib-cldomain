@@ -50,5 +50,5 @@ Keywords are also detected for example :KW."
 
 
 (defmethod example-generic ((arg1 example-class) (arg2 (eql :test)) &optional arg3)
-  (:documentation "A test method.")
+  "A test method."
   (list arg1 arg2 arg3))
