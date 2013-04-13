@@ -19,27 +19,20 @@
 (defpackage :sphinxcontrib.cldomain.doc
   (:use #:common-lisp)
   (:export #:example-function
-           #:example-function1
            #:example-class
-           #:ex-generic))
+           #:example-generic))
 
 (in-package :sphinxcontrib.cldomain.doc)
 
 (defvar *example-variable* "value"
   "This is an example variable.")
 
-(defun example-function (arg1 arg2 arg3 &key (kw *example-variable*))
+(defun example-function (arg1 arg2 &optional (arg3 #'sort) &key (kw *example-variable*))
   "The CL Domain will try and convert any uppercase symbols into
 reference for example EXAMPLE-FUNCTION or a hyperspec link LIST.  Any
 unmatched symbols are left as is ARG1, ARG2 and ARG3.  Explicit package
 references will also help resolve symbol sources COMMON-LISP:CAR.
 Keywords are also detected for example :KW."
-  (list arg1 arg2 arg3))
-
-
-(defun example-function1 (arg1 arg2 &optional (arg3 #'sort))
-  "An example function similar to EXAMPLE-FUNCTION but with an
-  optional argument that contains a default with a default."
   (list arg1 arg2 arg3))
 
 
@@ -52,9 +45,10 @@ Keywords are also detected for example :KW."
   (:documentation "An example class."))
 
 
-(defgeneric ex-generic (arg1 arg2 &optional arg3)
+(defgeneric example-generic (arg1 arg2 &optional arg3)
   (:documentation "A test generic function."))
 
 
-(defmethod ex-generic ((arg1 example-class) (arg2 (eql :test)) &optional arg3)
+(defmethod example-generic ((arg1 example-class) (arg2 (eql :test)) &optional arg3)
+  (:documentation "A test method.")
   (list arg1 arg2 arg3))
