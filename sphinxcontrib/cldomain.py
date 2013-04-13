@@ -50,7 +50,6 @@ ALL_TYPES = ["macro", "function", "genericFunction",
              "setf", "variable", "type"]
 upper_symbols = re.compile("([^a-z\s\"`]*[A-Z]{2,}[^a-z\s\"`:]*)($|\s)")
 
-
 DOC_STRINGS = defaultdict(dict)
 TYPES = defaultdict(dict)
 ARGS = defaultdict(dict)
@@ -95,11 +94,15 @@ def _read_from(tokens):
 # end of http://norvig.com/lispy.html
 
 
-def parse_specializer_symbol(symbol):
+def parse_specializer_symbol(symbol, package):
     """parse symbols, for specializers"""
     symbol = symbol.upper()
     if symbol.startswith(":"):
         return "KEYWORD" + symbol
+    # TODO (RS) this needs to be smarter what happens if there is an
+    # internal symbol instead of an external one?
+    if ":" not in symbol:
+        return package + ":" + symbol
     return symbol
 
 
@@ -111,7 +114,7 @@ def resolve_string(state_machine, package, symbol, objtype, specializer=None):
     if objtype == "method":
         spec = specializer[0].split(" ")[1:]
         method_doc = METHODS.get(package).get(symbol, {})
-        key = tuple([parse_specializer_symbol(sym)
+        key = tuple([parse_specializer_symbol(sym, package)
                      for sym in spec])
         if key not in method_doc:
             state_machine.reporter.warning("Can't find method %s:%s specializer %s" %
