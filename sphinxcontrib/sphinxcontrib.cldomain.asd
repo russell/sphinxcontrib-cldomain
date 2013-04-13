@@ -23,3 +23,8 @@
   :description "A documentation tool."
   :components ((:static-file "sphinxcontrib.cldomain.asd")
                (:file "cldomain")))
+
+(defmethod perform ((op asdf:test-op) (system (eql (find-system :sphinxcontrib.cldomain))))
+  (asdf:oos 'asdf:load-op :sphinxcontrib.cldomain-test)
+  (funcall (intern (string :run!) (string :it.bese.FiveAM))
+           :cldomain))
