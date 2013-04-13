@@ -28,6 +28,7 @@
     http://sphinx.pocoo.org/latest/ext/appapi.html#event-source-read
 """
 import re
+import os
 from os import path
 import json
 from collections import defaultdict
@@ -547,16 +548,21 @@ def code_regions(text):
     return output.read()
 
 
-def index_package(package, package_path, extra_args=""):
+def index_package(package, package_path, quicklisp):
     """Call an external lisp program that will return a dictionary of
     doc strings for all public symbols."""
-    lisp_script = path.join(path.dirname(path.realpath(__file__)),
-                            "cldomain.sh")
-    command = "%s --package %s --path %s" % (lisp_script, package,
-                                             package_path)
-    output = subprocess.check_output(command + extra_args, shell=True)
+    cl_launch_exe = [which("cl-launch")[0]]
+    cl_launch_command = cl_launch_args()
+    cldomain_args = ["--", "--package", package, "--path", package_path]
+
+    env = {"CLDOMAIN": path.abspath(path.dirname(__file__)) + "/",
+           "QUICKLISP": quicklisp}
+
+    output = subprocess.check_output(cl_launch_exe + cl_launch_command + cldomain_args,
+                                     env=env)
     output = "\n".join([line for line in output.split("\n")
                         if not line.startswith(";")])
+
     lisp_data = json.loads(output)
     DOC_STRINGS[package] = {}
     METHODS[package] = {}
@@ -625,7 +631,7 @@ def load_packages(app):
     if not app.config.lisp_packages:
         return
     for key, value in app.config.lisp_packages.iteritems():
-        index_package(key.upper(), value)
+        index_package(key.upper(), value, app.config.quicklisp)
 
 
 def uppercase_symbols(app, docname, source):
@@ -649,5 +655,53 @@ def setup(app):
                  texinfo=(v_texinfo_clparameter, d_clparameter),
                  text=(v_text_clparameter, d_clparameter))
     app.add_config_value('lisp_packages', {}, 'env')
+    app.add_config_value('quicklisp', {}, 'env')
     app.connect('builder-inited', load_packages)
     #app.connect('source-read', uppercase_symbols)
+
+
+def which(name, flags=os.X_OK):
+    """https://twistedmatrix.com/trac/browser/tags/releases/twisted-8.2.0/twisted/python/procutils.py"""
+    result = []
+    exts = filter(None, os.environ.get('PATHEXT', '').split(os.pathsep))
+    path = os.environ.get('PATH', None)
+    if path is None:
+        return []
+    for p in os.environ.get('PATH', '').split(os.pathsep):
+        p = os.path.join(p, name)
+        if os.access(p, flags):
+            result.append(p)
+        for e in exts:
+            pext = p + e
+            if os.access(pext, flags):
+                result.append(pext)
+    return result
+
+
+def cl_launch_args():
+    quicklisp="""
+(let ((quicklisp-init (merge-pathnames (make-pathname :name "setup"
+                                                      :type "lisp")
+                                       (concatenate 'string (asdf/os:getenv "QUICKLISP")
+                                                    "/"))))
+  (if (probe-file quicklisp-init)
+      (load quicklisp-init)
+      (error "Can't Find Quicklisp at ~a~%" quicklisp-init)))
+"""
+
+    system = """
+(push (pathname (concatenate 'string (asdf/os:getenv \"CLDOMAIN\") \"/\"))
+                             asdf:*central-registry*)
+"""
+
+    quickload = """
+(let ((*standard-output* *error-output*))
+  (quicklisp:quickload 'sphinxcontrib.cldomain))
+"""
+
+    return ["--init", quicklisp,
+            "--init", system,
+            "--init", "(asdf:initialize-source-registry)",
+            "--init", "(require 'quicklisp)",
+            "--init", quickload,
+            "--init", "(sphinxcontrib.cldomain:main)"]
