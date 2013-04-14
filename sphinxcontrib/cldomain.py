@@ -349,7 +349,7 @@ class CLsExp(ObjectDescription):
         return objtype.strip(), symbol_name.upper()
 
     def get_index_text(self, name, type):
-        return _('%s (Lisp %s)') % (name, type)
+        return _('%s (Lisp %s)') % (name.lower().split(":")[-1], type)
 
     def get_signature_prefix(self, sig):
         return self.objtype + ' '
@@ -378,9 +378,10 @@ class CLsExp(ObjectDescription):
                     line=self.lineno)
             inv[name] = (self.env.docname, self.objtype)
 
-        indextext = self.get_index_text(name, type)
-        if indextext:
-            self.indexnode['entries'].append(('single', indextext, name, ''))
+        if not type == "method":
+            indextext = self.get_index_text(name, type)
+            if indextext:
+                self.indexnode['entries'].append(('single', indextext, name, ''))
 
     def run_add_doc(self, result):
         package = self.env.temp_data.get('cl:package')
@@ -425,7 +426,7 @@ class CLsExp(ObjectDescription):
         description = result[1][-1]
         specializers = METHODS.get(package, {}).get(name).keys()
         if specializers:
-            description.append(nodes.paragraph(text="Supported Objects"))
+            description.append(nodes.paragraph(text="Specializes"))
             spec = nodes.bullet_list()
             spec += [specializer(s, self.state) for s in specializers]
             description.children.append(spec)
