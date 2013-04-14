@@ -16,25 +16,30 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from setuptools import setup, find_packages
+from os import path
 
-long_desc = '''
-This package contains the cldomain Sphinx extension.
+changelog_header = """
+Changelog
+=========
 
-.. add description here ..
-'''
+"""
+
+desc_file = path.join(path.dirname(__file__), "README.rst")
+changelog_file = path.join(path.dirname(__file__), "CHANGELOG.rst")
+description = open(desc_file).read() + changelog_header + open(changelog_file).read()
 
 requires = ['Sphinx>=0.6']
 
 setup(
     name='sphinxcontrib-cldomain',
     version='0.2',
-    url='http://bitbucket.org/birkenfeld/sphinx-contrib',
+    url='https://github.com/russell/sphinxcontrib-cldomain/',
     download_url='http://pypi.python.org/pypi/sphinxcontrib-cldomain',
     license='GPL',
     author='Russell Sim',
     author_email='russell.sim@gmail.com',
-    description='Sphinx "cldomain" extension',
-    long_description=long_desc,
+    description='Sphinx domain for Common Lisp',
+    long_description=description,
     zip_safe=False,
     classifiers=[
         'Development Status :: 4 - Beta',
