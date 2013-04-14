@@ -36,13 +36,13 @@ option.  In this example the conf.py is in a doc directory and the ASD
 file is in the parent directory. ::
 
    from os.path import join, dirname, realpath
-   lisp_packages = {"cl-git": join(dirname(realpath(__file__)), "../")}
+   cl_packages = {"cl-git": join(dirname(realpath(__file__)), "../")}
 
 To set the location of quicklisp in conf.py add a quicklisp variable
 with the value set to it's location. ::
 
    import os
-   quicklisp = path.expandvars('$HOME/.quicklisp/')
+   cl_quicklisp = path.expandvars('$HOME/.quicklisp/')
 
 
 Documentation

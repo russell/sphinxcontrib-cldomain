@@ -262,27 +262,29 @@ class SpecializerField(Field):
 
 
 class SEXP(object):
-    def __init__(self, sexp):
+    def __init__(self, sexp, show_defaults=False):
         if not isinstance(sexp, list):
             self.sexp = _read(sexp)
         else:
             self.sexp = sexp
+        self.show_defaults = show_defaults
 
     def as_parameterlist(self, function_name):
         return self.render_parameterlist(prepend_node=function_name)
 
-    def render_parameterlist(self, signode=None, prepend_node=None):
+    def render_parameterlist(self, signode=None, prepend_node=None, sexp=None):
         desc_sexplist = desc_clparameterlist()
         if prepend_node:
             desc_sexplist.append(prepend_node)
         if signode:
             signode.append(desc_sexplist)
         symbol = False
-        for atom in self.sexp:
+        for atom in sexp or self.sexp:
             if isinstance(atom, list):
-                # Disable rendering nested elements.
-                # render_sexp(atom, desc_sexplist)
-                symbol = self.render_atom(atom[0], desc_sexplist)
+                if self.show_defaults:
+                    symbol = self.render_parameterlist(signode=desc_sexplist, sexp=atom)
+                else:
+                    symbol = self.render_atom(atom[0], desc_sexplist)
             else:
                 symbol = self.render_atom(atom, desc_sexplist)
         return desc_sexplist
@@ -332,7 +334,7 @@ class CLsExp(ObjectDescription):
         if not lisp_args.strip() and self.objtype in ["function"]:
             lisp_args = "()"
         if lisp_args.strip():
-            sexp = SEXP(lisp_args)
+            sexp = SEXP(lisp_args, self.env.app.config.cl_show_defaults)
             arg_list = sexp.as_parameterlist(function_name)
             signode.append(arg_list)
         else:
@@ -640,10 +642,10 @@ def index_package(package, package_path, quicklisp):
 
 
 def load_packages(app):
-    if not app.config.lisp_packages:
+    if not app.config.cl_packages:
         return
-    for key, value in app.config.lisp_packages.iteritems():
-        index_package(key.upper(), value, app.config.quicklisp)
+    for key, value in app.config.cl_packages.iteritems():
+        index_package(key.upper(), value, app.config.cl_quicklisp)
 
 
 def uppercase_symbols(app, docname, source):
@@ -666,8 +668,9 @@ def setup(app):
                  latex=(v_latex_clparameter, d_latex_clparameter),
                  texinfo=(v_texinfo_clparameter, d_clparameter),
                  text=(v_text_clparameter, d_clparameter))
-    app.add_config_value('lisp_packages', {}, 'env')
-    app.add_config_value('quicklisp', {}, 'env')
+    app.add_config_value('cl_packages', {}, 'env')
+    app.add_config_value('cl_quicklisp', "", 'env')
+    app.add_config_value('cl_show_defaults', False, True)
     app.connect('builder-inited', load_packages)
     #app.connect('source-read', uppercase_symbols)
 
