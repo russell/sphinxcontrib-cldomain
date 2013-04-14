@@ -23,6 +23,7 @@
            #:resolve-symbol
            #:*current-package*
            #:intern*
+           #:scope-symbols-in-text
            #:find-best-symbol))
 
 (in-package :sphinxcontrib.cldomain)
@@ -64,8 +65,9 @@
   (let ((symbol-parts (split-symbol-string string)))
     (cond
       ((= (length symbol-parts) 1)
-       (when (find-package package)
-         (find-symbol string (find-package package))))
+      (if package
+           (find-symbol string (find-package package))
+           (find-symbol string)))
       ((= (length symbol-parts) 2)
        (destructuring-bind (package-part name-part)
            symbol-parts
@@ -73,6 +75,16 @@
            (find-symbol name-part
                         (find-package
                          package-part))))))))
+
+(defun simplify-arglist (arglist)
+  "return the first element of each list item this is to remove the
+default values from the arglist."
+  (mapcar (lambda (e)
+            (cond
+              ((listp e)
+               (car e))
+              (t e)))
+          arglist))
 
 (defun encode-when-object-member (type value)
   (when value (encode-object-member type value)))
@@ -101,6 +113,8 @@ is a string then just return the string."
                (symbol-name symbol)))))
     (format nil ftm-string sym-string)))
 
+(defun encode-xref (symbol)
+  (encode-symbol symbol ":cl:symbol:`~~~a`"))
 
 (defun encode-specializer (atom)
   "encode a single specializer lambda list"
@@ -128,27 +142,20 @@ is a string then just return the string."
            (scope-symbols-in-text
             (or (documentation method t) ""))))))))
 
-(defun resolve-symbol (string &optional (package *current-package*))
-  "try and resolve an uppercase symbol to it's home with a package."
-  ;; if the first char is a : then this must be a keyword
-  (when (eql (char string 0) #\:)
-    (return-from resolve-symbol string))
-  (let ((sym (find-symbol* string package)))
-    (if sym (encode-symbol sym ":cl:symbol:`~~~a`")
-        string)))
-
-(defun find-best-symbol (symbols)
+(defun find-best-symbol (symbols &optional ignore-symbols)
   "try and find the best symbol, return the most appropriate and the
-remaining string."
-  (dolist (symbol symbols)
-    (let ((xref (resolve-symbol symbol)))
-      (when (not (equal xref symbol))
-          ;; then return the resolved symbol
+remaining string.  symbols is a list of strings that contains
+possible symbol names."
+  (dolist (symbol-string symbols)
+    (let ((symbol (find-symbol* symbol-string)))
+      (when (and (not (null symbol)) (symbolp symbol))
+        (when (member symbol ignore-symbols)
+          (return))
         (return-from find-best-symbol
-          (values xref (if (equal symbol (car symbols))
+          (values symbol (if (equal symbol-string (car symbols))
                            ""  ; first symbol, so no remainder
-                           (subseq (car symbols) (length symbol))))))))
-  (values "" (car symbols)))
+                           (subseq (car symbols) (length symbol-string))))))))
+  (values nil (car symbols)))
 
 (defun scope-symbols-in-text (text &optional ignore-symbols)
   (flet ((whitespace-p (char)
@@ -198,8 +205,9 @@ remaining string."
                (push (coerce (reverse possible-symbol) 'string)
                      possible-symbols)
                (multiple-value-bind (symbol rest)
-                   (find-best-symbol possible-symbols)
-                 (write-string symbol out)
+                   (find-best-symbol possible-symbols ignore-symbols)
+                 (when symbol
+                   (write-string (encode-xref symbol) out))
                  (write-string rest out))
                (unread-char char stream)
                (setf possible-symbol nil)
@@ -231,7 +239,10 @@ object member."
                                         ; be 'compiler-macro
                            ((eq type 'macro) 'function)
                            (t type)))
-        ""))))
+        "")
+    (when (functionp sym)
+      (simplify-arglist
+       (swank::arglist sym))))))
 
 (defun class-args (class)
   (loop :for slot :in (class-direct-slots (find-class class))

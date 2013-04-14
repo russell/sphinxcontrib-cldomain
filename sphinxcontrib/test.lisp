@@ -17,7 +17,7 @@
 (in-package :cl-user)
 
 (defpackage :sphinxcontrib.cldomain-test
-  (:use #:common-lisp #:fiveam #:sphinxcontrib.cldomain))
+  (:use #:closer-common-lisp #:fiveam #:sphinxcontrib.cldomain))
 
 (in-package :sphinxcontrib.cldomain-test)
 
@@ -29,19 +29,9 @@
   (is (equal '("COMMON-LISP:CAR" "COMMON-LISP:LIST")
              (mapcar #'encode-symbol '(car "COMMON-LISP:LIST")))))
 
-(test resolve-symbol
-  (let ((*current-package* *package*))
-    (is (equal '(":cl:symbol:`~COMMON-LISP:CAR`"
-                 ":cl:symbol:`~COMMON-LISP:LIST`"
-                 "COMMON-LISP:LIST."
-                 ":KEY-TEST.")
-               (mapcar #'resolve-symbol '("CAR" "COMMON-LISP:LIST"
-                                          "COMMON-LISP:LIST."
-                                          ":KEY-TEST."))))))
-
 (test find-best-symbol
   (let ((*current-package* *package*))
-    (is (equal '(":cl:symbol:`~COMMON-LISP:LIST`" ".")
+    (is (equal '(list ".")
                (multiple-value-bind (symbol rest)
                    (find-best-symbol '("COMMON-LISP:LIST."
                                        "COMMON-LISP:LIST"))
@@ -49,9 +39,14 @@
 
 (test find-best-symbol-one
   (let ((*current-package* *package*))
-    (is (equal ":cl:symbol:`~COMMON-LISP:LIST`"
+    (is (equal 'list
                (find-best-symbol '("COMMON-LISP:LIST"))))))
 
 (test intern*
   (is (equal '(list nil)
              (mapcar #'intern* '("COMMON-LISP:LIST" "LIST")))))
+
+(test scope-symbols-in-text
+  (let ((*current-package* *package*))
+    (is (equal "example text :cl:symbol:`~COMMON-LISP:LIST` CAR ignore MORE text."
+               (scope-symbols-in-text "example text LIST CAR ignore MORE text." '(car))))))
