@@ -1,0 +1,9 @@
+Jinja2
+Pygments
+Sphinx
+argparse
+distribute
+docutils
+sphinx-bootstrap-theme
+sphinxcontrib-googleanalytics
+wsgiref
