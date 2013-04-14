@@ -231,7 +231,10 @@ def v_text_clparameter(self, node):
 def specializer(sexp, state):
     result = StringIO()
     for atom in sexp:
-        result.write(":cl:symbol:`~%s` " % atom)
+        if atom.startswith("KEYWORD:"):
+            result.write("(EQL :%s)" % atom.split(":")[-1])
+        else:
+            result.write(":cl:symbol:`~%s` " % atom)
     node = nodes.list_item()
     result.seek(0)
     lines = string2lines(result.read())
