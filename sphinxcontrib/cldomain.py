@@ -57,6 +57,8 @@ ARGS = defaultdict(dict)
 METHODS = defaultdict(dict)
 SLOTS = defaultdict(dict)
 
+lambda_list_keywords = ["&allow-other-keys", "&key", "&rest", "&aux", "&optional"]
+
 
 def bool_option(arg):
     """Used to convert flag options to directives.  (Instead of
@@ -174,12 +176,20 @@ def v_html_clparameter(self, node):
         self.body.append(self.param_separator)
     else:
         self.first_param = 0
-    if not node.hasattr('noemph'):
+    if node.hasattr('lambda_keyword'):
+        self.body.append('<em class="lambda_keyword">')
+    elif node.hasattr('keyword'):
+        self.body.append('<em class="keyword">')
+    elif not node.hasattr('noemph'):
         self.body.append('<em>')
 
 
 def d_html_clparameter(self, node):
-    if not node.hasattr('noemph'):
+    if node.hasattr('lambda_keyword'):
+        self.body.append('</em>')
+    elif node.hasattr('keyword'):
+        self.body.append('</em>')
+    elif not node.hasattr('noemph'):
         self.body.append('</em>')
 
 
@@ -280,10 +290,12 @@ class SEXP(object):
     def render_atom(self, token, signode, noemph=True):
         "add syntax hi-lighting to interesting atoms"
 
-        if token.startswith("&") or token.startswith(":"):
-            signode.append(desc_clparameter(token, token))
-        else:
-            signode.append(desc_clparameter(token, token))
+        param = desc_clparameter(token, token)
+        if token.lower() in lambda_list_keywords:
+            param["lambda_keyword"] = True
+        if token.startswith(":"):
+            praam["keyword"] = True
+        signode.append(param)
 
 
 class CLsExp(ObjectDescription):
