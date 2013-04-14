@@ -57,10 +57,10 @@ else:
     googleanalytics_enabled = False
 
 
-lisp_packages = {"sphinxcontrib.cldomain.doc":
-                 path.dirname(path.realpath(__file__))}
+cl_packages = {"sphinxcontrib.cldomain.doc":
+                path.dirname(path.realpath(__file__))}
 
-quicklisp = path.expandvars('$HOME/.quicklisp/')
+cl_quicklisp = path.expandvars('$HOME/.quicklisp/')
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
