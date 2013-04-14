@@ -33,7 +33,7 @@ requires = ['Sphinx>=0.6']
 setup(
     name='sphinxcontrib-cldomain',
     version='0.2',
-    url='https://github.com/russell/sphinxcontrib-cldomain/',
+    url='http://cldomain.russellsim.org/',
     download_url='http://pypi.python.org/pypi/sphinxcontrib-cldomain',
     license='GPL',
     author='Russell Sim',
