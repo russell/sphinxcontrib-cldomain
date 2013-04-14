@@ -6,31 +6,17 @@ Sphinx is a mulit-language tool this project extends it's
 functionality to cover Common Lisp. The aim is to support
 documentation with the same ease that a Python project.
 
-Currently the project only supports inspection based documentation of
-symbols, future versions will allow more manual creation of
-documentation sections.
+Currently the project supports inspection based documentation of
+symbols.
+
+`Documentation`_
 
 CLDomain is licensed under the `GPLv3`_. Please report any bugs in the
 GitHub `Bug Tracker`_.
 
-An example of the generated documentation can be found in the
-`cl-git`_ project.
+An example of the generated documentation is the `cl-git`_ project.
 
-The current sample of a function definition looks like ::
-
-   .. cl:function:: ensure-git-repository-exist
-   
-      :param path: the path to the git repository.
-      :param bare: if truthful, then create a bare repository.
-   
-      .. code-block:: common-lisp
-   
-         CL-GIT> (ensure-git-repository-exist #p"/tmp/test-repo/")
-         #P"/tmp/test-repo/"
-
-and the `rendered example`_ shows the documentation string has been
-introspected and so has the function definition.
-
+.. _Documentation: http://cldomain.russellsim.org/
 .. _rendered example: http://cl-git.russellsim.org/#CL-GIT:ENSURE-GIT-REPOSITORY-EXIST
 .. _cl-git: http://cl-git.russellsim.org/
 .. _Sphinx Documentation Generator: http://sphinx.pocoo.org/
