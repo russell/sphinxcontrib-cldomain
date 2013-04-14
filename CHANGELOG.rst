@@ -1,5 +1,5 @@
-Release 0.2 UNRELEASED
-----------------------
+Release 0.2 14//04/2013
+-----------------------
 
 * link between generics and specializers.
 * ignore symbols in documentation if they are in the arg list.
