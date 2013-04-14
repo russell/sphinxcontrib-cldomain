@@ -20,6 +20,12 @@ at `github`_.
 
 .. _github: https://github.com/russell/sphinxcontrib-cldomain
 
+Requirements
+------------
+
+* Sphinx
+* cl-launch
+* quicklisp
 
 Installation
 ------------
