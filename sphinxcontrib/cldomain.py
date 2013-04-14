@@ -234,7 +234,9 @@ def specializer(sexp, state):
         if atom.startswith("KEYWORD:"):
             result.write("(EQL :%s)" % atom.split(":")[-1])
         else:
-            result.write(":cl:symbol:`~%s` " % atom)
+            result.write(":cl:symbol:`~%s`" % atom)
+        result.write(" ")
+
     node = nodes.list_item()
     result.seek(0)
     lines = string2lines(result.read())
