@@ -31,25 +31,6 @@ The current sample of a function definition looks like ::
 and the `rendered example`_ shows the documentation string has been
 introspected and so has the function definition.
 
-TODO
-----
-
-* use cl-launch to generate a SHELL script to execute in a more
-  portable way.
- * integration with setup.py
-* Add support for classes and slots.
-* Link to texinfo generated doc.
-* document this project and provide an example.
-* when parsing text from doc strings, package names should be added to
-  un-scoped symbols.
- * still need to filter out symbols that are actually arguments to the
-   current function.
-* source view, link function to original source code.  (Could use
-  linkcode, this can link to code in an external repository.  Viewcode
-  generates static html versions so will require more extensions to support CL)
-* index should contain symbol, with packages but list the order based
-  on the symbol name without the package.  Or something to that affect.
-
 .. _rendered example: http://cl-git.russellsim.org/#CL-GIT:ENSURE-GIT-REPOSITORY-EXIST
 .. _cl-git: http://cl-git.russellsim.org/
 .. _Sphinx Documentation Generator: http://sphinx.pocoo.org/
