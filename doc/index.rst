@@ -47,8 +47,8 @@ file is in the parent directory. ::
 To set the location of quicklisp in conf.py add a quicklisp variable
 with the value set to it's location. ::
 
-   import os
-   cl_quicklisp = path.expandvars('$HOME/.quicklisp/')
+   from os.path import expandvars
+   cl_quicklisp = expandvars('$HOME/.quicklisp/')
 
 
 Documentation
