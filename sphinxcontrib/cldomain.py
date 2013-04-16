@@ -345,6 +345,12 @@ class CLsExp(ObjectDescription):
         else:
             signode.append(function_name)
 
+        # Add Slots
+        slots = SLOTS[package].get(sig.upper())
+        if slots:
+            # TODO add slot details if describing a class
+            pass
+
         symbol_name = sig
         if not symbol_name:
             raise Exception("Unknown symbol type for signature %s" % sig)
