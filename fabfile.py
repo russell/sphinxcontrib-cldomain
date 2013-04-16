@@ -50,7 +50,7 @@ def generate_version(version):
     local("git add " + filename)
     message = "Released " + str(version)
     local("git commit -m '%s'" % message)
-    local("git tag -m '" + message + "' %s" % version)
+    local("git tag -a -m '" + message + "' %s" % version)
 
 
 try:

@@ -127,3 +127,9 @@ Methods
        .. cl:method:: example-generic
 
 .. cl:method:: example-generic example-class :test
+
+Changelog
+=========
+
+.. include:: ../CHANGELOG.rst
+
