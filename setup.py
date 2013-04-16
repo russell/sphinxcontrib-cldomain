@@ -17,6 +17,7 @@
 
 from setuptools import setup, find_packages
 from os import path
+from sphinxcontrib.cldomain import __version__
 
 changelog_header = """
 Changelog
@@ -32,7 +33,7 @@ requires = ['Sphinx>=0.6']
 
 setup(
     name='sphinxcontrib-cldomain',
-    version='0.2',
+    version=__version__,
     url='http://cldomain.russellsim.org/',
     download_url='http://pypi.python.org/pypi/sphinxcontrib-cldomain',
     license='GPL',

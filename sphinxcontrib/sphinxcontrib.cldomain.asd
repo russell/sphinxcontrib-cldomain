@@ -18,6 +18,7 @@
 
 
 (defsystem :sphinxcontrib.cldomain
+  :version (:read-file-form "version.lisp-expr")
   :depends-on (:swank :getopt :cl-json :alexandria :closer-mop)
   :defsystem-depends-on (:asdf)
   :description "A documentation tool."
