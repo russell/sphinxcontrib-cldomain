@@ -1,7 +1,7 @@
 ;;; -*- Mode: Lisp; Syntax: COMMON-LISP; Base: 10 -*-
 
 ;; cldomain a Common Lisp domain for sphinx.
-;; Copyright (C) 2011-2013 Russell Sim <russell.sim@gmail.com>
+;; Copyright (C) 2011-2012 Russell Sim <russell.sim@gmail.com>
 ;;
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -17,16 +17,14 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-(defsystem :sphinxcontrib.cldomain
-  :depends-on (:swank :getopt :cl-json :alexandria :closer-mop)
-  :defsystem-depends-on (:asdf)
-  :description "A documentation tool."
-  :components ((:static-file "sphinxcontrib.cldomain.asd")
-               (:file "package")
-               (:file "cldomain" :depends-on ("package"))))
+(in-package :cl-user)
 
-
-(defmethod perform ((op asdf:test-op) (system (eql (find-system :sphinxcontrib.cldomain))))
-  (asdf:oos 'asdf:load-op :sphinxcontrib.cldomain-test)
-  (funcall (intern (string :run!) (string :it.bese.FiveAM))
-           :cldomain))
+(defpackage :sphinxcontrib.cldomain
+  (:use #:closer-common-lisp #:getopt #:json #:closer-mop #:alexandria)
+  (:export #:main
+           #:encode-symbol
+           #:resolve-symbol
+           #:*current-package*
+           #:intern*
+           #:scope-symbols-in-text
+           #:find-best-symbol))

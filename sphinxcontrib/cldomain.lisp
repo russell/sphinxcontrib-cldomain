@@ -14,18 +14,6 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(in-package :cl-user)
-
-(defpackage :sphinxcontrib.cldomain
-  (:use #:closer-common-lisp #:getopt #:json #:closer-mop #:alexandria)
-  (:export #:main
-           #:encode-symbol
-           #:resolve-symbol
-           #:*current-package*
-           #:intern*
-           #:scope-symbols-in-text
-           #:find-best-symbol))
-
 (in-package :sphinxcontrib.cldomain)
 
 (defvar *current-package* nil)
