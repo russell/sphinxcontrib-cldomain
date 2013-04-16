@@ -66,7 +66,8 @@ try:
         env.hosts = [project_env["host"]]
         assert project_env["remote_dir"]
         with settings(host_string=project_env["host"]):
-            rsync_project(project_env["remote_dir"], "doc/html/")
+            rsync_project(project_env["remote_dir"], "doc/html/", delete=True)
+        clean()
 
 except:
     pass
