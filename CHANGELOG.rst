@@ -1,3 +1,8 @@
+Release 0.4 UNRELEASED
+----------------------
+* fixed some packaging bugs.
+* made the data model more tolerant to missing symbols.
+
 Release 0.3 16/04/2013
 -----------------------
 * cleaned up specializer output.

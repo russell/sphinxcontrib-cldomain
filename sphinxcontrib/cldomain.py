@@ -54,11 +54,11 @@ ALL_TYPES = ["macro", "function", "genericFunction",
              "setf", "variable", "type"]
 upper_symbols = re.compile("([^a-z\s\"`]*[A-Z]{2,}[^a-z\s\"`:]*)($|\s)")
 
-DOC_STRINGS = defaultdict(dict)
-TYPES = defaultdict(dict)
-ARGS = defaultdict(dict)
-METHODS = defaultdict(dict)
-SLOTS = defaultdict(dict)
+DOC_STRINGS = defaultdict(dict, {})
+TYPES = defaultdict(dict, {})
+ARGS = defaultdict(dict, {})
+METHODS = defaultdict(dict, {})
+SLOTS = defaultdict(dict, {})
 
 lambda_list_keywords = ["&allow-other-keys", "&key", "&rest", "&aux", "&optional"]
 
@@ -119,7 +119,7 @@ def resolve_string(state_machine, package, symbol, objtype, specializer=None):
     """
     if objtype == "method":
         spec = specializer[0].split(" ")[1:]
-        method_doc = METHODS.get(package).get(symbol, {})
+        method_doc = METHODS[package].get(symbol, {})
         key = tuple([parse_specializer_symbol(sym, package)
                      for sym in spec])
         if key not in method_doc:
@@ -127,7 +127,7 @@ def resolve_string(state_machine, package, symbol, objtype, specializer=None):
                                            (package, symbol, spec))
         return method_doc.get(key, "")
 
-    possible_strings = DOC_STRINGS.get(package)[symbol]
+    possible_strings = DOC_STRINGS[package][symbol]
 
     # XXX This isn't the best, the objtype is generic but the
     # docstring will be under genericFunction because of the JSON
@@ -435,7 +435,7 @@ class CLsExp(ObjectDescription):
         package = self.env.temp_data.get('cl:package')
         name = self.names[0][1]
         description = result[1][-1]
-        specializers = METHODS.get(package, {}).get(name).keys()
+        specializers = METHODS[package].get(name, {}).keys()
         if specializers:
             description.append(nodes.paragraph(text="Specializes"))
             spec = nodes.bullet_list()
@@ -593,9 +593,6 @@ def index_package(package, package_path, quicklisp):
                         if not line.startswith(";")])
 
     lisp_data = json.loads(output)
-    DOC_STRINGS[package] = {}
-    METHODS[package] = {}
-    SLOTS[package] = {}
     for k, v in lisp_data.items():
 
         # extract doc strings
@@ -630,8 +627,6 @@ def index_package(package, package_path, quicklisp):
         # extract slots
         if "slots" in v:
             SLOTS[package][k] = v["slots"]
-
-    ARGS[package] = {}
 
     def lower_symbols(text):
         if '"' in text:
