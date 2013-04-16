@@ -49,7 +49,7 @@
             symbol-parts
           (intern name package)))))
 
-(defun find-symbol* (string &optional package)
+(defun find-symbol* (string &optional (package *current-package*))
   (let ((symbol-parts (split-symbol-string string)))
     (cond
       ((= (length symbol-parts) 1)
@@ -248,7 +248,7 @@ object member."
           (encode-object-member 'type (write-to-string (class-name (class-of slot))))
           (encode-object-member 'documentation (scope-symbols-in-text (or (documentation slot t) ""))))))))
 
-(defun symbols-to-json (&optional (package *current-package*) )
+(defun symbols-to-json (&optional (package *current-package*))
   (let* ((swank::*buffer-package* (find-package 'CL-USER))
          (swank::*buffer-readtable* (copy-readtable)))
     (let ((package-symbols nil)
