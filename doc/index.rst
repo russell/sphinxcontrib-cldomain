@@ -32,7 +32,9 @@ Installation
 ------------
 
 After installing add cldomain and hyperspec to your enabled
-extensions. ::
+extensions.
+
+.. code-block:: python
 
    extensions.extend(['sphinxcontrib.cldomain',
                       'sphinxcontrib.hyperspec'])
@@ -40,13 +42,17 @@ extensions. ::
 
 The path to each package needs to the lisp_packages configuration
 option.  In this example the conf.py is in a doc directory and the ASD
-file is in the parent directory. ::
+file is in the parent directory.
+
+.. code-block:: python
 
    from os.path import join, dirname, realpath
    cl_packages = {"cl-git": join(dirname(realpath(__file__)), "../")}
 
 To set the location of quicklisp in conf.py add a quicklisp variable
-with the value set to it's location. ::
+with the value set to it's location.
+
+.. code-block:: python
 
    from os.path import expandvars
    cl_quicklisp = expandvars('$HOME/quicklisp/')
