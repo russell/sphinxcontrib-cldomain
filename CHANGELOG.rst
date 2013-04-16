@@ -1,4 +1,12 @@
-Release 0.2 14//04/2013
+Release 0.3 16/04/2013
+-----------------------
+* cleaned up specializer output.
+* fixed bug when rendering specializers that have the form :KEYWORD
+  SYMBOL.
+* updated documentation.
+* split out package code from lisp program.
+
+Release 0.2 14/04/2013
 -----------------------
 
 * link between generics and specializers.
