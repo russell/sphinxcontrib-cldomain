@@ -24,7 +24,8 @@ Requirements
 ------------
 
 * Sphinx
-* cl-launch
+* cl-launch 3.21.7
+* asdf 2.33.3
 * quicklisp
 
 Installation
