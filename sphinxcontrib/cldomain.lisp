@@ -228,7 +228,7 @@ object member."
                            ((eq type 'macro) 'function)
                            (t type)))
         "")
-    (when (functionp sym)
+    (when (member type '(function macro generic-function))
       (simplify-arglist
        (swank::arglist sym))))))
 
