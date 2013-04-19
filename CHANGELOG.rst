@@ -1,8 +1,9 @@
-Release 0.4 UNRELEASED
+Release 0.4 19/04/2013
 ----------------------
 * fixed some packaging bugs.
 * made the data model more tolerant to missing symbols.
 * fixed symbol resolving bug.
+* added output of unused symbols.
 
 Release 0.3 16/04/2013
 -----------------------
