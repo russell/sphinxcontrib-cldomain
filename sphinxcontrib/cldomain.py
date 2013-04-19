@@ -59,8 +59,16 @@ TYPES = defaultdict(dict, {})
 ARGS = defaultdict(dict, {})
 METHODS = defaultdict(dict, {})
 SLOTS = defaultdict(dict, {})
+USED_SYMBOLS = defaultdict(dict, {})
 
-lambda_list_keywords = ["&allow-other-keys", "&key", "&rest", "&aux", "&optional"]
+lambda_list_keywords = ["&allow-other-keys", "&key",
+                        "&rest", "&aux", "&optional"]
+
+
+def record_use(package, symbol_name, objtype):
+    """record unused package symbols."""
+    symbol = symbol_name.upper()
+    USED_SYMBOLS[package].setdefault(symbol, []).append(objtype)
 
 
 def bool_option(arg):
@@ -357,6 +365,7 @@ class CLsExp(ObjectDescription):
         symbol_name = sig
         if not symbol_name:
             raise Exception("Unknown symbol type for signature %s" % sig)
+        record_use(package, symbol_name, self.objtype)
         return objtype.strip(), symbol_name.upper()
 
     def get_index_text(self, name, type):
@@ -666,6 +675,25 @@ def uppercase_symbols(app, docname, source):
                            ":cl:symbol:`~\g<1>`\g<2>", line)
 
 
+def list_unused_symbols(app, exception):
+    if exception:
+        return
+    # TODO (RS) this initial implementation will not be able to detect
+    # if each method specialisation has been used.
+    for p, sym_doc in DOC_STRINGS.items():
+        for s, docs in sym_doc.items():
+            for objtype in docs.keys():
+                if s in USED_SYMBOLS[p]:
+                    if objtype == "genericFunction":
+                        objtype = "generic"
+                    if objtype not in USED_SYMBOLS[p][s]:
+                        app.warn("Unused symbol doc %s:%s type %s" %
+                                           (p, s, objtype))
+                else:
+                    app.warn("Unused symbol doc %s:%s type %s" %
+                                           (p, s, objtype))
+
+
 def setup(app):
     app.add_domain(CLDomain)
     app.add_node(desc_clparameterlist,
@@ -682,6 +710,7 @@ def setup(app):
     app.add_config_value('cl_quicklisp', "", 'env')
     app.add_config_value('cl_show_defaults', False, True)
     app.connect('builder-inited', load_packages)
+    app.connect('build-finished', list_unused_symbols)
     #app.connect('source-read', uppercase_symbols)
 
 
