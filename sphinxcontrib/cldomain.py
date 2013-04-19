@@ -582,15 +582,15 @@ def code_regions(text):
     return output.read()
 
 
-def index_package(package, package_path, quicklisp):
+def index_package(package, package_path, quicklisp, lisps):
     """Call an external lisp program that will return a dictionary of
     doc strings for all public symbols."""
     cl_launch_exe = [which("cl-launch")[0]]
-    cl_launch_command = cl_launch_args()
+    cl_launch_command = cl_launch_args(lisps)
     cldomain_args = ["--", "--package", package, "--path", package_path]
-
-    env = {"CLDOMAIN": path.abspath(path.dirname(__file__)) + "/",
-           "QUICKLISP": quicklisp}
+    env = os.environ.copy()
+    env.update({"CLDOMAIN": path.abspath(path.dirname(__file__)) + "/",
+                "QUICKLISP": quicklisp})
 
     output = subprocess.check_output(cl_launch_exe + cl_launch_command + cldomain_args,
                                      env=env)
@@ -660,7 +660,7 @@ def load_packages(app):
     if not app.config.cl_packages:
         return
     for key, value in app.config.cl_packages.iteritems():
-        index_package(key.upper(), value, app.config.cl_quicklisp)
+        index_package(key.upper(), value, app.config.cl_quicklisp, app.config.cl_lisps)
 
 
 def uppercase_symbols(app, docname, source):
@@ -705,6 +705,7 @@ def setup(app):
     app.add_config_value('cl_packages', {}, 'env')
     app.add_config_value('cl_quicklisp', "", 'env')
     app.add_config_value('cl_show_defaults', False, True)
+    app.add_config_value('cl_lisps', None, 'env')
     app.connect('builder-inited', load_packages)
     app.connect('build-finished', list_unused_symbols)
     #app.connect('source-read', uppercase_symbols)
@@ -728,7 +729,7 @@ def which(name, flags=os.X_OK):
     return result
 
 
-def cl_launch_args():
+def cl_launch_args(lisps=None):
     quicklisp="""
 (let ((quicklisp-init (merge-pathnames (make-pathname :name "setup"
                                                       :type "lisp")
@@ -748,10 +749,13 @@ def cl_launch_args():
 (let ((*standard-output* *error-output*))
   (quicklisp:quickload 'sphinxcontrib.cldomain))
 """
-
-    return ["--init", quicklisp,
+    args = []
+    if lisps:
+        args.extend(["--lisps", lisps])
+    args.extend(["--init", quicklisp,
             "--init", system,
             "--init", "(asdf:initialize-source-registry)",
             "--init", "(require 'quicklisp)",
             "--init", quickload,
-            "--init", "(sphinxcontrib.cldomain:main)"]
+            "--init", "(sphinxcontrib.cldomain:main)"])
+    return args
