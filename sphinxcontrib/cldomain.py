@@ -16,16 +16,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-    sphinx.domains.cl
-    ~~~~~~~~~~~~~~~~~
+    sphinxcontrib.cldomain
+    ~~~~~~~~~~~~~~~~~~~~~~
 
     The Common Lisp domain
 
-
-    TODO
-    ----
-    add source-read handler
-    http://sphinx.pocoo.org/latest/ext/appapi.html#event-source-read
 """
 import re
 import os
@@ -577,6 +572,7 @@ def code_regions(text):
     indent = False
     for line in io:
         if indent is False and (line.startswith(" ") or line.startswith("\t")):
+            # TODO detect if its a REPL.
             output.write("\n.. code-block:: common-lisp\n\n")
             indent = True
         if indent is True and not (line.startswith(" ") or line.startswith("\t")):
