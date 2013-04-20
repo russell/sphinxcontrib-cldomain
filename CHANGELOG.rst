@@ -1,4 +1,4 @@
-Release 0.5 20-40-2013
+Release 0.5 20-04-2013
 ----------------------
 * inherit environment when calling subprocesses.
 * better handling of symbols in doc strings.
