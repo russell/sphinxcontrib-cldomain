@@ -57,6 +57,12 @@ with the value set to it's location.
    from os.path import expandvars
    cl_quicklisp = expandvars('$HOME/quicklisp/')
 
+To configure a specific lisp executable search order use.
+
+.. code-block:: python
+
+   cl_lisps = "sbcl ecl"
+
 
 Documentation
 -------------
