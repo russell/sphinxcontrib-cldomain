@@ -24,7 +24,9 @@
 """
 import re
 import os
+import sys
 from os import path
+import tempfile
 import json
 from collections import defaultdict
 import subprocess
@@ -33,6 +35,7 @@ from docutils import nodes
 from docutils.statemachine import string2lines, StringList
 
 from sphinx import addnodes
+from sphinx.util.console import red
 from sphinx.locale import l_, _
 from sphinx.roles import XRefRole
 from sphinx.domains import Domain, ObjType
@@ -582,6 +585,14 @@ def code_regions(text):
     return output.read()
 
 
+def save_cldomain_output(output):
+    """Save a copy of the clgit output for debugging."""
+    fd, path = tempfile.mkstemp('.log', 'cldomain-err-')
+    os.write(fd, output.encode('utf-8'))
+    os.close(fd)
+    return path
+
+
 def index_package(package, package_path, quicklisp, lisps):
     """Call an external lisp program that will return a dictionary of
     doc strings for all public symbols."""
@@ -597,7 +608,18 @@ def index_package(package, package_path, quicklisp, lisps):
     output = "\n".join([line for line in output.split("\n")
                         if not line.startswith(";")])
 
-    lisp_data = json.loads(output)
+    try:
+        lisp_data = json.loads(output)
+    except:
+        dump_path = save_cldomain_output(output)
+        error = sys.stderr
+        print >>error, red('A error occurred with the json output from cldomain\'s'
+                           ' lisp inspector,  this has been dumped to %s if you '
+                           'intend on submitting a bug please include this file '
+                           'with the sphinx error log.' % dump_path)
+
+        raise
+
     for k, v in lisp_data.items():
 
         # extract doc strings
