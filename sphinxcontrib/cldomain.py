@@ -118,33 +118,6 @@ def parse_specializer_symbol(symbol, package):
     return symbol
 
 
-def resolve_string(state_machine, package, symbol, objtype, specializer=None):
-    """
-    Resolve a symbols doc string. Will raise KeyError if the
-    symbol can't be found.
-    """
-    if objtype == "method":
-        spec = specializer[0].split(" ")[1:]
-        method_doc = METHODS[package].get(symbol, {})
-        key = tuple([parse_specializer_symbol(sym, package)
-                     for sym in spec])
-        if key not in method_doc:
-            state_machine.reporter.warning("Can't find method %s:%s specializer %s" %
-                                           (package, symbol, spec))
-        return method_doc.get(key, "")
-
-    possible_strings = DOC_STRINGS[package][symbol]
-
-    # XXX This isn't the best, the objtype is generic but the
-    # docstring will be under genericFunction because of the JSON
-    # encoder and changing the directive name doesn't seem to help
-    # either.
-    if objtype == "generic":
-        objtype = "genericFunction"
-    string = possible_strings.get(objtype, "")
-    return string
-
-
 class desc_clparameterlist(addnodes.desc_parameterlist):
     """Node for a common lisp parameter list."""
     child_text_separator = ' '
@@ -383,7 +356,7 @@ class CLsExp(ObjectDescription):
         else:
             package = ""
 
-        if name not in self.state.document.ids:
+        if type != "method" and name not in self.state.document.ids:
             signode['names'].append(name)
             signode['ids'].append(name)
             signode['first'] = (not self.names)
@@ -406,10 +379,12 @@ class CLsExp(ObjectDescription):
         name = self.names[0][1]
         description = result[1][-1]
         node = addnodes.desc_content()
+        if not package:
+            self.state_machine.reporter.warning("No package specified for symbol %s." %
+                                                name)
+            return
         try:
-            string = resolve_string(self.state_machine, package,
-                                    name, self.objtype,
-                                    self.arguments)
+            string = self.cl_doc_string()
         except KeyError:
             string = ""
             self.state_machine.reporter.warning("Can't find symbol %s:%s" %
@@ -458,6 +433,61 @@ class CLsExp(ObjectDescription):
             self.run_add_specializers(result)
         return result
 
+    def cl_doc_string(self, objtype=None):
+        """
+        Resolve a symbols doc string. Will raise KeyError if the
+        symbol can't be found.
+        """
+        package = self.env.temp_data.get('cl:package')
+        name = self.names[0][1]
+        objtype = objtype or self.objtype
+
+        possible_strings = DOC_STRINGS[package][name]
+
+        # XXX This isn't the best, the objtype is generic but the
+        # docstring will be under genericFunction because of the JSON
+        # encoder and changing the directive name doesn't seem to help
+        # either.
+        if objtype == "generic":
+            objtype = "genericFunction"
+        string = possible_strings.get(objtype, "")
+        return string
+
+
+class CLMethod(CLsExp):
+
+    option_spec = {
+        'nodoc': bool_option,
+        'noindex': bool_option,
+        'noinherit': bool_option,
+    }
+
+    def cl_doc_string(self):
+        """
+        Resolve a symbols doc string. Will raise KeyError if the
+        symbol can't be found.
+        """
+        package = self.env.temp_data.get('cl:package')
+        name = self.names[0][1]
+        objtype = self.objtype
+
+        if objtype == "method":
+            specializer = self.arguments
+            spec = specializer[0].split(" ")[1:]
+            method_doc = METHODS[package].get(name, {})
+            key = tuple([parse_specializer_symbol(sym, package)
+                         for sym in spec])
+            if key not in method_doc:
+                self.state_machine.reporter.warning("Can't find method %s:%s specializer %s, available specializers are %s" %
+                                               (package, name, key, method_doc.keys()))
+            doc = method_doc.get(key, "")
+            if doc:
+                return doc
+
+        if "noinherit" not in self.options:
+            return super(CLMethod, self).cl_doc_string("generic")
+        return ""
+
 
 class CLCurrentPackage(Directive):
     """
@@ -505,7 +535,7 @@ class CLDomain(Domain):
         'type': ObjType(l_('type'), 'type'),
         'generic': ObjType(l_('generic'), 'generic'),
         'method': ObjType(l_('method'), 'method'),
-    }
+        }
 
     directives = {
         'package': CLCurrentPackage,
@@ -514,7 +544,7 @@ class CLDomain(Domain):
         'macro': CLsExp,
         'variable': CLsExp,
         'type': CLsExp,
-        'method': CLsExp,
+        'method': CLMethod,
     }
 
     roles = {
