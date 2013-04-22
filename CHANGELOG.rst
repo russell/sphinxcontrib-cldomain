@@ -1,3 +1,9 @@
+Release 0.6 22-04-2013
+----------------------
+* added more documentation.
+* added better error handling when json fails to parse.
+* methods can now pull documentation from their generic.
+
 Release 0.5 20-04-2013
 ----------------------
 * inherit environment when calling subprocesses.

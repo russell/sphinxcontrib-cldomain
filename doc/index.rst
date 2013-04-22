@@ -67,42 +67,96 @@ To configure a specific lisp executable search order use.
 Documentation
 -------------
 
+All directives support the ``nodoc`` option that will prevent them
+from pulling the documentation string from Common Lisp.  Argument
+lists and specializers will still be printed::
+
+       .. cl:macro:: example-macro
+          :nodoc:
+
+       No documentation
+
+.. cl:macro:: example-macro
+   :nodoc:
+
+   No documentation
 
 Package
 ~~~~~~~
 
-.. rst:directive:: cl:package
+.. rst:directive:: .. cl:package:: symbol-name
 
    The cl:package directive specifies the package that all the subsequent
    directives will look up when trying to resolve a symbol.::
 
       .. cl:package:: sphinxcontrib.cldomain.doc
 
+Example
+^^^^^^^
+
 .. cl:package:: sphinxcontrib.cldomain.doc
+
+
+Variable
+~~~~~~~~
+
+.. rst:directive::  .. cl:variable:: symbol-name
+
+   The cl:variable directive will resolve the arguments and documentation
+   from the common lisp definition::
+
+       .. cl:variable:: *example-variable*
+
+Example
+^^^^^^^
+
+.. cl:variable:: *example-variable*
 
 
 Function
 ~~~~~~~~
 
-.. rst:directive:: cl:function
+.. rst:directive:: .. cl:function:: symbol-name
 
    The cl:function directive will resolve the arguments and documentation
    from the common lisp definition::
 
        .. cl:function:: example-function
 
+Example
+^^^^^^^
+
 .. cl:function:: example-function
+
+
+Macro
+~~~~~~~~
+
+.. rst:directive:: .. cl:macro:: symbol-name
+
+   The cl:macro directive will resolve the arguments and documentation
+   from the common lisp definition::
+
+       .. cl:macro:: example-macro
+
+Example
+^^^^^^^
+
+.. cl:macro:: example-macro
 
 
 Class
 ~~~~~
 
-.. rst:directive:: cl:class
+.. rst:directive:: .. cl:class:: symbol-name
 
    The cl:function directive will resolve the arguments and documentation
    from the common lisp definition::
 
        .. cl:class:: example-class
+
+Example
+^^^^^^^
 
 .. cl:type:: example-class
 
@@ -110,7 +164,7 @@ Class
 Generics
 ~~~~~~~~
 
-.. rst:directive:: cl:generic
+.. rst:directive:: .. cl:generic:: symbol-name
 
    The cl:generic directive will resolve the arguments and
    documentation from the common lisp definition.  It will also
@@ -119,20 +173,38 @@ Generics
 
        .. cl:generic:: example-generic
 
+Example
+^^^^^^^
+
 .. cl:generic:: example-generic
 
 
 Methods
 ~~~~~~~
 
-.. rst:directive:: cl:method
+.. rst:directive:: .. cl:method:: symbol-name (specializer)
 
    The cl:method directive will resolve the arguments and
-   documentation from the common lisp definition.::
+   documentation from the common lisp dbenigntion::
 
-       .. cl:method:: example-generic
+       .. cl:method:: example-generic example-class :test
+
+   For the time being all specializing arguments that aren't in the
+   current package need to be qualified with a package.  E.g
+   ``common-lisp:t``
+
+   If you would like to prevent the method from resolving to the
+   generics forms documentation string this can be suppressed using
+   the ``noinherit`` option like::
+
+       .. cl:method:: example-generic example-class :test
+          :noinherit:
+
+Example
+^^^^^^^
 
 .. cl:method:: example-generic example-class :test
+
 
 Changelog
 =========

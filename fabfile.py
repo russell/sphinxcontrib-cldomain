@@ -20,6 +20,11 @@ def build():
         local("sphinx-build -b html -E . html")
 
 
+def push():
+    local("git push")
+    local("git push --tags")
+
+
 @task
 def pypi_upload():
     """upload a new version to pypi"""
@@ -68,6 +73,12 @@ try:
         with settings(host_string=project_env["host"]):
             rsync_project(project_env["remote_dir"], "doc/html/", delete=True)
         clean()
+
+    @task
+    def deploy_release():
+        pypi_upload()
+        push()
+        deploy()
 
 except:
     pass
