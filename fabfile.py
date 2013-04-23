@@ -76,6 +76,7 @@ try:
 
     @task
     def deploy_release():
+        # TODO should do an sdist and test install into a virtualenv.
         pypi_upload()
         push()
         deploy()
