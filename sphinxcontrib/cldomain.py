@@ -337,7 +337,7 @@ class CLsExp(ObjectDescription):
         if not symbol_name:
             raise Exception("Unknown symbol type for signature %s" % sig)
         record_use(package, symbol_name, self.objtype)
-        return objtype.strip(), symbol_name.upper()
+        return objtype.strip(), symbol_name
 
     def get_index_text(self, name, type):
         return _('%s (Lisp %s)') % (name.lower().split(":")[-1], type)
