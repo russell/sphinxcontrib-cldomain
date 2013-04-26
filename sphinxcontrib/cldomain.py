@@ -616,8 +616,10 @@ class CLDomain(Domain):
         # symbol should be presented.
         name = matches[0][0]  # the symbol name
         filename = matches[0][1][0][0]  # the first filename
+        type = matches[0][1][0][1]  # the first type
+        link = type + ":" + name
         return make_refnode(builder, fromdocname, filename,
-                            name, contnode, name)
+                            link, contnode, name)
 
     def get_symbols(self):
         for refname, (docname, type) in self.data['symbols'].iteritems():
