@@ -342,23 +342,27 @@ class CLsExp(ObjectDescription):
     def get_index_text(self, name, type):
         return _('%s (Lisp %s)') % (name.lower().split(":")[-1], type)
 
+    def get_index_name(self, name, type):
+        return type + ":" + name
+
     def get_signature_prefix(self, sig):
         return self.objtype + ' '
 
     def add_target_and_index(self, name, sig, signode):
-        # note target
+        # node target
         type, name = name
 
         if 'cl:package' in self.env.temp_data:
             package = self.options.get(
                 'module', self.env.temp_data.get('cl:package'))
-            name = package + ":" + name
+            name = package.lower() + ":" + name
         else:
-            package = ""
+            return
 
-        if type != "method" and name not in self.state.document.ids:
+        indexname = self.get_index_name(name, type)
+        if name not in self.state.document.ids:
             signode['names'].append(name)
-            signode['ids'].append(name)
+            signode['ids'].append(indexname)
             signode['first'] = (not self.names)
             self.state.document.note_explicit_target(signode)
             inv = self.env.domaindata['cl']['symbols']
@@ -369,10 +373,9 @@ class CLsExp(ObjectDescription):
                     line=self.lineno)
             inv[name] = (self.env.docname, self.objtype)
 
-        if not type == "method":
-            indextext = self.get_index_text(name, type)
-            if indextext:
-                self.indexnode['entries'].append(('single', indextext, name, ''))
+        indextext = self.get_index_text(name, type)
+        if indextext:
+            self.indexnode['entries'].append(('single', indextext, indexname, ''))
 
     def run_add_doc(self, result):
         package = self.env.temp_data.get('cl:package')
@@ -439,9 +442,8 @@ class CLsExp(ObjectDescription):
         symbol can't be found.
         """
         package = self.env.temp_data.get('cl:package')
-        name = self.names[0][1]
+        name = self.names[0][1].upper()
         objtype = objtype or self.objtype
-
         possible_strings = DOC_STRINGS[package][name]
 
         # XXX This isn't the best, the objtype is generic but the
@@ -462,6 +464,17 @@ class CLMethod(CLsExp):
         'noinherit': bool_option,
     }
 
+    def get_index_name(self, name, type):
+        package = self.env.temp_data.get('cl:package')
+        specializer = self.arguments
+        spec_args = specializer[0].split(" ")[1:]
+        key = tuple([parse_specializer_symbol(sym, package) for sym in spec_args])
+        specializer = " ".join(spec)
+        return type + ":" + name + "(" + specializer.lower() + ")"
+
+    def get_index_text(self, name, type):
+        return _('%s (Lisp %s)') % (name.lower().split(":")[-1], type)
+
     def cl_doc_string(self):
         """
         Resolve a symbols doc string. Will raise KeyError if the
@@ -471,18 +484,17 @@ class CLMethod(CLsExp):
         name = self.names[0][1]
         objtype = self.objtype
 
-        if objtype == "method":
-            specializer = self.arguments
-            spec = specializer[0].split(" ")[1:]
-            method_doc = METHODS[package].get(name, {})
-            key = tuple([parse_specializer_symbol(sym, package)
-                         for sym in spec])
-            if key not in method_doc:
-                self.state_machine.reporter.warning("Can't find method %s:%s specializer %s, available specializers are %s" %
-                                               (package, name, key, method_doc.keys()))
-            doc = method_doc.get(key, "")
-            if doc:
-                return doc
+        specializer = self.arguments
+        spec = specializer[0].split(" ")[1:]
+        method_doc = METHODS[package].get(name, {})
+        key = tuple([parse_specializer_symbol(sym, package)
+                     for sym in spec])
+        if key not in method_doc:
+            self.state_machine.reporter.warning("Can't find method %s:%s specializer %s, available specializers are %s" %
+                                           (package, name, key, method_doc.keys()))
+        doc = method_doc.get(key, "")
+        if doc:
+            return doc
 
         if "noinherit" not in self.options:
             return super(CLMethod, self).cl_doc_string("generic")
