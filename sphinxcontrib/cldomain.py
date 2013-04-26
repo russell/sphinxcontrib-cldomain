@@ -300,6 +300,7 @@ class CLsExp(ObjectDescription):
     option_spec = {
         'nodoc': bool_option,
         'noindex': bool_option,
+        'nospecializers': bool_option,
     }
 
     def handle_signature(self, sig, signode):
@@ -366,12 +367,16 @@ class CLsExp(ObjectDescription):
             signode['first'] = (not self.names)
             self.state.document.note_explicit_target(signode)
             inv = self.env.domaindata['cl']['symbols']
+            # TODO (RS) reenable this checking based on doc and type.
+            # if name in inv:
+            #     self.state_machine.reporter.warning(
+            #         'duplicate symbol description of %s, ' % name +
+            #         'other instance in ' + self.env.doc2path(inv[name][0]),
+            #         line=self.lineno)
             if name in inv:
-                self.state_machine.reporter.warning(
-                    'duplicate symbol description of %s, ' % name +
-                    'other instance in ' + self.env.doc2path(inv[name][0]),
-                    line=self.lineno)
-            inv[name] = (self.env.docname, self.objtype)
+                inv[name].append((self.env.docname, self.objtype))
+            else:
+                inv[name] = [(self.env.docname, self.objtype)]
 
         indextext = self.get_index_text(name, type)
         if indextext:
@@ -418,7 +423,7 @@ class CLsExp(ObjectDescription):
 
     def run_add_specializers(self, result):
         package = self.env.temp_data.get('cl:package')
-        name = self.names[0][1]
+        name = self.names[0][1].upper()
         description = result[1][-1]
         specializers = METHODS[package].get(name, {}).keys()
         if specializers:
@@ -468,12 +473,16 @@ class CLMethod(CLsExp):
         package = self.env.temp_data.get('cl:package')
         specializer = self.arguments
         spec_args = specializer[0].split(" ")[1:]
-        key = tuple([parse_specializer_symbol(sym, package) for sym in spec_args])
-        specializer = " ".join(spec)
+        specializer = " ".join(spec_args)
         return type + ":" + name + "(" + specializer.lower() + ")"
 
     def get_index_text(self, name, type):
-        return _('%s (Lisp %s)') % (name.lower().split(":")[-1], type)
+        package = self.env.temp_data.get('cl:package')
+        specializer = self.arguments
+        spec_args = specializer[0].split(" ")[1:]
+        specializer = " ".join(spec_args)
+        return _('%s (%s) (Lisp %s)') % (name.lower().split(":")[-1],
+                                         specializer.lower(), type)
 
     def cl_doc_string(self):
         """
@@ -576,6 +585,7 @@ class CLDomain(Domain):
         Returns a list of (name, object entry) tuples.
         """
         symbols = self.data['symbols']
+        name = name.lower()
         matches = []
         if ":" in name:
             if name in symbols:
@@ -602,9 +612,12 @@ class CLDomain(Domain):
                 'more than one target found for cross-reference '
                 '%r: %s' % (target, ', '.join(match[0] for match in matches)),
                 node)
-        name, obj = matches[0]
-        return make_refnode(builder, fromdocname, obj[0], name,
-                            contnode, name)
+        # TODO (RS) this just chooses the first symbol, instead every
+        # symbol should be presented.
+        name = matches[0][0]  # the symbol name
+        filename = matches[0][1][0][0]  # the first filename
+        return make_refnode(builder, fromdocname, filename,
+                            name, contnode, name)
 
     def get_symbols(self):
         for refname, (docname, type) in self.data['symbols'].iteritems():
