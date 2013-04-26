@@ -576,9 +576,10 @@ class CLDomain(Domain):
     }
 
     def clear_doc(self, docname):
-        for fullname, (fn, _) in self.data['symbols'].items():
-            if fn == docname:
-                del self.data['symbols'][fullname]
+        for fullname, docs in self.data['symbols'].items():
+            for (fn, _) in docs:
+                if fn == docname:
+                    del self.data['symbols'][fullname]
 
     def find_obj(self, env, name):
         """Find a Lisp symbol for "name", perhaps using the given package
@@ -622,8 +623,9 @@ class CLDomain(Domain):
                             link, contnode, name)
 
     def get_symbols(self):
-        for refname, (docname, type) in self.data['symbols'].iteritems():
-            yield (refname, refname, type, docname, refname, 1)
+        for refname, docs in self.data['symbols'].iteritems():
+            for (docname, type) in docs:
+                yield (refname, refname, type, docname, refname, 1)
 
 
 def code_regions(text):
