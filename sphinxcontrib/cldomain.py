@@ -210,20 +210,36 @@ def v_text_clparameter(self, node):
     raise nodes.SkipNode
 
 
-def specializer(sexp, state):
+def specializer(symbol, sexp, state):
     result = StringIO()
     for atom in sexp:
         if atom.startswith("KEYWORD:"):
             result.write("(EQL :%s)" % atom.split(":")[-1])
         else:
-            result.write(":cl:symbol:`~%s`" % atom)
+            result.write(atom)
         result.write(" ")
-
+    target = " ".join([a.lower() for a in sexp])
     node = nodes.list_item()
     result.seek(0)
-    lines = string2lines(result.read())
+    xref = ":cl:method:`%s <%s %s>`" % (result.read().lower(), symbol, target)
+
+    lines = string2lines(xref)
     state.nested_parse(StringList(lines), 0, node)
     return node
+
+
+def qualify_sexp(package, sexp):
+    """if the sexp contains atoms that don't have a package
+    then qualify them."""
+    sexp_ret = []
+    for atom in sexp:
+        if atom.startswith(":"):
+            sexp_ret.append("keyword" + atom)
+        elif ":" in atom:
+            sexp_ret.append(atom)
+        else:
+            sexp_ret.append(package + ":" + atom)
+    return sexp_ret
 
 
 class SpecializerField(Field):
@@ -429,7 +445,7 @@ class CLsExp(ObjectDescription):
         if specializers:
             description.append(nodes.paragraph(text="Specializes"))
             spec = nodes.bullet_list()
-            spec += [specializer(s, self.state) for s in specializers]
+            spec += [specializer(package + ":" + name, s, self.state) for s in specializers]
             description.children.append(spec)
         return result
 
@@ -451,12 +467,6 @@ class CLsExp(ObjectDescription):
         objtype = objtype or self.objtype
         possible_strings = DOC_STRINGS[package][name]
 
-        # XXX This isn't the best, the objtype is generic but the
-        # docstring will be under genericFunction because of the JSON
-        # encoder and changing the directive name doesn't seem to help
-        # either.
-        if objtype == "generic":
-            objtype = "genericFunction"
         string = possible_strings.get(objtype, "")
         return string
 
@@ -472,7 +482,7 @@ class CLMethod(CLsExp):
     def get_index_name(self, name, type):
         package = self.env.temp_data.get('cl:package')
         specializer = self.arguments
-        spec_args = specializer[0].split(" ")[1:]
+        spec_args = qualify_sexp(package, specializer[0].split(" ")[1:])
         specializer = " ".join(spec_args)
         return type + ":" + name + "(" + specializer.lower() + ")"
 
@@ -484,13 +494,47 @@ class CLMethod(CLsExp):
         return _('%s (%s) (Lisp %s)') % (name.lower().split(":")[-1],
                                          specializer.lower(), type)
 
+    def add_target_and_index(self, name, sig, signode):
+        # node target
+        type, name = name
+
+        if 'cl:package' in self.env.temp_data:
+            package = self.options.get(
+                'module', self.env.temp_data.get('cl:package'))
+            name = package.lower() + ":" + name
+        else:
+            return
+
+        indexname = self.get_index_name(name, type)
+        if name not in self.state.document.ids:
+            signode['names'].append(name)
+            signode['ids'].append(indexname)
+            signode['first'] = (not self.names)
+            self.state.document.note_explicit_target(signode)
+            inv = self.env.domaindata['cl']['methods']
+            # TODO (RS) reenable this checking based on doc and type.
+            # if name in inv:
+            #     self.state_machine.reporter.warning(
+            #         'duplicate symbol description of %s, ' % name +
+            #         'other instance in ' + self.env.doc2path(inv[name][0]),
+            #         line=self.lineno)
+            sig = " ".join(qualify_sexp(package.lower(), sig.split(" ")[1:]))  # trim method name
+            if name in inv:
+                inv[name][sig] = (self.env.docname, self.objtype)
+            else:
+                inv[name] = {sig: (self.env.docname, self.objtype)}
+
+        indextext = self.get_index_text(name, type)
+        if indextext:
+            self.indexnode['entries'].append(('single', indextext, indexname, ''))
+
     def cl_doc_string(self):
         """
         Resolve a symbols doc string. Will raise KeyError if the
         symbol can't be found.
         """
         package = self.env.temp_data.get('cl:package')
-        name = self.names[0][1]
+        name = self.names[0][1].upper()
         objtype = self.objtype
 
         specializer = self.arguments
@@ -570,9 +614,11 @@ class CLDomain(Domain):
 
     roles = {
         'symbol': CLXRefRole(),
+        'method': CLXRefRole(),
     }
     initial_data = {
         'symbols': {},
+        'methods': {},
     }
 
     def clear_doc(self, docname):
@@ -603,9 +649,30 @@ class CLDomain(Domain):
                 return False
             return filter(filter_symbols, symbols.items())
 
+    def find_method(self, env, name, node):
+        """Find a Lisp symbol for "name", perhaps using the given package
+        Returns a list of (name, object entry) tuples.
+        """
+        methods = self.data['methods']
+        name = name.lower()
+        sexp = name.split(" ")
+        generic = sexp[0]
+        specializer = " ".join(sexp[1:])
+        if generic in methods:
+            if specializer in methods[generic]:
+                return [methods[generic][specializer]]
+            else:
+                env.warn_node('can\'t find method %s' % (name), node)
+        else:
+            env.warn_node('can\'t find generic %s' % (name), node)
+
     def resolve_xref(self, env, fromdocname, builder,
                      typ, target, node, contnode):
-        matches = self.find_obj(env, target.upper())
+        if " " in target:
+            matches = self.find_method(env, target.upper(), node)
+        else:
+            matches = self.find_obj(env, target.upper())
+
         if not matches:
             return None
         elif len(matches) > 1:
@@ -615,10 +682,19 @@ class CLDomain(Domain):
                 node)
         # TODO (RS) this just chooses the first symbol, instead every
         # symbol should be presented.
-        name = matches[0][0]  # the symbol name
-        filename = matches[0][1][0][0]  # the first filename
-        type = matches[0][1][0][1]  # the first type
-        link = type + ":" + name
+
+        if " " in target:
+            sexp = target.split(" ")
+            generic = sexp[0].lower()
+            specializer = " ".join(sexp[1:])
+            name = generic
+            filename = matches[0][0]  # the first filename
+            link = "method" + ":" + generic + "(" + specializer + ")"
+        else:
+            name = matches[0][0]  # the symbol name
+            filename = matches[0][1][0][0]  # the first filename
+            type = matches[0][1][0][1]  # the first type
+            link = type + ":" + name
         return make_refnode(builder, fromdocname, filename,
                             link, contnode, name)
 
@@ -686,6 +762,13 @@ def index_package(package, package_path, quicklisp, lisps):
         for type in ALL_TYPES:
             if not type in v:
                 continue
+            # XXX This isn't the best, the objtype is generic but the
+            # docstring will be under genericFunction because of the JSON
+            # encoder and changing the directive name doesn't seem to help
+            # either.
+            if v == "genericFunction":
+                v = "generic"
+
             # enable symbol references for symbols
             DOC_STRINGS[package][k][type] = code_regions(v[type])
 
