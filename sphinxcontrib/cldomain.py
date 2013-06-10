@@ -210,18 +210,42 @@ def v_text_clparameter(self, node):
     raise nodes.SkipNode
 
 
-def specializer(symbol, sexp, state):
+def specializer(sexp, state):
     result = StringIO()
+    result.write("(")
     for atom in sexp:
         if atom.startswith("KEYWORD:"):
             result.write("(EQL :%s)" % atom.split(":")[-1])
         else:
             result.write(atom)
         result.write(" ")
+    result.write(")")
+    node = nodes.inline()
+    result.seek(0)
+
+    lines = string2lines(result.read().lower())
+    state.nested_parse(StringList(lines), 0, node)
+    return node
+
+
+def specializer_xref(symbol, sexp, state):
+    result = StringIO()
+    first = True
+    for atom in sexp:
+        if first:
+            first = False
+        else:
+            result.write(" ")
+
+        if atom.startswith("KEYWORD:"):
+            result.write("(EQL :%s)" % atom.split(":")[-1])
+        else:
+            result.write(atom)
+
     target = " ".join([a.lower() for a in sexp])
     node = nodes.list_item()
     result.seek(0)
-    xref = ":cl:method:`%s <%s %s>`" % (result.read().lower(), symbol, target)
+    xref = ":cl:method:`(%s) <%s %s>`" % (result.read().lower(), symbol, target)
 
     lines = string2lines(xref)
     state.nested_parse(StringList(lines), 0, node)
@@ -445,7 +469,8 @@ class CLsExp(ObjectDescription):
         if specializers:
             description.append(nodes.paragraph(text="Specializes"))
             spec = nodes.bullet_list()
-            spec += [specializer(package + ":" + name, s, self.state) for s in specializers]
+            spec += [specializer_xref(package + ":" + name, s, self.state)
+                     for s in specializers]
             description.children.append(spec)
         return result
 
@@ -477,7 +502,18 @@ class CLMethod(CLsExp):
         'nodoc': bool_option,
         'noindex': bool_option,
         'noinherit': bool_option,
+        'nospecializers': bool_option,
     }
+
+    doc_field_types = [
+        Field('specializer', label=l_('Specializer'), has_arg=False,
+              names=('specializer')),
+        GroupedField('parameter', label=l_('Parameters'),
+                     names=('param', 'parameter', 'arg', 'argument',
+                            'keyword', 'kwparam')),
+        Field('returnvalue', label=l_('Returns'), has_arg=False,
+              names=('returns', 'return')),
+    ]
 
     def get_index_name(self, name, type):
         package = self.env.temp_data.get('cl:package')
@@ -552,6 +588,22 @@ class CLMethod(CLsExp):
         if "noinherit" not in self.options:
             return super(CLMethod, self).cl_doc_string("generic")
         return ""
+
+    def run(self):
+        result = super(CLMethod, self).run()
+        # Add a field list if there isn't one
+        if not result[1][1].children:
+            result[1][1].append(nodes.field_list())
+        if not isinstance(result[1][1][0], nodes.field_list):
+            result[1][1].children.insert(0, nodes.field_list())
+
+        spec = specializer(self.arguments[0].split()[1:], self.state)
+        result[1][1][0].append(
+            nodes.field('',
+                        nodes.field_name('', "Specializer"),
+                        nodes.field_body('',
+                                         nodes.paragraph('', '', spec))))
+        return result
 
 
 class CLCurrentPackage(Directive):
