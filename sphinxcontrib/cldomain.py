@@ -345,12 +345,10 @@ class CLsExp(ObjectDescription):
 
     def handle_signature(self, sig, signode):
         symbol_name = []
-        type = []
         package = self.env.temp_data.get('cl:package')
         objtype = self.get_signature_prefix(sig)
         sig_split = sig.split(" ")
         sig = sig_split[0]
-        args = sig_split[1:]
         signode.append(addnodes.desc_annotation(objtype, objtype))
         lisp_args = ARGS[package].get(sig.upper(), "")
 
@@ -523,7 +521,6 @@ class CLMethod(CLsExp):
         return type + ":" + name + "(" + specializer.lower() + ")"
 
     def get_index_text(self, name, type):
-        package = self.env.temp_data.get('cl:package')
         specializer = self.arguments
         spec_args = specializer[0].split(" ")[1:]
         specializer = " ".join(spec_args)
@@ -571,7 +568,6 @@ class CLMethod(CLsExp):
         """
         package = self.env.temp_data.get('cl:package')
         name = self.names[0][1].upper()
-        objtype = self.objtype
 
         specializer = self.arguments
         spec = specializer[0].split(" ")[1:]
@@ -685,7 +681,6 @@ class CLDomain(Domain):
         """
         symbols = self.data['symbols']
         name = name.lower()
-        matches = []
         if ":" in name:
             if name in symbols:
                 return [(name, symbols[name])]
