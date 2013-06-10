@@ -378,6 +378,16 @@ class CLsExp(ObjectDescription):
         record_use(package, symbol_name, self.objtype)
         return objtype.strip(), symbol_name
 
+    def get_field_list(self, node):
+        """Return the node's field list, if there isn't one then
+        create it first."""
+        # Add a field list if there isn't one
+        if not node[1][1].children:
+            node[1][1].append(nodes.field_list())
+        if not isinstance(node[1][1][0], nodes.field_list):
+            node[1][1].children.insert(0, nodes.field_list())
+        return node[1][1][0]
+
     def get_index_text(self, name, type):
         return _('%s (Lisp %s)') % (name.lower().split(":")[-1], type)
 
@@ -587,14 +597,10 @@ class CLMethod(CLsExp):
 
     def run(self):
         result = super(CLMethod, self).run()
-        # Add a field list if there isn't one
-        if not result[1][1].children:
-            result[1][1].append(nodes.field_list())
-        if not isinstance(result[1][1][0], nodes.field_list):
-            result[1][1].children.insert(0, nodes.field_list())
+        field_list = self.get_field_list(result)
 
         spec = specializer(self.arguments[0].split()[1:], self.state)
-        result[1][1][0].append(
+        field_list.append(
             nodes.field('',
                         nodes.field_name('', "Specializer"),
                         nodes.field_body('',
