@@ -818,11 +818,13 @@ def index_package(package, package_path, quicklisp, lisps):
             # docstring will be under genericFunction because of the JSON
             # encoder and changing the directive name doesn't seem to help
             # either.
-            if v == "genericFunction":
-                v = "generic"
+            if type == "genericFunction":
+                cl_type = "generic"
+            else:
+                cl_type = type
 
             # enable symbol references for symbols
-            DOC_STRINGS[package][k][type] = code_regions(v[type])
+            DOC_STRINGS[package][k][cl_type] = code_regions(v[type])
 
         # extract methods
         if "methods" in v:
