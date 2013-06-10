@@ -323,7 +323,7 @@ class SEXP(object):
         if token.lower() in lambda_list_keywords:
             param["lambda_keyword"] = True
         if token.startswith(":"):
-            praam["keyword"] = True
+            param["keyword"] = True
         signode.append(param)
 
 
