@@ -228,7 +228,7 @@ def specializer(sexp, state):
     return node
 
 
-def specializer_xref(symbol, sexp, state):
+def specializer_xref(symbol, sexp, state, package=None):
     result = StringIO()
     first = True
     for atom in sexp:
@@ -239,6 +239,11 @@ def specializer_xref(symbol, sexp, state):
 
         if atom.startswith("KEYWORD:"):
             result.write("(EQL :%s)" % atom.split(":")[-1])
+        elif package:
+            if atom.startswith(package + ":"):
+                result.write(atom.split(":")[-1])
+            else:
+                result.write(atom)
         else:
             result.write(atom)
 
@@ -516,7 +521,7 @@ class CLGeneric(CLsExp):
         if specializers:
             description.append(nodes.paragraph(text="Specializes:"))
             spec = nodes.bullet_list()
-            spec += [specializer_xref(package + ":" + name, s, self.state)
+            spec += [specializer_xref(package + ":" + name, s, self.state, package)
                      for s in specializers]
             description.append(spec)
         return result
