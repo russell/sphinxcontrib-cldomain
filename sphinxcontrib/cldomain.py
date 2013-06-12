@@ -340,7 +340,6 @@ class CLsExp(ObjectDescription):
     option_spec = {
         'nodoc': bool_option,
         'noindex': bool_option,
-        'nospecializers': bool_option,
     }
 
     def handle_signature(self, sig, signode):
@@ -396,6 +395,9 @@ class CLsExp(ObjectDescription):
 
     def get_signature_prefix(self, sig):
         return self.objtype + ' '
+
+    def cl_symbol_name(self):
+        return self.names[0][1].upper()
 
     def add_target_and_index(self, name, sig, signode):
         # node target
@@ -469,9 +471,37 @@ class CLsExp(ObjectDescription):
             target.extend(cresult)
         return result
 
+    def run(self):
+        result = super(CLsExp, self).run()
+        if "nodoc" not in self.options:
+            self.run_add_doc(result)
+        return result
+
+    def cl_doc_string(self, objtype=None):
+        """
+        Resolve a symbols doc string. Will raise KeyError if the
+        symbol can't be found.
+        """
+        package = self.env.temp_data.get('cl:package')
+        name = self.cl_symbol_name()
+        objtype = objtype or self.objtype
+        possible_strings = DOC_STRINGS[package][name]
+
+        string = possible_strings.get(objtype, "")
+        return string
+
+
+class CLGeneric(CLsExp):
+
+    option_spec = {
+        'nodoc': bool_option,
+        'noindex': bool_option,
+        'nospecializers': bool_option,
+    }
+
     def run_add_specializers(self, result):
         package = self.env.temp_data.get('cl:package')
-        name = self.names[0][1].upper()
+        name = self.cl_symbol_name()
         description = result[1][-1]
         specializers = METHODS[package].get(name, {}).keys()
         if specializers:
@@ -483,25 +513,10 @@ class CLsExp(ObjectDescription):
         return result
 
     def run(self):
-        result = super(CLsExp, self).run()
-        if "nodoc" not in self.options:
-            self.run_add_doc(result)
-        if self.objtype == "generic" and "nospecializers" not in self.options:
+        result = super(CLGeneric, self).run()
+        if "nospecializers" not in self.options:
             self.run_add_specializers(result)
         return result
-
-    def cl_doc_string(self, objtype=None):
-        """
-        Resolve a symbols doc string. Will raise KeyError if the
-        symbol can't be found.
-        """
-        package = self.env.temp_data.get('cl:package')
-        name = self.names[0][1].upper()
-        objtype = objtype or self.objtype
-        possible_strings = DOC_STRINGS[package][name]
-
-        string = possible_strings.get(objtype, "")
-        return string
 
 
 class CLMethod(CLsExp):
@@ -577,7 +592,7 @@ class CLMethod(CLsExp):
         symbol can't be found.
         """
         package = self.env.temp_data.get('cl:package')
-        name = self.names[0][1].upper()
+        name = self.cl_symbol_name()
 
         specializer = self.arguments
         spec = specializer[0].split(" ")[1:]
@@ -659,7 +674,7 @@ class CLDomain(Domain):
     directives = {
         'package': CLCurrentPackage,
         'function': CLsExp,
-        'generic': CLsExp,
+        'generic': CLGeneric,
         'macro': CLsExp,
         'variable': CLsExp,
         'type': CLsExp,
