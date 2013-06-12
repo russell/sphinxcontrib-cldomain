@@ -58,4 +58,4 @@ Keywords are also detected for example :KW."
 
 (defmacro example-macro ((arg1 arg2) &body arg3)
   "A example macro."
-  )
+  arg3)

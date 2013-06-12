@@ -74,7 +74,7 @@ lists and specializers will still be printed::
        .. cl:macro:: example-macro
           :nodoc:
 
-       No documentation
+          No documentation
 
 .. cl:macro:: example-macro
    :nodoc:
@@ -112,6 +112,10 @@ Example
 
 .. cl:variable:: *example-variable*
 
+   extra description can be appended to further explain the
+   functionality.  This doesn't need to appear in the lisp
+   code. Instead it can be added to the rst files and it will be
+   appended to the documentation.
 
 Function
 ~~~~~~~~
@@ -210,4 +214,3 @@ Changelog
 =========
 
 .. include:: ../CHANGELOG.rst
-
