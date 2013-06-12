@@ -1,3 +1,10 @@
+Release 0.7 12-06-2013
+----------------------
+* started to make internals more modular
+* print specialisation for methods
+* add links to method specializers
+* added methods to index
+
 Release 0.6 22-04-2013
 ----------------------
 * added more documentation.
