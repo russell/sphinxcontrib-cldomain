@@ -266,6 +266,22 @@ def qualify_sexp(package, sexp):
     return sexp_ret
 
 
+def fieldlist_index(node):
+    """find the index of a field list in a content node."""
+    for i, n in enumerate(node):
+        if isinstance(n, nodes.field_list):
+            return i
+
+
+def get_content_node(node):
+    """Search through and find the content node from a signature."""
+    for subnode in node:
+        if isinstance(subnode, addnodes.desc):
+            for subsubnode in subnode:
+                if isinstance(subsubnode, addnodes.desc_content):
+                    return subsubnode
+
+
 class SpecializerField(Field):
     """
     """
@@ -435,8 +451,6 @@ class CLsExp(ObjectDescription):
     def run_add_doc(self, result):
         package = self.env.temp_data.get('cl:package')
         name = self.names[0][1]
-        description = result[1][-1]
-        node = addnodes.desc_content()
         if not package:
             self.state_machine.reporter.warning("No package specified for symbol %s." %
                                                 name)
@@ -449,26 +463,21 @@ class CLsExp(ObjectDescription):
                                                 (package, name))
         if not string:
             return
+        node = addnodes.desc_content()
         lines = string2lines(string)
         self.state.nested_parse(StringList(lines), 0, node)
-        # result[1] is the content node,
-        # result[1][0] is the signature line
-        # result[1][1] is the fieldlist and description
-        # result[1][1][0] is the fieldlist
-        if (result[1][1].children and
-            isinstance(description[0], nodes.field_list)):
-            cresult = description.deepcopy()
-            target = description
-            target.clear()
-            target.append(cresult[0])
-            target.extend(node)
-            target.extend(cresult[1:])
+
+        # Insert parsed nodes just after the field list.
+        content = get_content_node(result)
+        index = fieldlist_index(content)
+        if index is not None:
+            index += 1
+            start = content[:index]
         else:
-            cresult = description.deepcopy()
-            target = description
-            target.clear()
-            target.extend(node)
-            target.extend(cresult)
+            start = []
+            index = 0
+        rest = content[index:]
+        content.children = start + node + rest
         return result
 
     def run(self):
@@ -502,14 +511,14 @@ class CLGeneric(CLsExp):
     def run_add_specializers(self, result):
         package = self.env.temp_data.get('cl:package')
         name = self.cl_symbol_name()
-        description = result[1][-1]
+        description = get_content_node(result)
         specializers = METHODS[package].get(name, {}).keys()
         if specializers:
-            description.append(nodes.paragraph(text="Specializes"))
+            description.append(nodes.paragraph(text="Specializes:"))
             spec = nodes.bullet_list()
             spec += [specializer_xref(package + ":" + name, s, self.state)
                      for s in specializers]
-            description.children.append(spec)
+            description.append(spec)
         return result
 
     def run(self):
