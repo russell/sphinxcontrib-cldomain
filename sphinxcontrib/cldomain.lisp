@@ -214,23 +214,75 @@ possible symbol names."
           (when possible-symbol
             (write-string (coerce (reverse possible-symbol) 'string) out)))))))
 
-(defun encode-object-documentation (sym type)
-  "Encode documentation for a symbol as a JSON
-object member."
+(defun arglist (symbol)
+  (sb-introspect:function-lambda-list symbol))
+
+(defun encode-symbol-status (symbol package)
+  (multiple-value-bind
+        (sym internal)
+      (find-symbol (symbol-name symbol) package)
+    (declare (ignore sym))
+    (case internal
+      (:internal
+       (encode-object-member 'external nil))
+      (:external
+       (encode-object-member 'external t))
+      (:inherited
+       (encode-object-member 'external nil)))))
+
+(defun encode-function-documentation* (symbol type doc)
   (encode-object-member
    type
    (scope-symbols-in-text
-    (or (documentation sym (cond
-                           ((eq type 'generic-function) 'function)
-                                        ; TODO i'm not sure this will
-                                        ; be portable, shouldn't this
-                                        ; be 'compiler-macro
-                           ((eq type 'macro) 'function)
-                           (t type)))
-        "")
-    (when (member type '(function macro generic-function))
-      (simplify-arglist
-       (swank::arglist sym))))))
+    doc
+    (simplify-arglist (arglist symbol))))
+  (encode-object-member
+   'arguments
+   (format nil "~S" (arglist symbol))))
+
+(defun encode-variable-documentation* (symbol type)
+  (encode-object-member
+   type
+   (scope-symbols-in-text (or (documentation symbol type) ""))))
+
+(defgeneric encode-object-documentation (symbol type)
+  (:documentation
+   "Encode documentation for a symbol as a JSON object member."))
+
+(defmethod encode-function-documentation (symbol (type (eql 'function)))
+  (encode-function-documentation*
+   symbol type (or (documentation symbol type) "")))
+
+(defmethod encode-function-documentation (symbol (type (eql 'macro)))
+  (encode-function-documentation*
+   symbol type (or (documentation symbol type) "")))
+
+(defmethod encode-function-documentation (symbol (type (eql 'generic-function)))
+  (encode-function-documentation*
+   symbol type (or (documentation symbol type) ""))
+  (as-object-member ('methods)
+    (encode-methods (symbol-function symbol))))
+
+(defmethod encode-function-documentation (symbol (type (eql 'cl:STANDARD-GENERIC-FUNCTION)))
+  (encode-function-documentation symbol 'generic-function))
+
+(defmethod encode-value-documentation (symbol (type (eql 'variable)))
+  (encode-variable-documentation* symbol type))
+
+(defmethod encode-value-documentation (symbol (type (eql 'setf)))
+  (encode-function-documentation* symbol type))
+
+(defmethod encode-value-documentation (symbol (type (eql 'type)))
+  (encode-variable-documentation* symbol type)
+  (as-object-member ('slots)
+    (encode-object-class symbol)))
+
+(defun symbol-function-type (symbol)
+  (cond
+    ((macro-function symbol)
+     'macro)
+    ((fboundp symbol)
+     (type-of (fdefinition symbol)))))
 
 (defun class-args (class)
   (loop :for slot :in (class-direct-slots (find-class class))
@@ -248,39 +300,28 @@ object member."
           (encode-object-member 'type (write-to-string (class-name (class-of slot))))
           (encode-object-member 'documentation (scope-symbols-in-text (or (documentation slot t) ""))))))))
 
+(defun class-p (symbol)
+  "Return T if the symbol is a class."
+  (eql (sb-int:info :type :kind symbol) :instance))
+
+(defun variable-p (symbol)
+  "Return T if the symbol is a bound variable."
+  (and (sb-int:info :variable :kind symbol)
+                         (boundp symbol)))
+
 (defun symbols-to-json (&optional (package *current-package*))
-  (let* ((swank::*buffer-package* (find-package 'CL-USER))
-         (swank::*buffer-readtable* (copy-readtable)))
-    (let ((package-symbols nil)
-          (*json-output* *standard-output*))
-      (with-object ()
-        (dolist (sym (swank:apropos-list-for-emacs "" t nil (package-name package)) package-symbols)
-          (destructuring-bind  (&key designator macro function generic-function setf variable type)
-              sym
-            (multiple-value-bind (symbol internal) (intern* designator)
-              (when (eq (symbol-package symbol) package)
-                (as-object-member ((symbol-name symbol))
-                  (with-object ()
-                    (dolist (sym `((macro ,macro)
-                                   (function ,function)
-                                   (generic-function ,generic-function)
-                                   (setf ,setf)
-                                   (variable ,variable)
-                                   (type ,type)))
-                      (when (cadr sym)
-                        (if (eq (cadr sym) :not-documented)
-                            (encode-object-member (car sym) "")
-                            (encode-object-documentation symbol (car sym)))))
-                    (when (or function macro generic-function)
-                      (encode-object-member 'arguments (format nil "~S" (swank::arglist symbol))))
-                    (when type
-                      (as-object-member ('slots) (encode-object-class symbol)))
-                    (when internal
-                      (encode-object-member 'internal t))
-                    (when generic-function
-                      ;; when generic function
-                      (as-object-member ("methods")
-                        (encode-methods (symbol-function symbol))))))))))))))
+  (let ((*json-output* *standard-output*))
+    (with-object ()
+      (do-external-symbols (symbol package)
+        (as-object-member ((symbol-name symbol))
+          (with-object ()
+            (encode-symbol-status symbol package)
+            (when (symbol-function-type symbol)
+              (encode-function-documentation symbol (symbol-function-type symbol)))
+            (when (class-p symbol)
+              (encode-value-documentation symbol 'type))
+            (when (variable-p symbol)
+              (encode-value-documentation symbol 'variable))))))))
 
 (defun main ()
   (multiple-value-bind (unused-args args invalid-args)
