@@ -64,7 +64,7 @@ lambda_list_keywords = ["&allow-other-keys", "&key",
 
 
 def record_use(package, symbol_name, objtype):
-    """record unused package symbols."""
+    """Record unused package symbols."""
     symbol = symbol_name.upper()
     USED_SYMBOLS[package].setdefault(symbol, []).append(objtype)
 
@@ -107,7 +107,7 @@ def _read_from(tokens):
 
 
 def parse_specializer_symbol(symbol, package):
-    """parse symbols, for specializers"""
+    """Parse symbols, for specializers"""
     symbol = symbol.upper()
     if symbol.startswith(":"):
         return "KEYWORD" + symbol
@@ -258,8 +258,10 @@ def specializer_xref(symbol, sexp, state, package=None):
 
 
 def qualify_sexp(package, sexp):
-    """if the sexp contains atoms that don't have a package
-    then qualify them."""
+    """If the sexp contains atoms that don't have a package then qualify
+    them.
+
+    """
     sexp_ret = []
     for atom in sexp:
         if atom.startswith(":"):
@@ -272,7 +274,7 @@ def qualify_sexp(package, sexp):
 
 
 def fieldlist_index(node):
-    """find the index of a field list in a content node."""
+    """Find the index of a field list in a content node."""
     for i, n in enumerate(node):
         if isinstance(n, nodes.field_list):
             return i
@@ -492,9 +494,9 @@ class CLsExp(ObjectDescription):
         return result
 
     def cl_doc_string(self, objtype=None):
-        """
-        Resolve a symbols doc string. Will raise KeyError if the
-        symbol can't be found.
+        """Resolve a symbols doc string. Will raise KeyError if the symbol
+        can't be found.
+
         """
         package = self.env.temp_data.get('cl:package')
         name = self.cl_symbol_name()
@@ -601,9 +603,9 @@ class CLMethod(CLsExp):
             self.indexnode['entries'].append(('single', indextext, indexname, ''))
 
     def cl_doc_string(self):
-        """
-        Resolve a symbols doc string. Will raise KeyError if the
-        symbol can't be found.
+        """Resolve a symbols doc string. Will raise KeyError if the symbol
+        can't be found.
+
         """
         package = self.env.temp_data.get('cl:package')
         name = self.cl_symbol_name()
@@ -638,9 +640,9 @@ class CLMethod(CLsExp):
 
 
 class CLCurrentPackage(Directive):
-    """
-    This directive is just to tell Sphinx that we're documenting stuff in
-    namespace foo.
+    """This directive is just to tell Sphinx that we're documenting stuff
+    in namespace foo.
+
     """
 
     has_content = False
@@ -712,7 +714,8 @@ class CLDomain(Domain):
 
     def find_obj(self, env, name):
         """Find a Lisp symbol for "name", perhaps using the given package
-        Returns a list of (name, object entry) tuples.
+        Return a list of (name, object entry) tuples.
+
         """
         symbols = self.data['symbols']
         name = name.lower()
@@ -733,7 +736,8 @@ class CLDomain(Domain):
 
     def find_method(self, env, name, node):
         """Find a Lisp symbol for "name", perhaps using the given package
-        Returns a list of (name, object entry) tuples.
+        Return a list of (name, object entry) tuples.
+
         """
         methods = self.data['methods']
         name = name.lower()
@@ -811,8 +815,10 @@ def save_cldomain_output(output):
 
 
 def index_package(package, package_path, quicklisp, lisps):
-    """Call an external lisp program that will return a dictionary of
-    doc strings for all public symbols."""
+    """Call an external lisp program that will return a dictionary of doc
+    strings for all public symbols.
+
+    """
     cl_launch_exe = [which("cl-launch")[0]]
     cl_launch_command = cl_launch_args(lisps)
     cldomain_args = ["--", "--package", package, "--path", package_path]
@@ -978,7 +984,7 @@ def which(name, flags=os.X_OK):
 
 
 def cl_launch_args(lisps=None):
-    quicklisp="""
+    quicklisp = """
 (let ((quicklisp-init (merge-pathnames (make-pathname :name "setup"
                                                       :type "lisp")
                                        (concatenate 'string (asdf/os:getenv "QUICKLISP")
@@ -1001,9 +1007,9 @@ def cl_launch_args(lisps=None):
     if lisps:
         args.extend(["--lisps", lisps])
     args.extend(["--init", quicklisp,
-            "--init", system,
-            "--init", "(asdf:initialize-source-registry)",
-            "--init", "(require 'quicklisp)",
-            "--init", quickload,
-            "--init", "(sphinxcontrib.cldomain:main)"])
+                 "--init", system,
+                 "--init", "(asdf:initialize-source-registry)",
+                 "--init", "(require 'quicklisp)",
+                 "--init", quickload,
+                 "--init", "(sphinxcontrib.cldomain:main)"])
     return args
