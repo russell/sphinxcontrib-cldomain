@@ -1005,7 +1005,7 @@ def cl_launch_args(lisps=None):
 """
     args = []
     if lisps:
-        args.extend(["--lisps", lisps])
+        args.extend(["--lisp", lisps])
     args.extend(["--init", quicklisp,
                  "--init", system,
                  "--init", "(asdf:initialize-source-registry)",
