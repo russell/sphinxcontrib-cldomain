@@ -37,6 +37,11 @@ def inc_version():
     return version
 
 
+def print_version():
+    version = local('python setup.py --version', capture=True)
+    puts('Version: %s' % version)
+
+
 @task
 def release_minor():
     generate_version(inc_version())
@@ -78,6 +83,10 @@ try:
     def deploy_release():
         """pypi upload, push, deploy"""
         # TODO should do an sdist and test install into a virtualenv.
+        print_version()
+        if not confirm("Are you sure you want to release this version?"):
+            puts("Aborted.")
+            return
         pypi_upload()
         push()
         deploy()
