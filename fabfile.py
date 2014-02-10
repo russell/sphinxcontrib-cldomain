@@ -58,7 +58,11 @@ def generate_version(version):
     filename = "sphinxcontrib/version.lisp-expr"
     with open(filename, "w") as version_file:
         version_file.write('"' + str(version) + '"')
-    local("cat " + filename)
+    puts("Releasing %s" % version)
+    if not confirm("Are you sure you want to release this version?"):
+        puts("Aborted.")
+        return
+    local('git add CHANGELOG.rst')
     local("git add " + filename)
     message = "Released " + str(version)
     local("git commit -m '%s'" % message)
