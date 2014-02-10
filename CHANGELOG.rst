@@ -1,3 +1,9 @@
+Release 0.8 10-02-2014
+----------------------
+* fixed bug with lisps argument
+* removed dependency on swank
+* remove specializers symbols package if it's the current package
+
 Release 0.7 12-06-2013
 ----------------------
 * started to make internals more modular
