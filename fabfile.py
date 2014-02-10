@@ -1,8 +1,10 @@
-from fabric.api import local, lcd, abort, run, settings, env
-from fabric.contrib.project import rsync_project
-from fabric.decorators import task
 from os.path import expandvars
 import os
+
+from fabric.api import local, lcd, abort, run, settings, env, puts
+from fabric.contrib.console import confirm
+from fabric.contrib.project import rsync_project
+from fabric.decorators import task
 
 env.use_ssh_config = True
 
