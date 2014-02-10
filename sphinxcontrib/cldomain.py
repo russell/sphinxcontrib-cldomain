@@ -985,6 +985,7 @@ def which(name, flags=os.X_OK):
 
 def cl_launch_args(lisps=None):
     quicklisp = """
+#-quicklisp
 (let ((quicklisp-init (merge-pathnames (make-pathname :name "setup"
                                                       :type "lisp")
                                        (concatenate 'string (asdf/os:getenv "QUICKLISP")
