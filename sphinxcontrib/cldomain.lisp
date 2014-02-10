@@ -114,12 +114,6 @@ is a string then just return the string."
          (encode-class atom))
         (t (encode-symbol atom))))
 
-(defun encode-specializers (gf)
-  (loop :for syms
-        :in (mapcar #'swank-mop:method-specializers
-                    (sb-mop:generic-function-methods gf))
-        :collect (format nil "~a" (mapcar #'encode-specializer syms))))
-
 (defun encode-methods (generic-function)
   (let ((methods (closer-mop:generic-function-methods generic-function)))
     (with-object ()
