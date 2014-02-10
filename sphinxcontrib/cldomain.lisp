@@ -209,7 +209,10 @@ possible symbol names."
             (write-string (coerce (reverse possible-symbol) 'string) out)))))))
 
 (defun arglist (symbol)
-  (sb-introspect:function-lambda-list symbol))
+  #+sbcl
+  (sb-introspect:function-lambda-list symbol)
+  #+ecl
+  (ext:function-lambda-list name))
 
 (defun encode-symbol-status (symbol package)
   (multiple-value-bind
