@@ -30,7 +30,7 @@ description = open(desc_file).read() + changelog_header + open(changelog_file).r
 
 __version__ = open(path.join(path.dirname(__file__),
                              "sphinxcontrib",
-                             "version.lisp-expr")).read().strip('"')
+                             "version.lisp-expr")).read().strip().strip('"')
 
 requires = ['Sphinx>=0.6']
 

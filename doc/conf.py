@@ -69,7 +69,7 @@ cl_quicklisp = path.expandvars('$HOME/.quicklisp/')
 
 __version__ = open(path.join(path.dirname(__file__),
                              "..", "sphinxcontrib",
-                             "version.lisp-expr")).read().strip('"')
+                             "version.lisp-expr")).read().strip().strip('"')
 
 # The short X.Y version.
 version = __version__
