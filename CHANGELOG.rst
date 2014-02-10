@@ -1,3 +1,7 @@
+Release 0.9 10-02-2014
+----------------------
+* fixed problem with version number generation
+
 Release 0.8 10-02-2014
 ----------------------
 * fixed bug with lisps argument
