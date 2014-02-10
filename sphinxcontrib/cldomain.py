@@ -826,15 +826,15 @@ def index_package(package, package_path, quicklisp, lisps):
     env.update({"CLDOMAIN": path.abspath(path.dirname(__file__)) + "/",
                 "QUICKLISP": quicklisp})
 
-    output = subprocess.check_output(cl_launch_exe + cl_launch_command + cldomain_args,
+    raw_output = subprocess.check_output(cl_launch_exe + cl_launch_command + cldomain_args,
                                      env=env)
-    output = "\n".join([line for line in output.split("\n")
+    output = "\n".join([line for line in raw_output.split("\n")
                         if not line.startswith(";")])
 
     try:
         lisp_data = json.loads(output)
     except:
-        dump_path = save_cldomain_output(output)
+        dump_path = save_cldomain_output(raw_output)
         error = sys.stderr
         print >>error, red('A error occurred with the json output from cldomain\'s'
                            ' lisp inspector,  this has been dumped to %s if you '
