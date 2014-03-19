@@ -322,7 +322,8 @@ possible symbol names."
 
 (defun main ()
   (multiple-value-bind (unused-args args invalid-args)
-      (getopt:getopt (argv) '(("package" :required)("path" :required)))
+      (getopt:getopt (argv) '(("package" :required)
+                              ("path" :required)))
     (cond
       (invalid-args
        (print-message "Invalid arguments")

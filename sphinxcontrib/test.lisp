@@ -27,8 +27,8 @@
 (in-suite :cldomain)
 
 (test encode-symbol
-  (is (equal '("COMMON-LISP:CAR" "COMMON-LISP:LIST")
-             (mapcar #'encode-symbol '(car "COMMON-LISP:LIST")))))
+  (is (equal (mapcar #'encode-symbol '(car "COMMON-LISP:LIST"))
+             '("COMMON-LISP:CAR" "COMMON-LISP:LIST"))))
 
 (test find-best-symbol
   (let ((*current-package* *package*))
@@ -49,5 +49,5 @@
 
 (test scope-symbols-in-text
   (let ((*current-package* *package*))
-    (is (equal "example text :cl:symbol:`~COMMON-LISP:LIST` CAR ignore MORE text."
-               (scope-symbols-in-text "example text LIST CAR ignore MORE text." '(car))))))
+    (is (equal (scope-symbols-in-text "example text LIST CAR ignore MORE text." '(car))
+               "example text :cl:symbol:`~COMMON-LISP:LIST` CAR ignore MORE text."))))
