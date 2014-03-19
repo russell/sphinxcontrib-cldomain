@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # hyperspec is a Common Lisp Hyperspec symbol referencer for sphinx.
-# Copyright (C) 2011-2013 Russell Sim <russell.sim@gmail.com>
+# Copyright (C) 2011-2014 Russell Sim <russell.sim@gmail.com>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

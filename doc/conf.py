@@ -48,7 +48,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'cldomain'
-copyright = u'2011-2013, Russell Sim'
+copyright = u'2011-2014, Russell Sim'
 
 googleanalytics_id = "UA-28069739-3"
 if os.environ.get("GOOGLE_ANALYTICS"):
