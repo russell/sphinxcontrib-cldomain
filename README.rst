@@ -20,6 +20,6 @@ An example of the generated documentation is the `cl-git`_ project.
 .. _rendered example: http://cl-git.russellsim.org/#CL-GIT:ENSURE-GIT-REPOSITORY-EXIST
 .. _cl-git: http://cl-git.russellsim.org/
 .. _Sphinx Documentation Generator: http://sphinx.pocoo.org/
-.. _Bug Tracker: https://github.com/russell/sphinxcontrib-cldomain
+.. _Bug Tracker: https://github.com/russell/sphinxcontrib-cldomain/issues
 .. _GPLv3: https://www.gnu.org/licenses/gpl-3.0-standalone.html
 
