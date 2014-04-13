@@ -256,11 +256,11 @@ possible symbol names."
 
 (defmethod encode-function-documentation (symbol (type (eql 'generic-function)))
   (encode-function-documentation*
-   symbol type (or (documentation symbol type) ""))
+   symbol type (or (documentation symbol 'function) ""))
   (as-object-member ('methods)
     (encode-methods (symbol-function symbol))))
 
-(defmethod encode-function-documentation (symbol (type (eql 'cl:STANDARD-GENERIC-FUNCTION)))
+(defmethod encode-function-documentation (symbol (type (eql 'cl:standard-generic-function)))
   (encode-function-documentation symbol 'generic-function))
 
 (defmethod encode-value-documentation (symbol (type (eql 'variable)))
