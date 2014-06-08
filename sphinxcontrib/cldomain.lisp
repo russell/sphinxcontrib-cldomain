@@ -252,7 +252,7 @@ possible symbol names."
 
 (defmethod encode-function-documentation (symbol (type (eql 'macro)))
   (encode-function-documentation*
-   symbol type (or (documentation symbol type) "")))
+   symbol type (or (documentation symbol 'function) "")))
 
 (defmethod encode-function-documentation (symbol (type (eql 'generic-function)))
   (encode-function-documentation*
