@@ -160,9 +160,9 @@ def v_html_clparameter(self, node):
     else:
         self.first_param = 0
     if node.hasattr('lambda_keyword'):
-        self.body.append('<em class="lambda_keyword">')
+        self.body.append('<em class="lambda_keyword text-muted">')
     elif node.hasattr('keyword'):
-        self.body.append('<em class="keyword">')
+        self.body.append('<em class="keyword text-muted">')
     elif not node.hasattr('noemph'):
         self.body.append('<em>')
 
