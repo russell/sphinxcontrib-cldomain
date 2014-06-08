@@ -55,6 +55,14 @@ Keywords are also detected for example :KW."
   "A test method."
   (list arg1 arg2 arg3))
 
+(defmethod example-generic ((arg1 example-class) (arg2 (eql :test1)) &optional arg3)
+  "The second test method."
+  (list arg1 arg2 arg3))
+
+(defmethod example-generic ((arg1 example-class) (arg2 (eql :test2)) &optional arg3)
+  "The third test method."
+  (list arg1 arg2 arg3))
+
 
 (defmacro example-macro ((arg1 arg2) &body arg3)
   "A example macro."

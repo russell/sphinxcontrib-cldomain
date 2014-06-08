@@ -12,26 +12,37 @@ that allow sphinx to generate documentation for Common Lisp libraries.
 Hyperspec is a cross referencing extension that supports linking to
 the hyperspec.
 
-Download
---------
-
-Since there is currently no released version, the source is available
-at `github`_.
-
-.. _github: https://github.com/russell/sphinxcontrib-cldomain
-
-Requirements
-------------
-
-* Sphinx
-* cl-launch 3.21.7
-* asdf 3.0.1
-* quicklisp
-
 Installation
 ------------
 
-After installing add cldomain and hyperspec to your enabled
+Requirements
+~~~~~~~~~~~~
+
+* Sphinx
+* `cl-launch <http://cliki.net/cl-launch>`_ 3.21.7
+* `asdf <http://common-lisp.net/project/asdf/>`_ 3.1
+* `quicklisp <http://www.quicklisp.org/beta/>`_
+* `pygments-cl-repl <https://pypi.python.org/pypi/pygments-cl-repl>`_
+
+
+Download
+~~~~~~~~
+
+Releases are hosted on `github`_ or `pypi`_.  The `source`_ is also available.
+
+
+.. code-block:: sh
+
+    pip install sphinxcontrib-cldomain
+
+.. _github: https://github.com/russell/sphinxcontrib-cldomain/releases
+.. _pypi: https://pypi.python.org/pypi/sphinxcontrib-cldomain
+.. _source: https://github.com/russell/sphinxcontrib-cldomain
+
+Configuration
+~~~~~~~~~~~~~
+
+Edit you `conf.py` file and add CLDomain and Hyperspec to your enabled
 extensions.
 
 .. code-block:: python
