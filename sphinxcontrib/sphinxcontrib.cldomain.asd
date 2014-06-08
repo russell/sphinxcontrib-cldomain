@@ -21,6 +21,7 @@
   :depends-on (:getopt :cl-json :alexandria :closer-mop
                #+sbcl :sb-introspect)
   :defsystem-depends-on (:asdf)
+  :entry-point "sphinxcontrib.cldomain:main"
   :description "A documentation tool."
   :components ((:static-file "sphinxcontrib.cldomain.asd")
                (:file "package")

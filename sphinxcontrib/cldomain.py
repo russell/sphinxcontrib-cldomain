@@ -43,7 +43,6 @@ from sphinx.directives import ObjectDescription
 from sphinx.util.nodes import make_refnode
 from sphinx.util.compat import Directive
 from sphinx.util.docfields import Field, GroupedField
-from sphinx.util.docfields import DocFieldTransformer
 
 __version__ = open(path.join(path.dirname(__file__),
                    "version.lisp-expr")).read().strip('"')
@@ -62,6 +61,23 @@ USED_SYMBOLS = defaultdict(dict, {})
 
 lambda_list_keywords = ["&allow-other-keys", "&key",
                         "&rest", "&aux", "&optional"]
+
+
+def node_to_dict(node):
+    name = getattr(node, 'tagname', node)
+    if getattr(node, 'rawsource', None):
+        return {name: node.rawsource}
+    nodes = {name: []}
+    for child in node.children:
+        nodes[name].append(node_to_dict(child))
+    return nodes
+
+
+def debug_print(node):
+    """Useful in pdb sessions"""
+    node = node_to_dict(node)
+    import pprint
+    pprint.pprint(node)
 
 
 def record_use(package, symbol_name, objtype):
@@ -128,17 +144,19 @@ class desc_clparameterlist(addnodes.desc_parameterlist):
 
 
 def v_clparameterlist(self, node):
-    self.first_param = 1
+    self.first_param = True
+    self.body.append(' ')
+    self.body.append('(')
     self.param_separator = node.child_text_separator
 
 
 def d_clparameterlist(self, node):
-    pass
+    self.body.append(')')
 
 
 def v_latex_clparameterlist(self, node):
     self.body.append('}{')
-    self.first_param = 1
+    self.first_param = True
     self.param_separator = node.child_text_separator
 
 
@@ -155,10 +173,8 @@ def d_clparameter(self, node):
 
 
 def v_html_clparameter(self, node):
-    if not self.first_param:
+    if self.body[-1] != ('('):
         self.body.append(self.param_separator)
-    else:
-        self.first_param = 0
     if node.hasattr('lambda_keyword'):
         self.body.append('<em class="lambda_keyword text-muted">')
     elif node.hasattr('keyword'):
@@ -180,7 +196,7 @@ def v_latex_clparameter(self, node):
     if not self.first_param:
         self.body.append(self.param_separator)
     else:
-        self.first_param = 0
+        self.first_param = False
     if not node.hasattr('noemph'):
         self.body.append(r'\emph{')
 
@@ -194,7 +210,7 @@ def v_texinfo_clparameter(self, node):
     if not self.first_param:
         self.body.append(self.param_separator)
     else:
-        self.first_param = 0
+        self.first_param = False
     text = self.escape(node.astext())
     # replace no-break spaces with normal ones
     text = text.replace(u' ', '@w{ }')
@@ -206,30 +222,52 @@ def v_text_clparameter(self, node):
     if not self.first_param:
         self.add_text(self.param_separator)
     else:
-        self.first_param = 0
+        self.first_param = False
     self.add_text(node.astext())
     raise nodes.SkipNode
 
 
-def specializer(sexp, state):
+def v_bs_html_desc_type(self, node):
+    self.body.append(self.param_separator)
+    self.body.append(self.starttag(node, 'tt', '', CLASS='desc-type'))
+
+
+def d_bs_html_desc_type(self, node):
+    self.body.append('</tt>')
+
+
+def v_html_desc_type(self, node):
+    self.body.append(self.param_separator)
+
+
+def specializer(symbol, sexp, state, package, node_type=nodes.inline):
     result = StringIO()
     result.write("(")
+    first = True
     for atom in sexp:
+        if first:
+            first = False
+        else:
+            result.write(" ")
+
         if atom.startswith("KEYWORD:"):
             result.write("(EQL :%s)" % atom.split(":")[-1])
         else:
             result.write(atom)
         result.write(" ")
+
     result.write(")")
-    node = nodes.inline()
     result.seek(0)
 
-    lines = string2lines(result.read().lower())
+    xref = ':cl:generic:`%s <%s:%s>`' % \
+           (result.read().lower(), package, symbol)
+    lines = string2lines(xref)
+    node = node_type()
     state.nested_parse(StringList(lines), 0, node)
     return node
 
 
-def specializer_xref(symbol, sexp, state, package=None):
+def specializer_xref(symbol, sexp, state, package, node_type=nodes.inline):
     result = StringIO()
     first = True
     for atom in sexp:
@@ -249,10 +287,10 @@ def specializer_xref(symbol, sexp, state, package=None):
             result.write(atom)
 
     target = " ".join([a.lower() for a in sexp])
-    node = nodes.list_item()
+    node = node_type()
     result.seek(0)
-    xref = ":cl:method:`(%s) <%s %s>`" % (result.read().lower(), symbol, target)
-
+    xref = ":cl:method:`(%s) <%s %s>`" % \
+           (result.read().lower(), symbol, target)
     lines = string2lines(xref)
     state.nested_parse(StringList(lines), 0, node)
     return node
@@ -313,12 +351,22 @@ class SpecializerField(Field):
 
 
 class SEXP(object):
-    def __init__(self, sexp, show_defaults=False):
+    def __init__(self, sexp, types=None, show_defaults=False):
         if not isinstance(sexp, list):
             self.sexp = _read(sexp)
         else:
             self.sexp = sexp
+        self.types = types
+        if self.types:
+            for i, type in enumerate(self.types):
+                type_node = addnodes.pending_xref(
+                    '', refdomain='cl', reftype='type',
+                    reftarget=type)
+                # type = " " + type
+                type_node += addnodes.desc_type(type, type)
+                self.sexp[i] = [self.sexp[i], type_node]
         self.show_defaults = show_defaults
+        self.show_defaults = True
 
     def as_parameterlist(self, function_name):
         return self.render_parameterlist(prepend_node=function_name)
@@ -342,12 +390,14 @@ class SEXP(object):
 
     def render_atom(self, token, signode, noemph=True):
         "add syntax hi-lighting to interesting atoms"
-
-        param = desc_clparameter(token, token)
-        if token.lower() in lambda_list_keywords:
-            param["lambda_keyword"] = True
-        if token.startswith(":"):
-            param["keyword"] = True
+        if not isinstance(token, nodes.Element):
+            param = desc_clparameter(token, token)
+            if token.lower() in lambda_list_keywords:
+                param["lambda_keyword"] = True
+            if token.startswith(":"):
+                param["keyword"] = True
+        else:
+            param = token
         signode.append(param)
 
 
@@ -374,16 +424,17 @@ class CLsExp(ObjectDescription):
         sig = sig_split[0]
         signode.append(addnodes.desc_annotation(objtype, objtype))
         lisp_args = ARGS[package].get(sig.upper(), "")
-
-        if lisp_args.strip():
-            function_name = addnodes.desc_name(sig, sig + " ")
-        else:
-            function_name = addnodes.desc_name(sig, sig)
+        function_name = addnodes.desc_name(sig, sig)
 
         if not lisp_args.strip() and self.objtype in ["function"]:
             lisp_args = "()"
         if lisp_args.strip():
-            sexp = SEXP(lisp_args, self.env.app.config.cl_show_defaults)
+            types = []
+            if self.objtype in ["method"]:
+                types = self.arguments[0].split(' ')[1:]
+            sexp = SEXP(lisp_args,
+                        types=types,
+                        show_defaults=self.env.app.config.cl_show_defaults)
             arg_list = sexp.as_parameterlist(function_name)
             signode.append(arg_list)
         else:
@@ -405,11 +456,11 @@ class CLsExp(ObjectDescription):
         """Return the node's field list, if there isn't one then
         create it first."""
         # Add a field list if there isn't one
-        if not node[1][1].children:
-            node[1][1].append(nodes.field_list())
-        if not isinstance(node[1][1][0], nodes.field_list):
-            node[1][1].children.insert(0, nodes.field_list())
-        return node[1][1][0]
+        if not node[1][-1].children:
+            node[1][-1].append(nodes.field_list())
+        if not isinstance(node[1][-1][0], nodes.field_list):
+            node[1][-1].append(nodes.field_list())
+        return node[1][-1][-1]
 
     def get_index_text(self, name, type):
         return _('%s (Lisp %s)') % (name.lower().split(":")[-1], type)
@@ -501,14 +552,20 @@ class CLGeneric(CLsExp):
     def run_add_specializers(self, result):
         package = self.env.temp_data.get('cl:package')
         name = self.cl_symbol_name()
-        description = get_content_node(result)
         specializers = METHODS[package].get(name, {}).keys()
         if specializers:
-            description.append(nodes.paragraph(text="Specializes:"))
             spec = nodes.bullet_list()
-            spec += [specializer_xref(package + ":" + name, s, self.state, package)
-                     for s in specializers]
-            description.append(spec)
+            for s in specializers:
+                spec_xref = specializer_xref(package + ":" + name, s,
+                                             self.state, package)
+                item = nodes.list_item('', spec_xref)
+                spec.append(item)
+
+            field_list = self.get_field_list(result)
+            field_list.append(
+                nodes.field('',
+                            nodes.field_name('', "Specializers"),
+                            nodes.field_body('', spec)))
         return result
 
     def run(self):
@@ -518,13 +575,14 @@ class CLGeneric(CLsExp):
         return result
 
 
-class CLMethod(CLsExp):
+class CLMethod(CLGeneric):
 
     option_spec = {
         'nodoc': bool_option,
         'noindex': bool_option,
         'noinherit': bool_option,
         'nospecializers': bool_option,
+        'linkgeneric': bool_option,
     }
 
     doc_field_types = [
@@ -612,13 +670,20 @@ class CLMethod(CLsExp):
     def run(self):
         result = super(CLMethod, self).run()
         field_list = self.get_field_list(result)
+        package = self.env.temp_data.get('cl:package')
 
-        spec = specializer(self.arguments[0].split()[1:], self.state)
-        field_list.append(
-            nodes.field('',
-                        nodes.field_name('', "Specializer"),
-                        nodes.field_body('',
-                                         nodes.paragraph('', '', spec))))
+        if "linkgeneric" in self.options:
+            # TODO (RS) this will probably be removed in the future.
+            spec = specializer(self.cl_symbol_name(),
+                               self.arguments[0].split()[1:],
+                               self.state,
+                               package=package)
+
+            field_list.append(
+                nodes.field('',
+                            nodes.field_name('', "Specializer"),
+                            nodes.field_body('', spec)))
+
         return result
 
 
@@ -682,6 +747,8 @@ class CLDomain(Domain):
 
     roles = {
         'symbol': CLXRefRole(),
+        'function': CLXRefRole(),
+        'generic': CLXRefRole(),
         'method': CLXRefRole(),
     }
     initial_data = {
@@ -925,6 +992,42 @@ def list_unused_symbols(app, exception):
                 else:
                     app.warn("Unused symbol doc %s:%s type %s" %
                                            (p, s, objtype))
+
+
+def add_node(class_name, node, visit, depart=None):
+    """Register a node's visitor functions with a class, if is available.
+
+    """
+
+    def import_class(cl):
+        d = cl.rfind(".")
+        classname = cl[d+1:len(cl)]
+        m = __import__(cl[0:d], globals(), locals(), [classname])
+        return getattr(m, classname)
+
+    try:
+        translator = import_class(class_name)
+    except ImportError:
+        return
+    setattr(translator, 'visit_' + node.__name__, visit)
+    if depart:
+        setattr(translator, 'depart_'+node.__name__, depart)
+
+add_node('sphinx_bootstrap_theme.BootstrapTranslator',
+         desc_clparameterlist,
+         v_clparameterlist, d_clparameterlist)
+
+add_node('sphinx_bootstrap_theme.BootstrapTranslator',
+         desc_clparameter,
+         v_html_clparameter, d_html_clparameter)
+
+add_node('sphinx_bootstrap_theme.BootstrapTranslator',
+         addnodes.desc_type,
+         v_bs_html_desc_type, d_bs_html_desc_type)
+
+add_node('sphinx.writers.html.HTMLTranslator',
+         addnodes.desc_type,
+         v_html_desc_type)
 
 
 def setup(app):
