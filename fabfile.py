@@ -22,6 +22,16 @@ def build():
         local("sphinx-build -b html -E . html")
 
 
+@task
+def doc_server(port="8000"):
+    """Serve documentation from localhost.
+
+    @param port  Port to run server on.
+    """
+    with lcd("doc/html"):
+        local("python -m SimpleHTTPServer %s" % port)
+
+
 def push():
     local("git push")
     local("git push --tags")
