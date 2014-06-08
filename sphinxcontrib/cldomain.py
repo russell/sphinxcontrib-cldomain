@@ -456,7 +456,9 @@ class CLsExp(ObjectDescription):
         if indextext:
             self.indexnode['entries'].append(('single', indextext, indexname, ''))
 
-    def run_add_doc(self, result):
+    def before_content(self):
+        if "nodoc" in self.options:
+            return
         package = self.env.temp_data.get('cl:package')
         name = self.names[0][1]
         if not package:
@@ -471,28 +473,8 @@ class CLsExp(ObjectDescription):
                                                 (package, name))
         if not string:
             return
-        node = addnodes.desc_content()
-        lines = string2lines(string)
-        self.state.nested_parse(StringList(lines), 0, node)
-
-        # Insert parsed nodes just after the field list.
-        content = get_content_node(result)
-        index = fieldlist_index(content)
-        if index is not None:
-            index += 1
-            start = content[:index]
-        else:
-            start = []
-            index = 0
-        rest = content[index:]
-        content.children = start + node + rest
-        return result
-
-    def run(self):
-        result = super(CLsExp, self).run()
-        if "nodoc" not in self.options:
-            self.run_add_doc(result)
-        return result
+        lines = string2lines(string) + ['']
+        self.content = StringList(lines) + self.content
 
     def cl_doc_string(self, objtype=None):
         """Resolve a symbols doc string. Will raise KeyError if the symbol
