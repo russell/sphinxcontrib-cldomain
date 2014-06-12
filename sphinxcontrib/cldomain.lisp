@@ -148,13 +148,14 @@ possible symbol names."
         ;; Exception for keywords with full stops at the end.  It's
         ;; probably punctuation.
         ((and (eql (char symbol-string 0) #\:)
-              (eql (char symbol-string (1- (length symbol-string))) #\.))
+              (member (char symbol-string (1- (length symbol-string)))
+                      (list #\. #\,)))
          (return-from find-best-symbol
            (values nil
                    (intern-keyword (subseq symbol-string
                                          1
                                          (1- (length symbol-string))))
-                   ".")))
+                   (subseq symbol-string (1- (length symbol-string))))))
         ;; Return keyword
         ((eql (char symbol-string 0) #\:)
          (return-from find-best-symbol
