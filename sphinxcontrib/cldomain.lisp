@@ -104,6 +104,9 @@ is a string then just return the string."
 (defun encode-xref (symbol)
   (encode-symbol symbol ":cl:symbol:`~~~a`"))
 
+(defun encode-literal (symbol)
+  (format nil "``~a``" symbol))
+
 (defun encode-specializer (atom)
   "encode a single specializer lambda list"
   (cond ((eq (type-of atom) 'eql-specializer)
@@ -131,13 +134,16 @@ possible symbol names."
   (dolist (symbol-string symbols)
     (let ((symbol (find-symbol* symbol-string)))
       (when (and (not (null symbol)) (symbolp symbol))
-        (when (member symbol ignore-symbols)
-          (return))
-        (return-from find-best-symbol
-          (values symbol (if (equal symbol-string (car symbols))
-                           ""  ; first symbol, so no remainder
-                           (subseq (car symbols) (length symbol-string))))))))
-  (values nil (car symbols)))
+        (let ((rest-string
+                (if (equal symbol-string (car symbols))
+                    ""  ; first symbol, so no remainder
+                    (subseq (car symbols) (length symbol-string)))))
+          (if (member symbol ignore-symbols)
+              (return-from find-best-symbol
+                (values nil symbol rest-string))
+              (return-from find-best-symbol
+                (values symbol nil rest-string)))))))
+  (values nil nil (car symbols)))
 
 (defun scope-symbols-in-text (text &optional ignore-symbols)
   (flet ((whitespace-p (char)
@@ -186,10 +192,12 @@ possible symbol names."
               ((and possible-symbol (not (upper-case-p char)))
                (push (coerce (reverse possible-symbol) 'string)
                      possible-symbols)
-               (multiple-value-bind (symbol rest)
+               (multiple-value-bind (symbol literal rest)
                    (find-best-symbol possible-symbols ignore-symbols)
                  (when symbol
                    (write-string (encode-xref symbol) out))
+                 (when literal
+                   (write-string (encode-literal literal) out))
                  (write-string rest out))
                (unread-char char stream)
                (setf possible-symbol nil)
