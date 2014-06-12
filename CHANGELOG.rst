@@ -1,4 +1,4 @@
-Release 0.10 UNRELEASED
+Release 0.10 12-06-2014
 -----------------------
 * added back parentheses to parameter lists.
 * added type information to parameter list of methods.

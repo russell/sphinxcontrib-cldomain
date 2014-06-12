@@ -1,7 +1,7 @@
 from os.path import expandvars
 import os
 
-from fabric.api import local, lcd, abort, run, settings, env, puts
+from fabric.api import local, lcd, settings, env, puts
 from fabric.contrib.console import confirm
 from fabric.contrib.project import rsync_project
 from fabric.decorators import task
@@ -44,8 +44,10 @@ def pypi_upload():
 
 
 def inc_version():
-    version = float(local("git describe --tags --abbrev=0", capture=True))
-    version += 0.1
+    version = map(int, local("git describe --tags --abbrev=0",
+                             capture=True).split('.'))
+    version[1] += 1
+    version = '.'.join(map(str, version))
     return version
 
 
@@ -61,7 +63,12 @@ def release_minor():
 
 @task
 def release_major():
-    generate_version(float(int(inc_version() + 1.0)))
+    version = map(int, local("git describe --tags --abbrev=0",
+                             capture=True).split('.'))
+    version[0] += 1
+    version[1] = 0
+    version = '.'.join(map(str, version))
+    generate_version(version)
 
 
 def generate_version(version):
