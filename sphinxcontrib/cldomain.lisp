@@ -123,11 +123,13 @@ is a string then just return the string."
   (let ((methods (closer-mop:generic-function-methods generic-function)))
     (with-object ()
       (dolist (method methods)
-        (let ((specializer (closer-mop:method-specializers method)))
+        (let ((specializer (closer-mop:method-specializers method))
+              (lambda-list (closer-mop:method-lambda-list method)))
           (encode-object-member
            (mapcar #'encode-specializer specializer)
            (scope-symbols-in-text
-            (or (documentation method t) ""))))))))
+            (or (documentation method t) "")
+            (simplify-arglist lambda-list))))))))
 
 (defun intern-keyword (keyword)
   (let ((keyword (if (eql (char keyword 0) #\:)
