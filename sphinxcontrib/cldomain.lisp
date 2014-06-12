@@ -186,9 +186,14 @@ possible symbol names."
             (cond
               ;; if probably an example and peek eol, then switch back.
               ((and probably-example
+                    (eql char #\Newline)
                     (peek-char nil stream nil)
-                    (eql (peek-char nil stream nil) #\Newline)
-                    (setf probably-example nil))
+                    (not (eql (peek-char nil stream nil) #\Space)))
+               (write-char char out)
+               (setf probably-example nil))
+              ;; continue writing an example if we are in one. (avoid
+              ;; encoding symbols)
+              (probably-example
                (write-char char out))
               ;; new line, then indentation, probably an example.
               ((and (eql char #\Newline)
