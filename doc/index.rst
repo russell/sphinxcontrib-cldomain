@@ -1,10 +1,5 @@
-cldomain
-========
-
-.. contents::
-
 About
------
+=====
 
 CLDomain is an extension for the Sphinx documentation generation tool
 that allow sphinx to generate documentation for Common Lisp libraries.
@@ -13,12 +8,12 @@ Hyperspec is a cross referencing extension that supports linking to
 the hyperspec.
 
 Installation
-------------
+============
 
 Requirements
-~~~~~~~~~~~~
+------------
 
-* Sphinx
+* `Sphinx <http://sphinx-doc.org/>`_ 3.21.7
 * `cl-launch <http://cliki.net/cl-launch>`_ 3.21.7
 * `asdf <http://common-lisp.net/project/asdf/>`_ 3.1
 * `quicklisp <http://www.quicklisp.org/beta/>`_
@@ -26,7 +21,7 @@ Requirements
 
 
 Download
-~~~~~~~~
+--------
 
 Releases are hosted on `github`_ or `pypi`_.  The `source`_ is also available.
 
@@ -40,7 +35,7 @@ Releases are hosted on `github`_ or `pypi`_.  The `source`_ is also available.
 .. _source: https://github.com/russell/sphinxcontrib-cldomain
 
 Configuration
-~~~~~~~~~~~~~
+-------------
 
 Edit you `conf.py` file and add CLDomain and Hyperspec to your enabled
 extensions.
@@ -76,7 +71,7 @@ To configure a specific lisp executable search order use.
 
 
 Documentation
--------------
+=============
 
 All directives support the ``nodoc`` option that will prevent them
 from pulling the documentation string from Common Lisp.  Argument
@@ -93,7 +88,7 @@ lists and specializers will still be printed::
    No documentation
 
 Package
-~~~~~~~
+-------
 
 .. rst:directive:: .. cl:package:: symbol-name
 
@@ -109,7 +104,7 @@ Example
 
 
 Variable
-~~~~~~~~
+--------
 
 .. rst:directive::  .. cl:variable:: symbol-name
 
@@ -129,7 +124,7 @@ Example
    appended to the documentation.
 
 Function
-~~~~~~~~
+--------
 
 .. rst:directive:: .. cl:function:: symbol-name
 
@@ -145,7 +140,7 @@ Example
 
 
 Macro
-~~~~~~~~
+--------
 
 .. rst:directive:: .. cl:macro:: symbol-name
 
@@ -161,7 +156,7 @@ Example
 
 
 Class
-~~~~~
+-----
 
 .. rst:directive:: .. cl:class:: symbol-name
 
@@ -177,7 +172,7 @@ Example
 
 
 Generics
-~~~~~~~~
+--------
 
 .. rst:directive:: .. cl:generic:: symbol-name
 
@@ -195,7 +190,7 @@ Example
 
 
 Methods
-~~~~~~~
+-------
 
 .. rst:directive:: .. cl:method:: symbol-name (specializer)
 

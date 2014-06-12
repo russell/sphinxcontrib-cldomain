@@ -31,10 +31,11 @@
 
 (defun example-function (arg1 arg2 &optional (arg3 #'sort) &key (kw *example-variable*))
   "The CL Domain will try and convert any uppercase symbols into
-reference for example EXAMPLE-FUNCTION or a hyperspec link LIST.  Any
-unmatched symbols are left as is ARG1, ARG2 and ARG3.  Explicit package
-references will also help resolve symbol sources COMMON-LISP:CAR.
-Keywords are also detected for example :KW."
+reference for example EXAMPLE-FUNCTION, EXAMPLE-GENERIC or a hyperspec
+link LIST.  Any unmatched symbols are converted to literals as is
+ARG1, ARG2 and ARG3.  Explicit package references will also help
+resolve symbol sources COMMON-LISP:CAR.  Keywords are also detected
+for example :KEYWORD."
   (list arg1 arg2 arg3))
 
 
@@ -52,7 +53,11 @@ Keywords are also detected for example :KW."
 
 
 (defmethod example-generic ((arg1 example-class) (arg2 (eql :test)) &optional arg3)
-  "A test method."
+  "The CL Domain will try and convert any uppercase symbols into
+reference for example EXAMPLE-FUNCTION or a hyperspec link LIST.  Any
+unmatched symbols are converted to literals as is ARG1, ARG2 and ARG3.
+Explicit package references will also help resolve symbol sources
+COMMON-LISP:CDR.  Keywords are also detected for example :TEST."
   (list arg1 arg2 arg3))
 
 (defmethod example-generic ((arg1 example-class) (arg2 (eql :test1)) &optional arg3)
@@ -63,7 +68,15 @@ Keywords are also detected for example :KW."
   "The third test method."
   (list arg1 arg2 arg3))
 
+(defmethod example-generic ((arg1 example-class) (arg2 t) &optional arg3)
+  "The third test method."
+  (list arg1 arg2 arg3))
+
 
 (defmacro example-macro ((arg1 arg2) &body arg3)
-  "A example macro."
+  "The CL Domain will try and convert any uppercase symbols into
+reference for example EXAMPLE-FUNCTION or a hyperspec link LIST.  Any
+unmatched symbols are converted to literals as is ARG1, ARG2 and ARG3.
+Explicit package references will also help resolve symbol sources
+COMMON-LISP:CDR.  Keywords are also detected for example :TEST."
   arg3)
