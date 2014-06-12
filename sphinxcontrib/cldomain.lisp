@@ -105,7 +105,9 @@ is a string then just return the string."
   (encode-symbol symbol ":cl:symbol:`~~~a`"))
 
 (defun encode-literal (symbol)
-  (format nil "``~a``" symbol))
+  (if (equal (symbol-package symbol) (find-package 'keyword))
+      (format nil "``~s``" symbol)
+      (format nil "``~a``" symbol)))
 
 (defun encode-specializer (atom)
   "encode a single specializer lambda list"
@@ -127,22 +129,44 @@ is a string then just return the string."
            (scope-symbols-in-text
             (or (documentation method t) ""))))))))
 
+(defun intern-keyword (keyword)
+  (let ((keyword (if (eql (char keyword 0) #\:)
+                     (subseq keyword 1) keyword)))
+    (intern (string-upcase keyword) 'keyword)))
+
 (defun find-best-symbol (symbols &optional ignore-symbols)
   "try and find the best symbol, return the most appropriate and the
 remaining string.  symbols is a list of strings that contains
 possible symbol names."
   (dolist (symbol-string symbols)
-    (let ((symbol (find-symbol* symbol-string)))
-      (when (and (not (null symbol)) (symbolp symbol))
-        (let ((rest-string
-                (if (equal symbol-string (car symbols))
-                    ""  ; first symbol, so no remainder
-                    (subseq (car symbols) (length symbol-string)))))
-          (if (member symbol ignore-symbols)
-              (return-from find-best-symbol
-                (values nil symbol rest-string))
-              (return-from find-best-symbol
-                (values symbol nil rest-string)))))))
+    (let ((symbol (find-symbol* symbol-string))
+          (rest-string
+            (if (equal symbol-string (car symbols))
+                ""  ; first symbol, so no remainder
+                (subseq (car symbols) (length symbol-string)))))
+      (cond
+        ;; Exception for keywords with full stops at the end.  It's
+        ;; probably punctuation.
+        ((and (eql (char symbol-string 0) #\:)
+              (eql (char symbol-string (1- (length symbol-string))) #\.))
+         (return-from find-best-symbol
+           (values nil
+                   (intern-keyword (subseq symbol-string
+                                         1
+                                         (1- (length symbol-string))))
+                   ".")))
+        ;; Return keyword
+        ((eql (char symbol-string 0) #\:)
+         (return-from find-best-symbol
+           (values nil
+                   (intern-keyword (subseq symbol-string 1))
+                   rest-string)))
+        ((and (not (null symbol)) (symbolp symbol))
+         (if (member symbol ignore-symbols)
+             (return-from find-best-symbol
+               (values nil symbol rest-string))
+             (return-from find-best-symbol
+               (values symbol nil rest-string)))))))
   (values nil nil (car symbols)))
 
 (defun scope-symbols-in-text (text &optional ignore-symbols)
