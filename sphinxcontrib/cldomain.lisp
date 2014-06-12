@@ -237,8 +237,17 @@ possible symbol names."
               ;; else just write the character out
               (t
                (write-char char out))))
+          ;; Write out remaining symbols
           (when possible-symbol
-            (write-string (coerce (reverse possible-symbol) 'string) out)))))))
+            (push (coerce (reverse possible-symbol) 'string)
+                  possible-symbols)
+            (multiple-value-bind (symbol literal rest)
+                   (find-best-symbol possible-symbols ignore-symbols)
+                 (when symbol
+                   (write-string (encode-xref symbol) out))
+                 (when literal
+                   (write-string (encode-literal literal) out))
+                 (write-string rest out))))))))
 
 (defun arglist (symbol)
   #+sbcl
