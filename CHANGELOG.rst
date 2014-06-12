@@ -1,3 +1,12 @@
+Release 0.10 UNRELEASED
+-----------------------
+* added back parentheses to parameter lists.
+* added type information to parameter list of methods.
+* added links to other methods from a method docstring
+* fixed bug with macro documentation strings
+* added better keyword detection in documentation strings
+* fixed bug where symbols at the end of documentation strings were ignored
+
 Release 0.9 10-02-2014
 ----------------------
 * fixed problem with version number generation
