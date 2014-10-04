@@ -1069,7 +1069,9 @@ def which(name, flags=os.X_OK):
     return result
 
 
-def cl_launch_args(lisps=None):
+def cl_launch_args(lisps=None,
+                   package='sphinxcontrib.cldomain',
+                   main_function="sphinxcontrib.cldomain:main"):
     quicklisp = """
 #-quicklisp
 (let ((quicklisp-init (merge-pathnames (make-pathname :name "setup"
@@ -1088,8 +1090,8 @@ def cl_launch_args(lisps=None):
 
     quickload = """
 (let ((*standard-output* *error-output*))
-  (quicklisp:quickload 'sphinxcontrib.cldomain))
-"""
+  (quicklisp:quickload '%s))
+""" % package
     args = []
     if lisps:
         args.extend(["--lisp", lisps])
@@ -1098,5 +1100,5 @@ def cl_launch_args(lisps=None):
                  "--init", "(asdf:initialize-source-registry)",
                  "--init", "(require 'quicklisp)",
                  "--init", quickload,
-                 "--init", "(sphinxcontrib.cldomain:main)"])
+                 "--init", "(%s)" % main_function])
     return args

@@ -32,3 +32,11 @@
   (asdf:oos 'asdf:load-op :sphinxcontrib.cldomain-test)
   (funcall (intern (string :run!) (string :it.bese.FiveAM))
            :cldomain))
+
+
+(defsystem :sphinxcontrib.cldomain/test
+  :depends-on (:swank :sphinxcontrib.cldomain :fiveam :uiop)
+  :defsystem-depends-on (:asdf)
+  :description "A tests for the sphinxcontrib.cldomain documentation tool."
+  :components ((:static-file "sphinxcontrib.cldomain-test.asd")
+               (:file "test")))

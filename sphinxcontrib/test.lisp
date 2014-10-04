@@ -17,10 +17,10 @@
 
 (in-package :cl-user)
 
-(defpackage :sphinxcontrib.cldomain-test
+(defpackage :sphinxcontrib.cldomain/test
   (:use #:closer-common-lisp #:fiveam #:sphinxcontrib.cldomain))
 
-(in-package :sphinxcontrib.cldomain-test)
+(in-package :sphinxcontrib.cldomain/test)
 
 (def-suite :cldomain)
 
@@ -51,3 +51,14 @@
   (let ((*current-package* *package*))
     (is (equal (scope-symbols-in-text "example text LIST CAR ignore MORE text." '(car))
                "example text :cl:symbol:`~COMMON-LISP:LIST` CAR ignore MORE text."))))
+
+
+(defun run-tests ()
+  (let ((result-list (fiveam:run :cldomain)))
+    (explain! result-list)
+    (if (remove-if
+         (lambda (test) (equal (symbol-name (class-name (class-of test)))
+                               "TEST-PASSED"))
+         result-list)
+        (uiop:quit 1)
+        (uiop:quit 0))))
