@@ -1,0 +1,25 @@
+language: lisp
+
+env:
+  matrix:
+    # - LISP=abcl
+    - LISP=sbcl
+    # - LISP=sbcl32
+    # - LISP=ccl
+    # - LISP=ccl32
+    # - LISP=clisp
+    # - LISP=clisp32
+    # - LISP=cmucl
+    # - LISP=ecl
+
+install:
+  - sudo pip install tox
+  - if [ -x ./install.sh ] && head -2 ./install.sh | grep '^#cl-travis' > /dev/null;
+    then
+      ./install.sh;
+    else
+      curl https://raw2.github.com/luismbo/cl-travis/master/install.sh | sh;
+    fi
+
+script:
+  - tox
