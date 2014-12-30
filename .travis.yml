@@ -18,8 +18,12 @@ install:
     then
       ./install.sh;
     else
-      curl https://raw2.github.com/luismbo/cl-travis/master/install.sh | sh;
+      curl https://raw.githubusercontent.com/luismbo/cl-travis/master/install.sh | sh;
     fi
+  - wget http://common-lisp.net/project/xcvb/cl-launch/cl-launch.tar.gz
+  - mkdir "$HOME/cl-launch"
+  - tar zxf cl-launch.tar.gz --strip-components=1 -C "$HOME/cl-launch/"
+  - sudo bash "$HOME/cl-launch/cl-launch.sh" -I "$HOME/cl-launch/" -o "/usr/local/bin/cl-launch" -B install
 
 script:
   - tox

@@ -11,6 +11,13 @@ cl_launch_command = cl_launch_args(
     main_function="sphinxcontrib.cldomain/test::run-tests")
 
 env = os.environ.copy()
+if path.exists(path.expanduser("~/.quicklisp")):
+    env['QUICKLISP'] = path.expanduser("~/.quicklisp")
+elif path.exists(path.expanduser("~/quicklisp")):
+    env['QUICKLISP'] = path.expanduser("~/quicklisp")
+else:
+    raise Exception("Can't find Quicklisp.")
+
 env.update({"CLDOMAIN": path.abspath(path.dirname(__file__)) + "/"})
 
 subprocess.check_call(cl_launch_exe + cl_launch_command, env=env)
