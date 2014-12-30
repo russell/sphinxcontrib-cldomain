@@ -1,28 +1,34 @@
+Release 0.11 30-12-2014
+-----------------------
+* support loading symbol information from multiple packages.
+
 Release 0.10 12-06-2014
 -----------------------
 * added back parentheses to parameter lists.
 * added type information to parameter list of methods.
-* added links to other methods from a method docstring
-* fixed bug with macro documentation strings
-* added better keyword detection in documentation strings
-* fixed bug where symbols at the end of documentation strings were ignored
+* added links to other methods from a method docstring.
+* fixed bug with macro documentation strings.
+* added better keyword detection in documentation strings.
+* fixed bug where symbols at the end of documentation
+  strings were ignored.
 
 Release 0.9 10-02-2014
 ----------------------
-* fixed problem with version number generation
+* fixed problem with version number generation.
 
 Release 0.8 10-02-2014
 ----------------------
-* fixed bug with lisps argument
-* removed dependency on swank
-* remove specializers symbols package if it's the current package
+* fixed bug with lisps argument.
+* removed dependency on swank.
+* remove specializers symbols package if it's the current
+  package.
 
 Release 0.7 12-06-2013
 ----------------------
-* started to make internals more modular
-* print specialisation for methods
-* add links to method specializers
-* added methods to index
+* started to make internals more modular.
+* print specialisation for methods.
+* add links to method specializers.
+* added methods to index.
 
 Release 0.6 22-04-2013
 ----------------------
