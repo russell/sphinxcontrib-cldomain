@@ -19,7 +19,9 @@
 (in-package :cl-user)
 
 (defpackage :sphinxcontrib.cldomain
-  (:use #:closer-common-lisp #:getopt #:json #:closer-mop #:alexandria)
+  (:use #:closer-common-lisp #:json
+        #:closer-mop #:alexandria
+        #:com.dvlsoft.clon)
   (:export #:main
            #:encode-symbol
            #:resolve-symbol

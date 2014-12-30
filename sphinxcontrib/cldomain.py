@@ -29,6 +29,7 @@ from os import path
 import tempfile
 import json
 from collections import defaultdict
+import operator
 import subprocess
 from StringIO import StringIO
 from docutils import nodes
@@ -864,20 +865,27 @@ def save_cldomain_output(output):
     return path
 
 
-def index_package(package, package_path, quicklisp, lisps):
+def index_packages(systems, system_paths, packages, quicklisp, lisps):
     """Call an external lisp program that will return a dictionary of doc
     strings for all public symbols.
 
     """
     cl_launch_exe = [which("cl-launch")[0]]
     cl_launch_command = cl_launch_args(lisps)
-    cldomain_args = ["--", "--package", package, "--path", package_path]
+    cldomain_args = ["--"]
+    for package in packages:
+        cldomain_args.extend(["--package", package])
+    for system in systems:
+        cldomain_args.extend(["--system", system])
+    for system_path in system_paths:
+        cldomain_args.extend(["--path", system_path])
     env = os.environ.copy()
     env.update({"CLDOMAIN": path.abspath(path.dirname(__file__)) + "/",
                 "QUICKLISP": quicklisp})
-
-    raw_output = subprocess.check_output(cl_launch_exe + cl_launch_command + cldomain_args,
-                                     env=env)
+    raw_output = subprocess.check_output(cl_launch_exe
+                                         + cl_launch_command
+                                         + cldomain_args,
+                                         env=env)
     output = "\n".join([line for line in raw_output.split("\n")
                         if not line.startswith(";")])
 
@@ -894,11 +902,12 @@ def index_package(package, package_path, quicklisp, lisps):
         raise
 
     for k, v in lisp_data.items():
-
+        symbol_name = k.split(':')
+        package, name = symbol_name[0], symbol_name[-1]
         # extract doc strings
-        DOC_STRINGS[package][k] = {}
+        DOC_STRINGS[package][name] = {}
         for type in ALL_TYPES:
-            if not type in v:
+            if type not in v:
                 continue
             # XXX This isn't the best, the objtype is generic but the
             # docstring will be under genericFunction because of the JSON
@@ -910,7 +919,7 @@ def index_package(package, package_path, quicklisp, lisps):
                 cl_type = type
 
             # enable symbol references for symbols
-            DOC_STRINGS[package][k][cl_type] = code_regions(v[type])
+            DOC_STRINGS[package][name][cl_type] = code_regions(v[type])
 
         # extract methods
         if "methods" in v:
@@ -931,25 +940,29 @@ def index_package(package, package_path, quicklisp, lisps):
 
             methods = dict([(parse_method(method), parse_doc(doc))
                             for method, doc in v["methods"].items()])
-            METHODS[package][k] = methods
+            METHODS[package][name] = methods
 
         # extract slots
         if "slots" in v:
-            SLOTS[package][k] = v["slots"]
+            SLOTS[package][name] = v["slots"]
 
     def lower_symbols(text):
         if '"' in text:
             return text
-        if len(text.split("::")) > 1:
-            spackage, symbol = text.split("::")
-        elif len(text.split(":")) > 1:
-            spackage, symbol = text.split(":")
+
+        symbol_name = k.split(':')
+        if len(symbol_name) > 1:
+            spackage, symbol = symbol_name[0], symbol_name[-1]
         else:
             spackage = ""
-        if spackage.lower() == package.lower():
+
+        if spackage.upper() in packages:
             return symbol.lower()
+
         return text.lower()
+
     # extract arguments
+    packages = map(operator.methodcaller('upper'), packages)
     for k, v in lisp_data.items():
         if not v.get("arguments"):
             pass
@@ -961,10 +974,37 @@ def index_package(package, package_path, quicklisp, lisps):
 
 
 def load_packages(app):
-    if not app.config.cl_packages:
+    packages = []
+    systems = []
+    system_paths = []
+    if app.config.cl_packages:
+        app.info("DEPRECATED: The cl_packages variable has been "
+                 "replaced by cl_systems and will be removed in the future.")
+        for package, system_path in app.config.cl_packages.iteritems():
+            packages.append(package.upper())
+            systems.append(package)
+            system_paths.append(system_path)
+    if app.config.cl_systems:
+        for system in app.config.cl_systems:
+            systems.append(system['name'])
+
+            if 'path' in system:
+                system_paths.append(system['path'])
+
+            if 'packages' in system:
+                for package in system['packages']:
+                    packages.append(package.upper())
+            else:
+                packages.append(system['name'].upper())
+
+    if not packages:
+        app.warn("No CL packages specified.")
         return
-    for key, value in app.config.cl_packages.iteritems():
-        index_package(key.upper(), value, app.config.cl_quicklisp, app.config.cl_lisps)
+    index_packages(systems,
+                   system_paths,
+                   packages,
+                   app.config.cl_quicklisp,
+                   app.config.cl_lisps)
 
 
 def uppercase_symbols(app, docname, source):
@@ -1043,6 +1083,7 @@ def setup(app):
                  texinfo=(v_texinfo_clparameter, d_clparameter),
                  text=(v_text_clparameter, d_clparameter))
     app.add_config_value('cl_packages', {}, 'env')
+    app.add_config_value('cl_systems', {}, 'env')
     app.add_config_value('cl_quicklisp', "", 'env')
     app.add_config_value('cl_show_defaults', False, True)
     app.add_config_value('cl_lisps', None, 'env')

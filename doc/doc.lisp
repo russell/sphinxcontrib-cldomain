@@ -80,3 +80,14 @@ unmatched symbols are converted to literals as is ARG1, ARG2 and ARG3.
 Explicit package references will also help resolve symbol sources
 COMMON-LISP:CDR.  Keywords are also detected for example :TEST."
   arg3)
+
+
+(defpackage :sphinxcontrib.cldomain.doc-alt
+  (:use #:common-lisp)
+  (:export #:example-function))
+
+(in-package :sphinxcontrib.cldomain.doc-alt)
+
+(defun example-function (arg1 arg2 &optional (arg3 #'sort) &key (kw *example-variable*))
+  "Symbols can be documented from multiple packages.  References to symbols be resolved in the context of the current package for example EXAMPLE-FUNCTION will resolve to the SPHINXCONTRIB.CLDOMAIN.DOC-ALT symbol."
+  (list arg1 arg2 arg3))

@@ -46,14 +46,33 @@ extensions.
                       'sphinxcontrib.hyperspec'])
 
 
+System symbols to load
+^^^^^^^^^^^^^^^^^^^^^^
+
 The path to each package needs to the lisp_packages configuration
 option.  In this example the conf.py is in a doc directory and the ASD
 file is in the parent directory.
 
+The valid keys for each of the systems in the systems dict:
+
+**name**
+   The name of the system to load.
+
+**path**
+   The path to the system.
+
+**packages**
+   A list of the packages to extract symbol information from.
+
 .. code-block:: python
 
    from os.path import join, dirname, realpath
-   cl_packages = {"cl-git": join(dirname(realpath(__file__)), "../")}
+   cl_systems = [{"name": "cl-git",
+                  "path": join(dirname(realpath(__file__)), "../")),
+                  "packages": ["cl-git"]}]
+
+Quicklisp Location
+^^^^^^^^^^^^^^^^^^
 
 To set the location of quicklisp in conf.py add a quicklisp variable
 with the value set to it's location.
@@ -62,6 +81,9 @@ with the value set to it's location.
 
    from os.path import expandvars
    cl_quicklisp = expandvars('$HOME/quicklisp/')
+
+LISP to use
+^^^^^^^^^^^
 
 To configure a specific lisp executable search order use.
 
@@ -97,9 +119,6 @@ Package
 
       .. cl:package:: sphinxcontrib.cldomain.doc
 
-Example
-^^^^^^^
-
 .. cl:package:: sphinxcontrib.cldomain.doc
 
 
@@ -113,8 +132,7 @@ Variable
 
        .. cl:variable:: *example-variable*
 
-Example
-^^^^^^^
+Example:
 
 .. cl:variable:: *example-variable*
 
@@ -133,8 +151,7 @@ Function
 
        .. cl:function:: example-function
 
-Example
-^^^^^^^
+Example:
 
 .. cl:function:: example-function
 
@@ -149,8 +166,7 @@ Macro
 
        .. cl:macro:: example-macro
 
-Example
-^^^^^^^
+Example:
 
 .. cl:macro:: example-macro
 
@@ -165,8 +181,7 @@ Class
 
        .. cl:class:: example-class
 
-Example
-^^^^^^^
+Example:
 
 .. cl:type:: example-class
 
@@ -183,8 +198,7 @@ Generics
 
        .. cl:generic:: example-generic
 
-Example
-^^^^^^^
+Example:
 
 .. cl:generic:: example-generic
 
@@ -210,10 +224,30 @@ Methods
        .. cl:method:: example-generic example-class :test
           :noinherit:
 
-Example
-^^^^^^^
+Example:
 
 .. cl:method:: example-generic example-class :test
+
+Multiple Packages
+-----------------
+
+.. cl:package:: sphinxcontrib.cldomain.doc-alt
+
+
+.. rst:directive:: .. cl:function:: symbol-name
+
+   The cl:function directive will resolve the arguments and documentation
+   from the common lisp definition::
+
+       .. cl:package:: sphinxcontrib.cldomain.doc-alt
+
+       .. cl:function:: example-function
+
+Example:
+
+.. cl:package:: sphinxcontrib.cldomain.doc-alt
+
+.. cl:function:: example-function
 
 
 Changelog

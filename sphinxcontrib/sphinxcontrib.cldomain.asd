@@ -18,7 +18,7 @@
 
 (defsystem :sphinxcontrib.cldomain
   :version (:read-file-form "version.lisp-expr")
-  :depends-on (:getopt :cl-json :alexandria :closer-mop
+  :depends-on (:com.dvlsoft.clon :cl-json :alexandria :closer-mop
                #+sbcl :sb-introspect)
   :defsystem-depends-on (:asdf)
   :entry-point "sphinxcontrib.cldomain:main"

@@ -56,9 +56,10 @@ if os.environ.get("GOOGLE_ANALYTICS"):
 else:
     googleanalytics_enabled = False
 
-
-cl_packages = {"sphinxcontrib.cldomain.doc":
-                path.dirname(path.realpath(__file__))}
+cl_systems = [{"name": "sphinxcontrib.cldomain.doc",
+               "path": path.dirname(path.realpath(__file__)),
+               "packages": ["sphinxcontrib.cldomain.doc",
+                            "sphinxcontrib.cldomain.doc-alt"]}]
 
 cl_quicklisp = path.expandvars('$HOME/.quicklisp/')
 

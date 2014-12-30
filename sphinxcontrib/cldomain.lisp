@@ -18,19 +18,8 @@
 
 (defvar *current-package* nil)
 
-(defun argv ()
-  (or
-   #+ASDF (uiop/image:command-line-arguments)
-   #+SBCL sb-ext:*posix-argv*
-   #+LISPWORKS system:*line-arguments-list*
-   #+CMU extensions:*command-line-words*
-   nil))
-
 (defun print-message (message)
   (format t "~A~%" message))
-
-(defun print-usage ()
-  (format t "./cldomain.lisp --package <package name> --path <package path> ~%"))
 
 (defun split-symbol-string (string)
     (remove-if (lambda (e) (equal e ""))
@@ -356,41 +345,54 @@ possible symbol names."
                          (boundp symbol)))
 
 (defun symbols-to-json (&optional (package *current-package*))
-  (let ((*json-output* *standard-output*))
-    (with-object ()
-      (do-external-symbols (symbol package)
-        (as-object-member ((symbol-name symbol))
-          (with-object ()
-            (encode-symbol-status symbol package)
-            (when (symbol-function-type symbol)
-              (encode-function-documentation symbol (symbol-function-type symbol)))
-            (when (class-p symbol)
-              (encode-value-documentation symbol 'type))
-            (when (variable-p symbol)
-              (encode-value-documentation symbol 'variable))))))))
+  (do-external-symbols (symbol package)
+    (as-object-member ((encode-symbol symbol))
+      (with-object ()
+        (encode-symbol-status symbol package)
+        (when (symbol-function-type symbol)
+          (encode-function-documentation symbol (symbol-function-type symbol)))
+        (when (class-p symbol)
+          (encode-value-documentation symbol 'type))
+        (when (variable-p symbol)
+          (encode-value-documentation symbol 'variable))))))
+
+
+(defsynopsis ()
+  (group (:header "Options:")
+         (stropt :long-name "path"
+                 :description "Extra paths to search fro ASDF systems.")
+         (stropt :long-name "system"
+                 :description "The system to load.")
+         (stropt :long-name "package"
+                 :description "The packages to document.")
+         (flag :short-name "h" :long-name "help"
+               :description "Print this help and exit.")))
+
+(defmacro push-opt (value name)
+  `(setq ,(intern (string-upcase name))
+         (cons ,value ,(intern (string-upcase name)))))
 
 (defun main ()
-  (multiple-value-bind (unused-args args invalid-args)
-      (getopt:getopt (argv) '(("package" :required)
-                              ("path" :required)))
-    (cond
-      (invalid-args
-       (print-message "Invalid arguments")
-       (print-usage))
-      ((< 1 (length unused-args))
-       (print-message "Unused args")
-       (print-usage))
-      ((= 2 (length args))
-       (let ((package-path (truename (pathname (cdr (assoc "path" args :test #'equalp)))))
-             (my-package (cdr (assoc "package" args :test #'equalp))))
-         (push package-path asdf:*central-registry*)
-         (let ((*standard-output* *error-output*))
-           #+quicklisp
-           (ql:quickload my-package :prompt nil)
-           #-quicklisp
-           (asdf:oos 'asdf:load-op my-package))
-         (let ((*current-package* (find-package (intern (string-upcase my-package)))))
-           (symbols-to-json))))
-      (t
-       (print-message "missing args")
-       (print-usage)))))
+  "Entry point for our standalone application."
+  (make-context)
+  (when (getopt :short-name "h")
+    (help)
+    (exit))
+  (let (systems packages paths)
+    (do-cmdline-options (option name value source)
+      (case (intern (string-upcase name) (find-package 'sphinxcontrib.cldomain))
+        ('system (push value systems))
+        ('package (push value packages))
+        ('path (push value paths))))
+    (dolist (path paths)
+      (push (truename (pathname path)) asdf:*central-registry*))
+    (let ((my-system (car systems)))
+      (let ((*standard-output* *error-output*))
+        (ql:quickload my-system :prompt nil))
+      (let ((*json-output* *standard-output*))
+        (with-object ()
+          (dolist (package packages)
+           (let ((*current-package*
+                   (find-package (intern (string-upcase package)))))
+             (symbols-to-json)))))))
+  (exit))
