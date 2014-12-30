@@ -33,7 +33,7 @@
 (test find-best-symbol
   (let ((*current-package* *package*))
     (is (equal '(list ".")
-               (multiple-value-bind (symbol rest)
+               (multiple-value-bind (symbol literal rest)
                    (find-best-symbol '("COMMON-LISP:LIST."
                                        "COMMON-LISP:LIST"))
                  (list symbol rest))))))
@@ -49,8 +49,9 @@
 
 (test scope-symbols-in-text
   (let ((*current-package* *package*))
-    (is (equal (scope-symbols-in-text "example text LIST CAR ignore MORE text." '(car))
-               "example text :cl:symbol:`~COMMON-LISP:LIST` CAR ignore MORE text."))))
+    (is (equal (scope-symbols-in-text
+                "example text LIST CAR ignore MORE text." '(car))
+               "example text :cl:symbol:`~COMMON-LISP:LIST` ``CAR`` ignore MORE text."))))
 
 
 (defun run-tests ()
