@@ -1,3 +1,7 @@
+Release 0.12 24-2-2015
+-----------------------
+* fixed argument generation bug.
+
 Release 0.11 30-12-2014
 -----------------------
 * support loading symbol information from multiple packages.
