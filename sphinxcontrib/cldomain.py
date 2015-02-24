@@ -950,11 +950,12 @@ def index_packages(systems, system_paths, packages, quicklisp, lisps):
         if '"' in text:
             return text
 
-        symbol_name = k.split(':')
+        symbol_name = text.split(':')
         if len(symbol_name) > 1:
             spackage, symbol = symbol_name[0], symbol_name[-1]
         else:
-            spackage = ""
+            spackage = ''
+            symbol = ''
 
         if spackage.upper() in packages:
             return symbol.lower()
@@ -964,13 +965,15 @@ def index_packages(systems, system_paths, packages, quicklisp, lisps):
     # extract arguments
     packages = map(operator.methodcaller('upper'), packages)
     for k, v in lisp_data.items():
+        spackage, symbol = k.split(':')
         if not v.get("arguments"):
             pass
         elif v["arguments"] == "NIL":
-            ARGS[package][k] = ""
+            ARGS[spackage][symbol] = ""
         else:
             v_arg = v["arguments"].replace('(', ' ( ').replace(')', ' ) ')
-            ARGS[package][k] = " ".join(map(lower_symbols, v_arg.split(" ")))
+            ARGS[spackage][symbol] = " ".join(map(lower_symbols,
+                                                  v_arg.split(" ")))
 
 
 def load_packages(app):
