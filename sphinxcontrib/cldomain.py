@@ -1050,7 +1050,7 @@ def add_node(class_name, node, visit, depart=None):
 
     try:
         translator = import_class(class_name)
-    except ImportError:
+    except (ImportError, AttributeError):
         return
     setattr(translator, 'visit_' + node.__name__, visit)
     if depart:
