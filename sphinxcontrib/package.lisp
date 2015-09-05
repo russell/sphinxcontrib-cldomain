@@ -21,7 +21,7 @@
 (defpackage :sphinxcontrib.cldomain
   (:use #:closer-common-lisp #:json
         #:closer-mop #:alexandria
-        #:com.dvlsoft.clon)
+        #:net.didierverna.clon)
   (:export #:main
            #:encode-symbol
            #:resolve-symbol
