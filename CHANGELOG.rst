@@ -1,4 +1,8 @@
-Release 0.12 24-2-2015
+Release 0.13 06-09-2015
+-----------------------
+* updated com.dvlsoft.clon to net.didierverna.clon.
+
+Release 0.12 24-02-2015
 -----------------------
 * fixed argument generation bug.
 
