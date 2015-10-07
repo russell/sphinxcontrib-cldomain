@@ -247,10 +247,11 @@ possible symbol names."
                  (write-string rest out))))))))
 
 (defun arglist (symbol)
-  #+sbcl
-  (sb-introspect:function-lambda-list symbol)
-  #+ecl
-  (ext:function-lambda-list name))
+  #+sbcl  (sb-introspect:function-lambda-list symbol)
+  #+clisp (sys::arglist symbol)
+  #+ccl (ccl:arglist symbol)
+  #+ecl   (ext:function-lambda-list symbol)
+  #-(or sbcl clisp ccl ecl) (error "arglist not available for this Lisp."))
 
 (defun encode-symbol-status (symbol package)
   (multiple-value-bind
@@ -337,12 +338,13 @@ possible symbol names."
 
 (defun class-p (symbol)
   "Return T if the symbol is a class."
-  (eql (sb-int:info :type :kind symbol) :instance))
+  #+sbcl (eql (sb-int:info :type :kind symbol) :instance)
+  #-sbcl (find-class symbol nil))
 
 (defun variable-p (symbol)
   "Return T if the symbol is a bound variable."
-  (and (sb-int:info :variable :kind symbol)
-                         (boundp symbol)))
+  (and #+sbcl (sb-int:info :variable :kind symbol)
+              (boundp symbol)))
 
 (defun symbols-to-json (&optional (package *current-package*))
   (do-external-symbols (symbol package)
