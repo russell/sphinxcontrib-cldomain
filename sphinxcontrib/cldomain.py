@@ -756,8 +756,10 @@ class CLDomain(Domain):
         'symbol': CLXRefRole(),
         'function': CLXRefRole(),
         'generic': CLXRefRole(),
-        'method': CLXRefRole(),
+	'macro': CLXRefRole(),
+	'variable': CLXRefRole(),
         'type': CLXRefRole(),
+        'method': CLXRefRole(),
     }
     initial_data = {
         'symbols': {},
