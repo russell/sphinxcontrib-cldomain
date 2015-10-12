@@ -1,4 +1,8 @@
-CLDomain
+CLDomain 
+
+.. image https://travis-ci.org/travis-ci/travis-build.png?branch=master
+   :target: https://travis-ci.org/bscottm/sphinxcontrib-cldomain/
+
 ========
 
 CLDomain is a Common Lisp domain for `Sphinx Documentation Generator`_.
