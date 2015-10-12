@@ -5,4 +5,12 @@
 /doc/html/
 /doc/.venv/
 /dist/
+/.cache/
 /.tox/
+
+# VIM recovery files
+*.swp
+# Emacs backups
+*~
+# And Python compiled stuff
+*.pyc

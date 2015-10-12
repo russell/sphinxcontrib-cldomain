@@ -36,6 +36,7 @@
                (multiple-value-bind (symbol literal rest)
                    (find-best-symbol '("COMMON-LISP:LIST."
                                        "COMMON-LISP:LIST"))
+                   (declare   (ignore literal))
                  (list symbol rest))))))
 
 (test find-best-symbol-one
