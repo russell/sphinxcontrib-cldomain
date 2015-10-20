@@ -81,14 +81,10 @@ LISP to use
 *gcl*, *abcl*, *scl* (refer to ``cl-launch -h`` for the current search list).
 
 From time to time, you may run into issues with ``cl-launch``, CLDomain and one
-of the Lisp interpreters/compilers. Here are a couple of examples:
-
-- **clisp**: Can't find ASDF or Quicklisp on startup because *"-norc"* is passed
-  on the command line. Apparently, *"-norc"* causes no startup file to be read,
-  including *clisp*'s own system startup that tells it ASDF's location.
-  
-- **sbcl**: Some random package decides it needs to modify the standard
-  readtable, causing *sbcl* to complain loudly and exit with an error.  
+of the Lisp interpreters/compilers. For example, you use **sbcl** and some
+random package decides it needs to modify the standard readtable, causing
+*sbcl* to complain loudly and exit with an error. Solution: Yell loudly at the
+package owner or use another Lisp.
 
 You can force ``cl-launch`` to use a different Lisp or change its search order
 though the ``cl_lisps`` configuration option:
@@ -117,6 +113,38 @@ snippet <conf_py_block>`.  Here is how you would use it:
   % env CL_LISPS="ccl ecl" make html
   % env CL_LISPS="ccl ecl" ./script-to-generate-documentation
 
+``cl-launch`` can't find *ASDF*
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you get the following message, followed by an enormous traceback:
+
+.. code-block:: shell
+
+   *** - Could not load ASDF.
+
+Then ensure that you've properly installed *ASDF* so that ``cl-launch`` can find it
+in ``$HOME/common-lisp/asdf`` and that
+``$HOME/common-lisp/asdf/build/asdf.lisp`` exists.  If you don't have ASDF
+installed, here's the quick start recipe:
+
+.. code-block:: shell
+
+   $ cd $HOME
+   $ mkdir common-lisp
+   $ cd common-lisp
+
+   # If you use curl:
+   $ curl -O http://common-lisp.net/project/asdf/asdf.tar.gz
+
+   # Alternatively, wget:
+   $ wget http://common-lisp.net/project/asdf/asdf.tar.gz
+
+   $ tar xzf asdf.tar.gz
+
+   # You should now have an asdf-X.Y.Z subdirectory, e.g., asdf-3.1.6:
+   $ ln -sf asdf-3.1.6 asdf
+   $ cd asdf
+   $ make
 
 Documenting Your Common Lisp Code
 =================================

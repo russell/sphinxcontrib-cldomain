@@ -1136,7 +1136,7 @@ def cl_launch_args(lisps=None,
     args.extend(["--init", quicklisp,
                  "--init", system,
                  "--init", "(asdf:initialize-source-registry)",
-                 "--init", "(require 'quicklisp)",
+		 "--init", "(asdf:require-system :quicklisp)",
                  "--init", quickload,
                  "--init", "(%s)" % main_function])
     return args
