@@ -22,12 +22,16 @@
            #:example-class
            #:example-macro
            #:*example-variable*
+	   #:*example-variable-2*
            #:example-generic))
 
 (in-package :sphinxcontrib.cldomain.doc)
 
 (defvar *example-variable* "value"
   "This is an example variable.")
+
+(defvar *example-variable-2* "another value"
+  "This example has additional text.")
 
 (defun example-function (arg1 arg2 &optional (arg3 #'sort) &key (kw *example-variable*))
   "The CL Domain will try and convert any uppercase symbols into
@@ -53,12 +57,8 @@ for example :KEYWORD."
 
 
 (defmethod example-generic ((arg1 example-class) (arg2 (eql :test)) &optional arg3)
-  "The CL Domain will try and convert any uppercase symbols into
-reference for example EXAMPLE-FUNCTION or a hyperspec link LIST.  Any
-unmatched symbols are converted to literals as is ARG1, ARG2 and ARG3.
-Explicit package references will also help resolve symbol sources
-COMMON-LISP:CDR.  Keywords are also detected for example :TEST."
-  (list arg1 arg2 arg3))
+    "This is the first specialized version of example-generic."
+    (list arg1 arg2 arg3))
 
 (defmethod example-generic ((arg1 example-class) (arg2 (eql :test1)) &optional arg3)
   "The second test method."

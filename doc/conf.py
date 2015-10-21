@@ -48,7 +48,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'cldomain'
-copyright = u'2011-2014, Russell Sim'
+copyright = u'2011-2015, Russell Sim'
 
 googleanalytics_id = "UA-28069739-3"
 if os.environ.get("GOOGLE_ANALYTICS"):
@@ -61,7 +61,15 @@ cl_systems = [{"name": "sphinxcontrib.cldomain.doc",
                "packages": ["sphinxcontrib.cldomain.doc",
                             "sphinxcontrib.cldomain.doc-alt"]}]
 
-cl_quicklisp = path.expandvars('$HOME/.quicklisp/')
+# Russell's Quicklisp is in $HOME/.quicklisp, so look there first:
+if path.exists(path.expandvars('$HOME/.quicklisp/')):
+    cl_quicklisp = path.expandvars('$HOME/.quicklisp/')
+else:
+    # Everyone else who isn't Russell Sims... :-)
+    cl_quicklisp = path.expandvars('$HOME/quicklisp/')
+
+# Grab alternative lisps from the CL_LISPS environment variable:
+cl_lisps = os.environ.get("CL_LISPS", None)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

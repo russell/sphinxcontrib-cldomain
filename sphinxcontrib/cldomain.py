@@ -34,6 +34,7 @@ import subprocess
 from StringIO import StringIO
 from docutils import nodes
 from docutils.statemachine import string2lines, StringList
+import pprint
 
 from sphinx import addnodes
 from sphinx.util.console import red
@@ -77,7 +78,6 @@ def node_to_dict(node):
 def debug_print(node):
     """Useful in pdb sessions"""
     node = node_to_dict(node)
-    import pprint
     pprint.pprint(node)
 
 
@@ -415,6 +415,7 @@ class CLsExp(ObjectDescription):
     option_spec = {
         'nodoc': bool_option,
         'noindex': bool_option,
+        'noinitargs': bool_option,
     }
 
     def handle_signature(self, sig, signode):
@@ -443,9 +444,14 @@ class CLsExp(ObjectDescription):
 
         # Add Slots
         slots = SLOTS[package].get(sig.upper())
-        if slots:
+        if slots and "noinitargs" not in self.options:
             # TODO add slot details if describing a class
-            pass
+            for slot in slots:
+                initarg = slot.get(u'initarg')
+                if initarg and initarg.lower() != 'nil':
+                    slotarg = addnodes.literal_emphasis(slot.get(u'name'), slot.get(u'name'))
+                    slotsig = initarg.lower() + u' '
+                    signode.append(addnodes.desc_optional(slotsig, slotsig, slotarg))
 
         symbol_name = sig
         if not symbol_name:
@@ -750,6 +756,9 @@ class CLDomain(Domain):
         'symbol': CLXRefRole(),
         'function': CLXRefRole(),
         'generic': CLXRefRole(),
+	'macro': CLXRefRole(),
+	'variable': CLXRefRole(),
+        'type': CLXRefRole(),
         'method': CLXRefRole(),
     }
     initial_data = {
@@ -841,22 +850,6 @@ class CLDomain(Domain):
                 yield (refname, refname, type, docname, refname, 1)
 
 
-def code_regions(text):
-    io = StringIO(text)
-    output = StringIO()
-    indent = False
-    for line in io:
-        if indent is False and (line.startswith(" ") or line.startswith("\t")):
-            # TODO detect if its a REPL.
-            output.write("\n.. code-block:: common-lisp\n\n")
-            indent = True
-        if indent is True and not (line.startswith(" ") or line.startswith("\t")):
-            indent = False
-        output.write(line)
-    output.seek(0)
-    return output.read()
-
-
 def save_cldomain_output(output):
     """Save a copy of the clgit output for debugging."""
     fd, path = tempfile.mkstemp('.log', 'cldomain-err-')
@@ -891,6 +884,7 @@ def index_packages(systems, system_paths, packages, quicklisp, lisps):
 
     try:
         lisp_data = json.loads(output)
+        #pprint.pprint(lisp_data)
     except:
         dump_path = save_cldomain_output(raw_output)
         error = sys.stderr
@@ -919,7 +913,7 @@ def index_packages(systems, system_paths, packages, quicklisp, lisps):
                 cl_type = type
 
             # enable symbol references for symbols
-            DOC_STRINGS[package][name][cl_type] = code_regions(v[type])
+            DOC_STRINGS[package][name][cl_type] = v[type]
 
         # extract methods
         if "methods" in v:
@@ -936,7 +930,7 @@ def index_packages(systems, system_paths, packages, quicklisp, lisps):
             def parse_doc(doc):
                 if doc is None:
                     doc = ""
-                return code_regions(doc)
+                return doc
 
             methods = dict([(parse_method(method), parse_doc(doc))
                             for method, doc in v["methods"].items()])
@@ -1087,7 +1081,7 @@ def setup(app):
                  text=(v_text_clparameter, d_clparameter))
     app.add_config_value('cl_packages', {}, 'env')
     app.add_config_value('cl_systems', {}, 'env')
-    app.add_config_value('cl_quicklisp', "", 'env')
+    app.add_config_value('cl_quicklisp', path.expandvars("$HOME/quicklisp"), 'env')
     app.add_config_value('cl_show_defaults', False, True)
     app.add_config_value('cl_lisps', None, 'env')
     app.connect('builder-inited', load_packages)
@@ -1142,7 +1136,7 @@ def cl_launch_args(lisps=None,
     args.extend(["--init", quicklisp,
                  "--init", system,
                  "--init", "(asdf:initialize-source-registry)",
-                 "--init", "(require 'quicklisp)",
+		 "--init", "(asdf:require-system :quicklisp)",
                  "--init", quickload,
                  "--init", "(%s)" % main_function])
     return args

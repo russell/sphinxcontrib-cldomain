@@ -220,7 +220,10 @@ possible symbol names."
                  (when literal
                    (write-string (encode-literal literal) out))
                  (write-string rest out))
-               (unread-char char stream)
+               ;; Don't push newlines back onto the input stream -- this can cause
+               ;; some CL's to spew.
+               (unless (eql char #\Newline)
+                 (unread-char char stream))
                (setf possible-symbol nil)
                (setf possible-symbols nil))
               ;; if the current char is a white space, then check if the
@@ -247,10 +250,11 @@ possible symbol names."
                  (write-string rest out))))))))
 
 (defun arglist (symbol)
-  #+sbcl
-  (sb-introspect:function-lambda-list symbol)
-  #+ecl
-  (ext:function-lambda-list name))
+  #+sbcl  (sb-introspect:function-lambda-list symbol)
+  #+clisp (sys::arglist symbol)
+  #+ccl (ccl:arglist symbol)
+  #+ecl   (ext:function-lambda-list symbol)
+  #-(or sbcl clisp ccl ecl) (error "arglist not available for this Lisp."))
 
 (defun encode-symbol-status (symbol package)
   (multiple-value-bind
@@ -287,6 +291,11 @@ possible symbol names."
 (defmethod encode-function-documentation (symbol (type (eql 'function)))
   (encode-function-documentation*
    symbol type (or (documentation symbol type) "")))
+
+;; CLISP-ism (might be other CL's as well.)
+(defmethod encode-function-documentation (symbol (type (eql 'compiled-function)))
+  (encode-function-documentation*
+   symbol type (or (documentation symbol 'function) "")))
 
 (defmethod encode-function-documentation (symbol (type (eql 'macro)))
   (encode-function-documentation*
@@ -337,12 +346,13 @@ possible symbol names."
 
 (defun class-p (symbol)
   "Return T if the symbol is a class."
-  (eql (sb-int:info :type :kind symbol) :instance))
+  #+sbcl (eql (sb-int:info :type :kind symbol) :instance)
+  #-sbcl (find-class symbol nil))
 
 (defun variable-p (symbol)
   "Return T if the symbol is a bound variable."
-  (and (sb-int:info :variable :kind symbol)
-                         (boundp symbol)))
+  (and #+sbcl (sb-int:info :variable :kind symbol)
+              (boundp symbol)))
 
 (defun symbols-to-json (&optional (package *current-package*))
   (do-external-symbols (symbol package)
@@ -350,6 +360,7 @@ possible symbol names."
       (with-object ()
         (encode-symbol-status symbol package)
         (when (symbol-function-type symbol)
+          ;; (format *error-output* "symbol ~S type ~S~%"symbol (symbol-function-type symbol))
           (encode-function-documentation symbol (symbol-function-type symbol)))
         (when (class-p symbol)
           (encode-value-documentation symbol 'type))
@@ -385,7 +396,15 @@ possible symbol names."
         ('package (push value packages))
         ('path (push value paths))))
     (dolist (path paths)
-      (push (truename (pathname path)) asdf:*central-registry*))
+      (let ((path-pathname (pathname path)))
+        ;; CLISP's truename spews if path is a directory, whereas ext:probe-filename
+        ;; will generate a directory-truename for directories without spewing...???
+        #+clisp
+          (let ((dir-truename (ext:probe-pathname path)))
+            (when dir-truename
+              (push  dir-truename asdf:*central-registry*)))
+        #-(or clisp)
+          (push (truename path-pathname) asdf:*central-registry*)))
     (let ((my-system (car systems)))
       (let ((*standard-output* *error-output*))
         (ql:quickload my-system :prompt nil))

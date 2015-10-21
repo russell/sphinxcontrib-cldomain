@@ -3,6 +3,8 @@ About
 
 CLDomain is an extension for the Sphinx documentation generation tool
 that allow sphinx to generate documentation for Common Lisp libraries.
+Documentation is extracted from the various entity's documentation
+strings, loaded from ASDF systems and associated internal packages.
 
 Hyperspec is a cross referencing extension that supports linking to
 the hyperspec.
@@ -37,93 +39,202 @@ Releases are hosted on `github`_ or `pypi`_.  The `source`_ is also available.
 Configuration
 -------------
 
-Edit you `conf.py` file and add CLDomain and Hyperspec to your enabled
-extensions.
+Configuring CLDomain involves two actions: (a) adding the extensions to the
+extension list, (b) telling CLDomain the systems and packages to load.
 
+.. _conf_py_block:
 .. code-block:: python
 
-   extensions.extend(['sphinxcontrib.cldomain',
-                      'sphinxcontrib.hyperspec'])
+  from os.path import join, dirname, realpath, expandvars
 
+  # Extensions: add 'sphinxcontrib.cldomain' and 'sphinxcontrib.hyperspec',
+  # just like this example:
+  extensions = [
+      'sphinx.ext.intersphinx',
+      'sphinxcontrib.cldomain',
+      'sphinxcontrib.hyperspec'
+  ]
 
-System symbols to load
-^^^^^^^^^^^^^^^^^^^^^^
-
-The path to each package needs to the lisp_packages configuration
-option.  In this example the conf.py is in a doc directory and the ASD
-file is in the parent directory.
-
-The valid keys for each of the systems in the systems dict:
-
-**name**
-   The name of the system to load.
-
-**path**
-   The path to the system.
-
-**packages**
-   A list of the packages to extract symbol information from.
-
-.. code-block:: python
-
-   from os.path import join, dirname, realpath
-   cl_systems = [{"name": "cl-git",
-                  "path": join(dirname(realpath(__file__)), "../")),
-                  "packages": ["cl-git"]}]
-
-Quicklisp Location
-^^^^^^^^^^^^^^^^^^
-
-To set the location of quicklisp in conf.py add a quicklisp variable
-with the value set to it's location.
-
-.. code-block:: python
-
-   from os.path import expandvars
-   cl_quicklisp = expandvars('$HOME/quicklisp/')
+  # --- CL domain customizations:
+  #
+  # cl_systems: The systems and packages from which to extract documentation:
+  #
+  # Note: This conf.py sits in a subdirectory below ("../"), relative to where
+  # the "my-system.asd" system description file lives:
+  cl_systems = [{"name": "my-system",
+                 "path": join(dirname(realpath(__file__)), "../"),
+                 "packages": ["my-package-1", "my-package-2"]}]
+  # cl_quicklisp: The default is $HOME/quicklisp. Shown here for completeness,
+  # and you can comment it out:
+  cl_quicklisp = expandvars('$HOME/quicklisp')
+  # cl_lisps: You could hardcode this to a string, or use an environment variable
+  # as shown:
+  cl_lisps = environ.get('CL_LISPS', None)
+  # Ensure that the default highlighting language is CL:
+  highlight_language = 'common-lisp'
 
 LISP to use
 ^^^^^^^^^^^
 
-To configure a specific lisp executable search order use.
+``cl-launch`` searches for a Lisp interpreter/compiler in a parciular order:
+*sbcl*, *clisp*, *ccl*, *ecl*, *cmucl*, *gclcvs*, *lispworks*, *allegro*,
+*gcl*, *abcl*, *scl* (refer to ``cl-launch -h`` for the current search list).
+
+From time to time, you may run into issues with ``cl-launch``, CLDomain and one
+of the Lisp interpreters/compilers. For example, you use **sbcl** and some
+random package decides it needs to modify the standard readtable, causing
+*sbcl* to complain loudly and exit with an error. Solution: Yell loudly at the
+package owner or use another Lisp.
+
+You can force ``cl-launch`` to use a different Lisp or change its search order
+though the ``cl_lisps`` configuration option:
 
 .. code-block:: python
 
    cl_lisps = "sbcl ecl"
 
+Instead of hard coding the string, an environment variable is a somewhat
+cleaner, more flexible approach, as is shown in the :ref:`configuration code
+snippet <conf_py_block>`.  Here is how you would use it:
 
-Documentation
-=============
+.. code-block:: sh
 
-All directives support the ``nodoc`` option that will prevent them
-from pulling the documentation string from Common Lisp.  Argument
-lists and specializers will still be printed::
+  ## If you use 'make html' (bash and zsh):
 
-       .. cl:macro:: example-macro
-          :nodoc:
+  $ CL_LISPS="ccl ecl" make html
 
-          No documentation
+  ## If you use a script (bash and zsh):
+
+  $ CL_LISPS="ccl ecl" ./script-to-generate-documentation
+
+  ## Build script for C-shell derivatives (tcsh) and non-bash/zsh
+  ## and works for bash/zsh as well:
+
+  % env CL_LISPS="ccl ecl" make html
+  % env CL_LISPS="ccl ecl" ./script-to-generate-documentation
+
+``cl-launch`` can't find *ASDF*
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you get the following message, followed by an enormous traceback:
+
+.. code-block:: shell
+
+   *** - Could not load ASDF.
+
+Then ensure that you've properly installed *ASDF* so that ``cl-launch`` can find it
+in ``$HOME/common-lisp/asdf`` and that
+``$HOME/common-lisp/asdf/build/asdf.lisp`` exists.  If you don't have ASDF
+installed, here's the quick start recipe:
+
+.. code-block:: shell
+
+   $ cd $HOME
+   $ mkdir common-lisp
+   $ cd common-lisp
+
+   # If you use curl:
+   $ curl -O http://common-lisp.net/project/asdf/asdf.tar.gz
+
+   # Alternatively, wget:
+   $ wget http://common-lisp.net/project/asdf/asdf.tar.gz
+
+   $ tar xzf asdf.tar.gz
+
+   # You should now have an asdf-X.Y.Z subdirectory, e.g., asdf-3.1.6:
+   $ ln -sf asdf-3.1.6 asdf
+   $ cd asdf
+   $ make
+
+Documenting Your Common Lisp Code
+=================================
+
+Common Lisp docstrings
+----------------------
+
+CLDomain collects the documentation strings for the package-exported symbols in
+each system enumerated in the ``cl_systems`` configuration variable, which
+CLDomain appends to the symbol's signature. You can include additional
+documentation after the directive and it will also get included in the
+Spinx-generated output. The output template looks like:
+
+    *type*: *signature*
+
+    *symbol-docstring*
+
+    Any additional text you decide to add here.
+
+For an example, follow :ref:`this <variable2>` link or read on.
+
+
+Don't include the docstring: :nodoc:
+------------------------------------
+
+CLDomain inserts the documentation strings associated with symbols in
+your systems and packages loaded by the ``cl_systems`` configuration
+directive. Sometimes, this isn't the right thing to do, when, instead,
+you'd prefer to provide separate (non-docstring) documentation. That's
+what the ``:nodoc`` option does.
+
+Note: Argument lists and specializers will still be printed, as in this
+example::
+
+
+      .. cl:macro:: example-macro
+        :nodoc:
+
+        No documentation from the ``example-macro`` documentation string.
+
+Code:
+
+.. code-block:: common-lisp
+
+   (defmacro example-macro ((arg1 arg2) &body arg3)
+     "The CL Domain will try and convert any uppercase symbols into
+   reference for example EXAMPLE-FUNCTION or a hyperspec link LIST.  Any
+   unmatched symbols are converted to literals as is ARG1, ARG2 and ARG3.
+   Explicit package references will also help resolve symbol sources
+   COMMON-LISP:CDR.  Keywords are also detected for example :TEST."
+     arg3)
+
+
+Output:
 
 .. cl:macro:: example-macro
    :nodoc:
 
-   No documentation
+   No documentation from the ``example-macro`` documentation string.
 
-Package
--------
 
-.. rst:directive:: .. cl:package:: symbol-name
+Packages
+--------
 
-   The cl:package directive specifies the package that all the subsequent
-   directives will look up when trying to resolve a symbol.::
+CLDomain, like Common Lisp, needs to know the current package when resolving symbols. The
+``:cl:package:`` directive is the CLDomain equivalent of ``(in-package ...)``. You can switch
+between packages at any time in the documentation file using this directive.
+
+.. rst:directive:: .. cl:package:: package
+
+   Use ``package`` as the package name when resolving symbols to documentation::
 
       .. cl:package:: sphinxcontrib.cldomain.doc
+
+   For multi-package documentation in the same Sphinx documentation file::
+
+      .. cl:package:: sphinxcontrib.cldomain.doc
+
+      documentation... documentation... documentation...
+
+      .. cl:package:: org.coolness.my.code
+
+      foo... bar... baz... lemon odor quux!!!
+
 
 .. cl:package:: sphinxcontrib.cldomain.doc
 
 
-Variable
---------
+Variables
+---------
 
 .. rst:directive::  .. cl:variable:: symbol-name
 
@@ -132,122 +243,203 @@ Variable
 
        .. cl:variable:: *example-variable*
 
-Example:
+Code:
+
+.. code-block:: common-lisp
+
+    (defvar *example-variable* "value"
+      "This is an example variable.")
+
+Output:
 
 .. cl:variable:: *example-variable*
 
-   extra description can be appended to further explain the
-   functionality.  This doesn't need to appear in the lisp
-   code. Instead it can be added to the rst files and it will be
-   appended to the documentation.
+.. _variable2:
 
-Function
---------
+You can include additional text, which appears after the docstring (unless you
+use the ``:nodoc:`` option)::
+
+      .. cl:variable:: *example-variable-2*
+
+         This variable requires more explanitory text after its docstring. Because,
+         more text means more clarity and further explains the intent of the original
+         software developer.
+
+Code:
+
+.. code-block:: common-lisp
+
+  (defvar *example-variable-2* "another value"
+    "This example has additional text.")
+
+Output:
+
+.. cl:variable:: *example-variable-2*
+
+   This variable requires more explanitory text after its docstring. Because,
+   more text means more clarity and further explains the intent of the original
+   software developer.
+
+Functions
+---------
 
 .. rst:directive:: .. cl:function:: symbol-name
 
-   The cl:function directive will resolve the arguments and documentation
-   from the common lisp definition::
+   Outputs the function's signature (arguments)::
 
        .. cl:function:: example-function
 
-Example:
+.. _hyperspec_example:
+
+Code:
+
+.. code-block:: common-lisp
+
+  (defun example-function (arg1 arg2 &optional (arg3 #'sort) &key (kw *example-variable*))
+    "The CL Domain will try and convert any uppercase symbols into
+  reference for example EXAMPLE-FUNCTION, EXAMPLE-GENERIC or a hyperspec
+  link LIST.  Any unmatched symbols are converted to literals as is
+  ARG1, ARG2 and ARG3.  Explicit package references will also help
+  resolve symbol sources COMMON-LISP:CAR.  Keywords are also detected
+  for example :KEYWORD."
+    (list arg1 arg2 arg3))
+
+Output:
 
 .. cl:function:: example-function
 
 
-Macro
---------
+Macros
+------
 
 .. rst:directive:: .. cl:macro:: symbol-name
 
-   The cl:macro directive will resolve the arguments and documentation
-   from the common lisp definition::
+   Emit the macro's signature and documentation::
 
        .. cl:macro:: example-macro
 
-Example:
+
+Code:
+
+.. code-block:: common-lisp
+
+   (defmacro example-macro ((arg1 arg2) &body arg3)
+     "The CL Domain will try and convert any uppercase symbols into
+   reference for example EXAMPLE-FUNCTION or a hyperspec link LIST.  Any
+   unmatched symbols are converted to literals as is ARG1, ARG2 and ARG3.
+   Explicit package references will also help resolve symbol sources
+   COMMON-LISP:CDR.  Keywords are also detected for example :TEST."
+     arg3)
+
+Output:
 
 .. cl:macro:: example-macro
 
 
-Class
------
+Types (aka CLOS Classes)
+------------------------
 
-.. rst:directive:: .. cl:class:: symbol-name
+.. rst:directive:: .. cl:type:: symbol-name
 
-   The cl:function directive will resolve the arguments and documentation
-   from the common lisp definition::
+   The ``:cl:type:`` directive emits Common Lisp Object System (CLOS) class documentation::
 
-       .. cl:class:: example-class
+       .. cl:type:: example-class
 
-Example:
+   The ``:noinitargs:`` option can be specified to exclude the class' list of ``:initarg``
+   initialzers that are ordinarily included in the class' signature::
+
+       .. cl:type:: example-class
+          :noinitargs:
+
+
+   Note: There is no mechanism or directive to document individual slots at the moment.
+
+Code:
+
+.. code-block:: common-lisp
+
+  (defclass example-class ()
+    ((slot1 :initarg :slot1 :accessor slot1
+            :initform "default"
+            :documentation "the first slot.")
+     (slot2 :initarg :slot2 :accessor slot2
+            :documentation "the second slot."))
+    (:documentation "An example class."))
+
+Output:
 
 .. cl:type:: example-class
 
 
-Generics
---------
+Generics and Methods
+--------------------
 
 .. rst:directive:: .. cl:generic:: symbol-name
 
-   The cl:generic directive will resolve the arguments and
-   documentation from the common lisp definition.  It will also
-   accumulate a list of the specialises and link to the types that
-   this generic specialises on.::
+   The ``:cl:generic:`` directive emits the documentation for a generic function and
+   its specializers::
 
        .. cl:generic:: example-generic
 
-Example:
+Code:
+
+.. code-block:: common-lisp
+
+  (defgeneric example-generic (arg1 arg2 &optional arg3)
+    (:documentation "A test generic function."))
+
+Output:
 
 .. cl:generic:: example-generic
 
 
-Methods
--------
-
 .. rst:directive:: .. cl:method:: symbol-name (specializer)
 
-   The cl:method directive will resolve the arguments and
-   documentation from the common lisp dbenigntion::
+   The ``:cl:method`` emits the documentation for generic method specializers::
 
        .. cl:method:: example-generic example-class :test
 
-   For the time being all specializing arguments that aren't in the
-   current package need to be qualified with a package.  E.g
-   ``common-lisp:t``
+   For the time being, all specializing arguments that aren't in the current
+   package must be qualified with a package, e.g., ``common-lisp:t``
 
-   If you would like to prevent the method from resolving to the
-   generics forms documentation string this can be suppressed using
-   the ``noinherit`` option like::
+Code:
+
+.. code-block:: common-lisp
+
+  (defmethod example-generic ((arg1 example-class) (arg2 (eql :test)) &optional arg3)
+    "This is the first specialized version of example-generic."
+    (list arg1 arg2 arg3))
+
+Output:
+
+.. cl:method:: example-generic example-class :test
+
+
+Note: The output for a specializing method will include its parent generic
+function's documentation string, i.e., specializing methods inherit their
+parent generic's docstring. The ``:noinherit:`` option suppresses this
+behavior::
 
        .. cl:method:: example-generic example-class :test
           :noinherit:
 
-Example:
-
 .. cl:method:: example-generic example-class :test
-
-Multiple Packages
------------------
-
-.. cl:package:: sphinxcontrib.cldomain.doc-alt
+   :noinherit:
 
 
-.. rst:directive:: .. cl:function:: symbol-name
+Hyperspec References
+--------------------
 
-   The cl:function directive will resolve the arguments and documentation
-   from the common lisp definition::
+Generating a reference is very easy (and you've probably noticed already if you've read the Common Lisp
+code snippets used to generate the examples). To generate a Hyperspec reference:
 
-       .. cl:package:: sphinxcontrib.cldomain.doc-alt
+1. THE COMMON LISP SYMBOL NAME IS IN ALL CAPS, LIKE LIST OR FORMAT. (No, the
+   documentation isn't shouting at you. It's the normal Lisp convention for
+   symbols.
 
-       .. cl:function:: example-function
+2. Prefix the symbol name with ``COMMON-LISP:``, e.g., ``COMMON-LISP:CAR``
 
-Example:
-
-.. cl:package:: sphinxcontrib.cldomain.doc-alt
-
-.. cl:function:: example-function
+The :ref:`cl:function: example<hyperspec_example>` has an example of Hyperspec-ing in its example code.
 
 
 Changelog
