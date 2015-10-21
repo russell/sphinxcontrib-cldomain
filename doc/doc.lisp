@@ -22,7 +22,7 @@
            #:example-class
            #:example-macro
            #:*example-variable*
-	   #:*example-variable-2*
+           #:*example-variable-2*
            #:example-generic))
 
 (in-package :sphinxcontrib.cldomain.doc)
@@ -57,8 +57,8 @@ for example :KEYWORD."
 
 
 (defmethod example-generic ((arg1 example-class) (arg2 (eql :test)) &optional arg3)
-    "This is the first specialized version of example-generic."
-    (list arg1 arg2 arg3))
+  "This is the first specialized version of example-generic."
+  (list arg1 arg2 arg3))
 
 (defmethod example-generic ((arg1 example-class) (arg2 (eql :test1)) &optional arg3)
   "The second test method."

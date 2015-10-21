@@ -59,6 +59,10 @@ extension list, (b) telling CLDomain the systems and packages to load.
   #
   # cl_systems: The systems and packages from which to extract documentation:
   #
+  # name - The name of the system to load.
+  # path - The path to the system.
+  # packages - A list of the packages to extract symbol information from.
+  #
   # Note: This conf.py sits in a subdirectory below ("../"), relative to where
   # the "my-system.asd" system description file lives:
   cl_systems = [{"name": "my-system",
@@ -162,7 +166,7 @@ Spinx-generated output. The output template looks like:
 
     *symbol-docstring*
 
-    Any additional text you decide to add here.
+    Any additional text described in the RST files.
 
 For an example, follow :ref:`this <variable2>` link or read on.
 
