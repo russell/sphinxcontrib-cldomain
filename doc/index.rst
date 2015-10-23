@@ -77,6 +77,10 @@ extension list, (b) telling CLDomain the systems and packages to load.
   # Ensure that the default highlighting language is CL:
   highlight_language = 'common-lisp'
 
+  # For developer debugging only (and the curious, although, it did kill the cat!)
+  # Currently ``True`` or ``False`` to output the JSON collected from cl-launch.
+  cl_debug = False
+
 LISP to use
 ^^^^^^^^^^^
 
@@ -174,11 +178,10 @@ For an example, follow :ref:`this <variable2>` link or read on.
 Don't include the docstring: :nodoc:
 ------------------------------------
 
-CLDomain inserts the documentation strings associated with symbols in
-your systems and packages loaded by the ``cl_systems`` configuration
-directive. Sometimes, this isn't the right thing to do, when, instead,
-you'd prefer to provide separate (non-docstring) documentation. That's
-what the ``:nodoc`` option does.
+
+Sometimes, you'd prefer to provide separate (non-docstring) documentation
+instead of having CLDomain insert the Lisp docstrings.  That's what the
+``:nodoc`` option does.
 
 Note: Argument lists and specializers will still be printed, as in this
 example::
@@ -430,6 +433,49 @@ behavior::
 .. cl:method:: example-generic example-class :test
    :noinherit:
 
+
+Cross-references
+----------------
+
+You can cross reference Lisp entities using the following CLDomain Sphinx
+roles, which results in a hyperlinked reference to the matching identifier, if
+found:
+
+.. rst:role:: cl:function
+
+   References a function, as in ``:cl:function:`example-function``` (link:
+   :cl:function:`example-function`).
+
+.. rst:role:: cl:generic
+
+   References a generic function, as in ``:cl:generic:`example-generic```
+   (link: :cl:generic:`example-generic`).
+
+.. rst:role:: cl:macro
+
+   References a macro, as in ``:cl:macro:`example-macro``` (link:
+   :cl:macro:`example-macro`).
+
+.. rst:role:: cl:variable
+
+   References a variable, as in ``:cl:variable:`*example-variable*``` (link:
+   :cl:variable:`*example-variable*`).
+
+.. rst:role:: cl:type
+
+   References a type/CLOS class, as in ``:cl:type:`example-class``` (link:
+   :cl:type:`example-class`).
+
+.. FIXME rst:role:: cl:method
+.. FIXME
+.. FIXME   References a generic-specializing method, as in
+.. FIXME``:cl:method:`example-generic``` (link: :cl:method:`example-generic
+.. FIXME example-class :test`).
+
+
+.. rst:role:: cl:symbol
+
+   References a symbol, such as ``:cl:symbol:example-function`` (link: :cl:symbol:`example-function`).
 
 Hyperspec References
 --------------------
