@@ -858,7 +858,7 @@ def save_cldomain_output(output):
     return path
 
 
-def index_packages(systems, system_paths, packages, quicklisp, lisps):
+def index_packages(systems, system_paths, packages, quicklisp, lisps, cl_debug):
     """Call an external lisp program that will return a dictionary of doc
     strings for all public symbols.
 
@@ -884,7 +884,8 @@ def index_packages(systems, system_paths, packages, quicklisp, lisps):
 
     try:
         lisp_data = json.loads(output)
-        #pprint.pprint(lisp_data)
+        if cl_debug:
+            pprint.pprint(lisp_data)
     except:
         dump_path = save_cldomain_output(raw_output)
         error = sys.stderr
@@ -997,11 +998,14 @@ def load_packages(app):
     if not packages:
         app.warn("No CL packages specified.")
         return
+
+    app.info("Collecting Lisp docstrings from %s..." % ', '.join(str(x) for x in systems))
     index_packages(systems,
                    system_paths,
                    packages,
                    app.config.cl_quicklisp,
-                   app.config.cl_lisps)
+                   app.config.cl_lisps,
+                   app.config.cl_debug)
 
 
 def uppercase_symbols(app, docname, source):
@@ -1084,6 +1088,7 @@ def setup(app):
     app.add_config_value('cl_quicklisp', path.expandvars("$HOME/quicklisp"), 'env')
     app.add_config_value('cl_show_defaults', False, True)
     app.add_config_value('cl_lisps', None, 'env')
+    app.add_config_value('cl_debug', False, 'env')
     app.connect('builder-inited', load_packages)
     app.connect('build-finished', list_unused_symbols)
     #app.connect('source-read', uppercase_symbols)
