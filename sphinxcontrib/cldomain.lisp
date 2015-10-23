@@ -292,10 +292,11 @@ possible symbol names."
   (encode-function-documentation*
    symbol type (or (documentation symbol type) "")))
 
-;; CLISP-ism (might be other CL's as well.)
+;; CLISP-ism (might be other CL's as well): compiled functions are still
+;; functions:
 (defmethod encode-function-documentation (symbol (type (eql 'compiled-function)))
   (encode-function-documentation*
-   symbol type (or (documentation symbol 'function) "")))
+   symbol 'function (or (documentation symbol 'function) "")))
 
 (defmethod encode-function-documentation (symbol (type (eql 'macro)))
   (encode-function-documentation*
@@ -314,7 +315,7 @@ possible symbol names."
   (encode-variable-documentation* symbol type))
 
 (defmethod encode-value-documentation (symbol (type (eql 'setf)))
-  (encode-function-documentation* symbol type))
+  (encode-function-documentation* symbol type (or (documentation symbol 'setf) "")))
 
 (defmethod encode-value-documentation (symbol (type (eql 'type)))
   (encode-variable-documentation* symbol type)
