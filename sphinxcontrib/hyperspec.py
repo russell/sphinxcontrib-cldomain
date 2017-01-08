@@ -14,8 +14,10 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-from urlparse import urljoin
+try:
+    from urlparse import urljoin
+except ImportError:
+    from urllib.parse import urljoin
 from docutils import nodes
 
 ROOT = "http://www.lispworks.com/reference/HyperSpec/"

@@ -31,7 +31,10 @@ import json
 from collections import defaultdict
 import operator
 import subprocess
-from StringIO import StringIO
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 from docutils import nodes
 from docutils.statemachine import string2lines, StringList
 import pprint
