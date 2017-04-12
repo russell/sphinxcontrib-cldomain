@@ -1087,7 +1087,7 @@ def setup(app):
                  texinfo=(v_texinfo_clparameter, d_clparameter),
                  text=(v_text_clparameter, d_clparameter))
     app.add_config_value('cl_packages', {}, 'env')
-    app.add_config_value('cl_systems', {}, 'env')
+    app.add_config_value('cl_systems', [], 'env')
     app.add_config_value('cl_quicklisp', path.expandvars("$HOME/quicklisp"), 'env')
     app.add_config_value('cl_show_defaults', False, True)
     app.add_config_value('cl_lisps', None, 'env')
