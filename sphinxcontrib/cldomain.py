@@ -512,7 +512,9 @@ class CLsExp(ObjectDescription):
 
         indextext = self.get_index_text(name, type)
         if indextext:
-            self.indexnode['entries'].append(('single', indextext, indexname, ''))
+            self.indexnode['entries'].append(
+                ('single', indextext, indexname, '', None)
+            )
 
     def before_content(self):
         if "nodoc" in self.options:
@@ -648,7 +650,9 @@ class CLMethod(CLGeneric):
 
         indextext = self.get_index_text(name, type)
         if indextext:
-            self.indexnode['entries'].append(('single', indextext, indexname, ''))
+            self.indexnode['entries'].append(
+                ('single', indextext, indexname, '', None)
+            )
 
     def cl_doc_string(self):
         """Resolve a symbols doc string. Will raise KeyError if the symbol
