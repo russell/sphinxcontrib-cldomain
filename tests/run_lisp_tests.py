@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import os
 from os import path
 import subprocess
@@ -18,6 +20,9 @@ elif path.exists(path.expanduser("~/quicklisp")):
 else:
     raise Exception("Can't find Quicklisp.")
 
-env.update({"CLDOMAIN": path.abspath(path.dirname(__file__)) + "/"})
+env.update({"CLDOMAIN": path.abspath(path.dirname(__file__) + "/../sphinxcontrib/")})
+print("Setting Env CLDOMAIN: %s" % env['CLDOMAIN'])
 
-subprocess.check_call(cl_launch_exe + cl_launch_command, env=env)
+cmd = cl_launch_exe + cl_launch_command
+print("Running: %s" % cmd)
+subprocess.check_call(cmd, env=env)
