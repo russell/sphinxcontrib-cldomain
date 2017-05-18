@@ -5,5 +5,5 @@ argparse
 distribute
 docutils
 sphinx-bootstrap-theme
-sphinxcontrib-googleanalytics
+robpol86-sphinxcontrib-googleanalytics
 wsgiref
