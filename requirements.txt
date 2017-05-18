@@ -6,4 +6,3 @@ distribute
 docutils
 sphinx-bootstrap-theme
 robpol86-sphinxcontrib-googleanalytics
-wsgiref
