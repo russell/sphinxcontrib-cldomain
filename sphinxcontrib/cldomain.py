@@ -763,8 +763,8 @@ class CLDomain(Domain):
         'symbol': CLXRefRole(),
         'function': CLXRefRole(),
         'generic': CLXRefRole(),
-	'macro': CLXRefRole(),
-	'variable': CLXRefRole(),
+        'macro': CLXRefRole(),
+        'variable': CLXRefRole(),
         'type': CLXRefRole(),
         'method': CLXRefRole(),
     }
@@ -1126,7 +1126,7 @@ def cl_launch_args(lisps=None,
 #-quicklisp
 (let ((quicklisp-init (merge-pathnames (make-pathname :name "setup"
                                                       :type "lisp")
-                                       (concatenate 'string (asdf/os:getenv "QUICKLISP")
+                                       (concatenate 'string (uiop/os:getenv "QUICKLISP")
                                                     "/"))))
   (if (probe-file quicklisp-init)
       (load quicklisp-init)
@@ -1134,7 +1134,7 @@ def cl_launch_args(lisps=None,
 """
 
     system = """
-(push (pathname (concatenate 'string (asdf/os:getenv \"CLDOMAIN\") \"/\"))
+(push (pathname (concatenate 'string (uiop/os:getenv \"CLDOMAIN\") \"/\"))
                              asdf:*central-registry*)
 """
 
@@ -1148,7 +1148,7 @@ def cl_launch_args(lisps=None,
     args.extend(["--init", quicklisp,
                  "--init", system,
                  "--init", "(asdf:initialize-source-registry)",
-		 "--init", "(asdf:require-system :quicklisp)",
+         "--init", "(asdf:require-system :quicklisp)",
                  "--init", quickload,
                  "--init", "(%s)" % main_function])
     return args
