@@ -220,10 +220,9 @@ possible symbol names."
                  (when literal
                    (write-string (encode-literal literal) out))
                  (write-string rest out))
-               ;; Don't push newlines back onto the input stream -- this can cause
+               ;; TODO (RS) Pushing newlines back onto the input stream -- this can cause
                ;; some CL's to spew.
-               (unless (eql char #\Newline)
-                 (unread-char char stream))
+               (unread-char char stream)
                (setf possible-symbol nil)
                (setf possible-symbols nil))
               ;; if the current char is a white space, then check if the
