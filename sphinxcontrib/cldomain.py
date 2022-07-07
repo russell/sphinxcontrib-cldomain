@@ -319,6 +319,23 @@ def qualify_sexp(package, sexp):
             sexp_ret.append(package + ":" + atom)
     return sexp_ret
 
+def local_atom(package, atom):
+    """If the atom has a package qualifier then remove it.
+
+    """
+    split = [atom]
+    if "::" in atom:
+        split = atom.split("::", 1)
+    elif ":" in atom:
+        split = atom.split(":", 1)
+
+    if len(split) == 1:
+        return split[0]
+
+    if split[0].upper() == package.upper():
+        return split[-1]
+
+    return atom
 
 def fieldlist_index(node):
     """Find the index of a field list in a content node."""
@@ -359,7 +376,7 @@ class SpecializerField(Field):
 
 
 class SEXP(object):
-    def __init__(self, sexp, types=None, show_defaults=False):
+    def __init__(self, sexp, types=None, show_defaults=False, package=None):
         if not isinstance(sexp, list):
             self.sexp = _read(sexp)
         else:
@@ -375,6 +392,7 @@ class SEXP(object):
                 self.sexp[i] = [self.sexp[i], type_node]
         self.show_defaults = show_defaults
         self.show_defaults = True
+        self.package = package
 
     def as_parameterlist(self, function_name):
         return self.render_parameterlist(prepend_node=function_name)
@@ -401,7 +419,7 @@ class SEXP(object):
     def render_atom(self, token, signode, noemph=True):
         "add syntax hi-lighting to interesting atoms"
         if not isinstance(token, nodes.Element):
-            param = desc_clparameter(token, token)
+            param = desc_clparameter(token, local_atom(self.package, token))
             if token.lower() in lambda_list_keywords:
                 param["lambda_keyword"] = True
             if token.startswith(":"):
@@ -445,7 +463,8 @@ class CLsExp(ObjectDescription):
                 types = self.arguments[0].split(' ')[1:]
             sexp = SEXP(lisp_args,
                         types=types,
-                        show_defaults=self.env.app.config.cl_show_defaults)
+                        show_defaults=self.env.app.config.cl_show_defaults,
+                        package=self.env.temp_data.get('cl:package'))
             arg_list = sexp.as_parameterlist(function_name)
             signode.append(arg_list)
         else:
