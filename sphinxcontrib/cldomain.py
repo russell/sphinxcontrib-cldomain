@@ -394,6 +394,8 @@ class SEXP(object):
                     symbol = self.render_atom(atom[0], desc_sexplist)
             else:
                 symbol = self.render_atom(atom, desc_sexplist)
+        if desc_sexplist[-1].tagname == 'desc_sig_space':
+            desc_sexplist.pop()  # if the last element is whitespace pop it
         return desc_sexplist
 
     def render_atom(self, token, signode, noemph=True):
@@ -407,7 +409,7 @@ class SEXP(object):
         else:
             param = token
         signode.append(param)
-
+        signode.append(addnodes.desc_sig_space())
 
 class CLsExp(ObjectDescription):
 
