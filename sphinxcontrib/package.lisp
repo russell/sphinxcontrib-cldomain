@@ -20,12 +20,12 @@
 
 (defpackage :sphinxcontrib.cldomain
   (:use #:closer-common-lisp #:json
-        #:closer-mop #:alexandria
-        #:net.didierverna.clon)
+        #:closer-mop #:alexandria)
   (:export #:main
            #:encode-symbol
            #:resolve-symbol
            #:*current-package*
            #:intern*
            #:scope-symbols-in-text
-           #:find-best-symbol))
+           #:find-best-symbol
+           #:print-packages))

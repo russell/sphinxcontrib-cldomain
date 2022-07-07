@@ -26,6 +26,8 @@ import re
 import os
 import sys
 from os import path
+import pathlib
+
 import tempfile
 import json
 from collections import defaultdict
@@ -41,13 +43,14 @@ import pprint
 
 from sphinx import addnodes
 from sphinx.util.console import red
-from sphinx.locale import l_, _
+from sphinx.locale import _
 from sphinx.roles import XRefRole
 from sphinx.domains import Domain, ObjType
 from sphinx.directives import ObjectDescription
 from sphinx.util.nodes import make_refnode
-from sphinx.util.compat import Directive
+from docutils.parsers.rst import Directive
 from sphinx.util.docfields import Field, GroupedField
+from sphinx.util import logging
 
 __version__ = open(path.join(path.dirname(__file__),
                    "version.lisp-expr")).read().strip('"')
@@ -67,6 +70,7 @@ USED_SYMBOLS = defaultdict(dict, {})
 lambda_list_keywords = ["&allow-other-keys", "&key",
                         "&rest", "&aux", "&optional"]
 
+logger = logging.getLogger(__name__)
 
 def node_to_dict(node):
     name = getattr(node, 'tagname', node)
@@ -408,10 +412,10 @@ class SEXP(object):
 class CLsExp(ObjectDescription):
 
     doc_field_types = [
-        GroupedField('parameter', label=l_('Parameters'),
+        GroupedField('parameter', label=_('Parameters'),
                      names=('param', 'parameter', 'arg', 'argument',
                             'keyword', 'kwparam')),
-        Field('returnvalue', label=l_('Returns'), has_arg=False,
+        Field('returnvalue', label=_('Returns'), has_arg=False,
               names=('returns', 'return')),
     ]
 
@@ -598,12 +602,12 @@ class CLMethod(CLGeneric):
     }
 
     doc_field_types = [
-        Field('specializer', label=l_('Specializer'), has_arg=False,
+        Field('specializer', label=_('Specializer'), has_arg=False,
               names=('specializer')),
-        GroupedField('parameter', label=l_('Parameters'),
+        GroupedField('parameter', label=_('Parameters'),
                      names=('param', 'parameter', 'arg', 'argument',
                             'keyword', 'kwparam')),
-        Field('returnvalue', label=l_('Returns'), has_arg=False,
+        Field('returnvalue', label=_('Returns'), has_arg=False,
               names=('returns', 'return')),
     ]
 
@@ -740,13 +744,13 @@ class CLDomain(Domain):
     label = 'Common Lisp'
 
     object_types = {
-        'package': ObjType(l_('package'), 'package'),
-        'function': ObjType(l_('function'), 'function'),
-        'macro': ObjType(l_('macro'), 'macro'),
-        'variable': ObjType(l_('variable'), 'variable'),
-        'type': ObjType(l_('type'), 'type'),
-        'generic': ObjType(l_('generic'), 'generic'),
-        'method': ObjType(l_('method'), 'method'),
+        'package': ObjType(_('package'), 'package'),
+        'function': ObjType(_('function'), 'function'),
+        'macro': ObjType(_('macro'), 'macro'),
+        'variable': ObjType(_('variable'), 'variable'),
+        'type': ObjType(_('type'), 'type'),
+        'generic': ObjType(_('generic'), 'generic'),
+        'method': ObjType(_('method'), 'method'),
         }
 
     directives = {
@@ -815,9 +819,9 @@ class CLDomain(Domain):
             if specializer in methods[generic]:
                 return [methods[generic][specializer]]
             else:
-                env.warn_node('can\'t find method %s' % (name), node)
+                logger.warning('can\'t find method %s' % (name), location=node)
         else:
-            env.warn_node('can\'t find generic %s' % (name), node)
+            logger.warning('can\'t find generic %s' % (name), location=node)
 
     def resolve_xref(self, env, fromdocname, builder,
                      typ, target, node, contnode):
@@ -828,11 +832,17 @@ class CLDomain(Domain):
 
         if not matches:
             return None
+
+
+        matches = [*matches]
+        if len(matches) == 0:
+            logger.warning('no target found for cross-reference %r' % (target),
+                           location=node)
+            return None
         elif len(matches) > 1:
-            env.warn_node(
-                'more than one target found for cross-reference '
+            logger.warning('more than one target found for cross-reference '
                 '%r: %s' % (target, ', '.join(match[0] for match in matches)),
-                node)
+                           location=node)
         # TODO (RS) this just chooses the first symbol, instead every
         # symbol should be presented.
 
@@ -852,7 +862,7 @@ class CLDomain(Domain):
                             link, contnode, name)
 
     def get_symbols(self):
-        for refname, docs in self.data['symbols'].iteritems():
+        for refname, docs in self.data['symbols'].items():
             for (docname, type) in docs:
                 yield (refname, refname, type, docname, refname, 1)
 
@@ -870,27 +880,14 @@ def index_packages(systems, system_paths, packages, quicklisp, lisps, cl_debug):
     strings for all public symbols.
 
     """
-    cl_launch_exe = [which("cl-launch")[0]]
-    cl_launch_command = cl_launch_args(lisps)
-    cldomain_args = ["--"]
-    for package in packages:
-        cldomain_args.extend(["--package", package])
-    for system in systems:
-        cldomain_args.extend(["--system", system])
-    for system_path in system_paths:
-        cldomain_args.extend(["--path", system_path])
+    cl_launch_exe = [pathlib.Path(__file__).parent.resolve().joinpath("cldomain.ros")]
+    cldomain_args = ["--package", ",".join(packages),
+                     "--system", ",".join(systems),
+                     "--path", ",".join(system_paths)]
     env = os.environ.copy()
-    env.update({"CLDOMAIN": path.abspath(path.dirname(__file__)) + "/",
-                "QUICKLISP": quicklisp})
-    raw_output = subprocess.check_output(cl_launch_exe
-                                         + cl_launch_command
-                                         + cldomain_args,
-                                         env=env)
-    output = "\n".join([line for line in raw_output.split("\n")
-                        if not line.startswith(";")])
-
+    raw_output = subprocess.check_output(cl_launch_exe + cldomain_args, env=env)
     try:
-        lisp_data = json.loads(output)
+        lisp_data = json.loads(raw_output)
         if cl_debug:
             pprint.pprint(lisp_data)
     except:
@@ -983,9 +980,9 @@ def load_packages(app):
     systems = []
     system_paths = []
     if app.config.cl_packages:
-        app.info("DEPRECATED: The cl_packages variable has been "
+        logger.info("DEPRECATED: The cl_packages variable has been "
                  "replaced by cl_systems and will be removed in the future.")
-        for package, system_path in app.config.cl_packages.iteritems():
+        for package, system_path in app.config.cl_packages.items():
             packages.append(package.upper())
             systems.append(package)
             system_paths.append(system_path)
@@ -1003,10 +1000,10 @@ def load_packages(app):
                 packages.append(system['name'].upper())
 
     if not packages:
-        app.warn("No CL packages specified.")
+        logger.warn("No CL packages specified.")
         return
 
-    app.info("Collecting Lisp docstrings from %s..." % ', '.join(str(x) for x in systems))
+    logger.info("Collecting Lisp docstrings from %s..." % ', '.join(str(x) for x in systems))
     index_packages(systems,
                    system_paths,
                    packages,
@@ -1035,10 +1032,10 @@ def list_unused_symbols(app, exception):
                     if objtype == "genericFunction":
                         objtype = "generic"
                     if objtype not in USED_SYMBOLS[p][s]:
-                        app.warn("Unused symbol doc %s:%s type %s" %
+                        logger.warn("Unused symbol doc %s:%s type %s" %
                                            (p, s, objtype))
                 else:
-                    app.warn("Unused symbol doc %s:%s type %s" %
+                    logger.warn("Unused symbol doc %s:%s type %s" %
                                            (p, s, objtype))
 
 
@@ -1099,56 +1096,3 @@ def setup(app):
     app.connect('builder-inited', load_packages)
     app.connect('build-finished', list_unused_symbols)
     #app.connect('source-read', uppercase_symbols)
-
-
-def which(name, flags=os.X_OK):
-    """https://twistedmatrix.com/trac/browser/tags/releases/twisted-8.2.0/twisted/python/procutils.py"""
-    result = []
-    exts = filter(None, os.environ.get('PATHEXT', '').split(os.pathsep))
-    path = os.environ.get('PATH', None)
-    if path is None:
-        return []
-    for p in os.environ.get('PATH', '').split(os.pathsep):
-        p = os.path.join(p, name)
-        if os.access(p, flags):
-            result.append(p)
-        for e in exts:
-            pext = p + e
-            if os.access(pext, flags):
-                result.append(pext)
-    return result
-
-
-def cl_launch_args(lisps=None,
-                   package='sphinxcontrib.cldomain',
-                   main_function="sphinxcontrib.cldomain:main"):
-    quicklisp = """
-#-quicklisp
-(let ((quicklisp-init (merge-pathnames (make-pathname :name "setup"
-                                                      :type "lisp")
-                                       (concatenate 'string (uiop/os:getenv "QUICKLISP")
-                                                    "/"))))
-  (if (probe-file quicklisp-init)
-      (load quicklisp-init)
-      (error "Can't Find Quicklisp at ~a~%" quicklisp-init)))
-"""
-
-    system = """
-(push (pathname (concatenate 'string (uiop/os:getenv \"CLDOMAIN\") \"/\"))
-                             asdf:*central-registry*)
-"""
-
-    quickload = """
-(let ((*standard-output* *error-output*))
-  (quicklisp:quickload '%s))
-""" % package
-    args = []
-    if lisps:
-        args.extend(["--lisp", lisps])
-    args.extend(["--init", quicklisp,
-                 "--init", system,
-                 "--init", "(asdf:initialize-source-registry)",
-         "--init", "(asdf:require-system :quicklisp)",
-                 "--init", quickload,
-                 "--init", "(%s)" % main_function])
-    return args

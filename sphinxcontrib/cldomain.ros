@@ -1,0 +1,66 @@
+#!/bin/sh
+#|-*- mode:lisp -*-|#
+#|
+exec ros -Q -- $0 "$@"
+|#
+(progn ;;init forms
+  (ros:ensure-asdf)
+  #+quicklisp(ql:quickload '() :silent t)
+
+  (push (make-pathname :directory (pathname-directory (truename (uiop:current-lisp-file-pathname))))
+        asdf:*central-registry*)
+  (ql:quickload 'sphinxcontrib.cldomain :silent t))
+
+(defpackage :ros.script.sphinxcontribcldomain
+  (:use :cl :sphinxcontrib.cldomain))
+(in-package :ros.script.sphinxcontribcldomain)
+
+(defun main (&rest argv)
+  "Entry point for our application."
+  (opts:define-opts
+      (:name :help
+       :description "print this help text"
+       :short #\h
+       :long "help")
+      (:name :packages
+       :description "The packages to document."
+       :long "packages"
+       :arg-parser #'identity)
+    (:name :systems
+     :description "The system to load."
+     :long "systems"
+     :arg-parser #'identity)
+    (:name :paths
+     :description "Extra paths to search fro ASDF systems."
+     :long "paths"
+     :arg-parser #'identity))
+
+  (multiple-value-bind (options free-args)
+      (opts:get-opts argv)
+    (declare (ignorable free-args))
+    (if (getf options :help)
+        (opts:describe
+         :prefix "export symbols from a LISP program for documentation"
+         :usage-of "./cldomain.ros"))
+    (if (getf options :paths)
+        (dolist (path (uiop:split-string (getf options :paths) :separator '(#\,)))
+          (let ((path-pathname (pathname path)))
+            ;; CLISP's truename spews if path is a directory, whereas ext:probe-filename
+            ;; will generate a directory-truename for directories without spewing...???
+            #+clisp
+            (let ((dir-truename (ext:probe-pathname path)))
+              (when dir-truename
+                (push  dir-truename asdf:*central-registry*)))
+            #-(or clisp)
+            (push (truename path-pathname) asdf:*central-registry*))))
+    (if (getf options :systems)
+        (let ((*standard-output* *error-output*))
+         (dolist (system (uiop:split-string (getf options :systems) :separator '(#\,)))
+           (ql:quickload system :prompt nil))))
+    (if (getf options :packages)
+        (apply #'print-packages (uiop:split-string (getf options :packages) :separator '(#\,))))))
+
+;; (defun main (&rest argv)
+;;   (declare (ignorable argv)))
+
+;;; vim: set ft=lisp lisp:

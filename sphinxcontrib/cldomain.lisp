@@ -368,51 +368,10 @@ possible symbol names."
         (when (variable-p symbol)
           (encode-value-documentation symbol 'variable))))))
 
-
-(defsynopsis ()
-  (group (:header "Options:")
-         (stropt :long-name "path"
-                 :description "Extra paths to search fro ASDF systems.")
-         (stropt :long-name "system"
-                 :description "The system to load.")
-         (stropt :long-name "package"
-                 :description "The packages to document.")
-         (flag :short-name "h" :long-name "help"
-               :description "Print this help and exit.")))
-
-(defmacro push-opt (value name)
-  `(setq ,(intern (string-upcase name))
-         (cons ,value ,(intern (string-upcase name)))))
-
-(defun main ()
-  "Entry point for our standalone application."
-  (make-context)
-  (when (getopt :short-name "h")
-    (help)
-    (exit))
-  (let (systems packages paths)
-    (do-cmdline-options (option name value source)
-      (case (intern (string-upcase name) (find-package 'sphinxcontrib.cldomain))
-        ('system (push value systems))
-        ('package (push value packages))
-        ('path (push value paths))))
-    (dolist (path paths)
-      (let ((path-pathname (pathname path)))
-        ;; CLISP's truename spews if path is a directory, whereas ext:probe-filename
-        ;; will generate a directory-truename for directories without spewing...???
-        #+clisp
-          (let ((dir-truename (ext:probe-pathname path)))
-            (when dir-truename
-              (push  dir-truename asdf:*central-registry*)))
-        #-(or clisp)
-          (push (truename path-pathname) asdf:*central-registry*)))
-    (let ((my-system (car systems)))
-      (let ((*standard-output* *error-output*))
-        (ql:quickload my-system :prompt nil))
-      (let ((*json-output* *standard-output*))
-        (with-object ()
-          (dolist (package packages)
-           (let ((*current-package*
-                   (find-package (intern (string-upcase package)))))
-             (symbols-to-json)))))))
-  (exit))
+(defun print-packages (&rest packages)
+  (let ((*json-output* *standard-output*))
+    (cl-json:with-object ()
+      (dolist (package packages)
+        (let ((*current-package*
+                (find-package (intern (string-upcase package)))))
+          (symbols-to-json))))))
