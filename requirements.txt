@@ -1,8 +1,0 @@
-Jinja2
-Pygments
-Sphinx
-argparse
-distribute
-docutils
-sphinx-bootstrap-theme
-robpol86-sphinxcontrib-googleanalytics
