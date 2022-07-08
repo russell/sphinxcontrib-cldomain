@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
 def test_import():
-    """A very basic test which will check syntax"""
     import sphinxcontrib.hyperspec
+
+    print(sphinxcontrib.hyperspec)

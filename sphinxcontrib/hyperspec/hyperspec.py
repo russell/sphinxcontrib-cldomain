@@ -14,10 +14,9 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-try:
-    from urlparse import urljoin
-except ImportError:
-    from urllib.parse import urljoin
+
+from urllib.parse import urljoin
+
 from docutils import nodes
 
 ROOT = "http://www.lispworks.com/reference/HyperSpec/"
@@ -1004,7 +1003,7 @@ SYMBOLS = {
     "#": "02_dh.htm",
     "##": "02_dhp.htm",
     "#'": "02_dhb.htm",
-    "#": "02_dhc.htm",
+    # "#": "02_dhc.htm",
     "#*": "02_dhd.htm",
     "#:": "02_dhe.htm",
     "#.": "02_dhf.htm",
@@ -1022,13 +1021,14 @@ SYMBOLS = {
     "#X": "02_dhi.htm",
     "#\\": "02_dha.htm",
     "#|": "02_dhs.htm",
-    "\"": "02_de.htm",
+    '"': "02_de.htm",
     "'": "02_dc.htm",
     "`": "02_df.htm",
     ",": "02_dg.htm",
     "": "02_da.htm",
-    ",": "02_db.htm",
-    ";": "02_dd.htm"}
+    # ",": "02_db.htm",
+    ";": "02_dd.htm",
+}
 
 ISSUES = {
     "&environment-binding-order:first": "iss001.htm",
@@ -1304,8 +1304,7 @@ ISSUES = {
     "pretty-print-interface": "iss270.htm",
     "princ-readably:x3j13-dec-91": "iss271.htm",
     "print-case-behavior:clarify": "iss272.htm",
-    "print-case-print-escape-interaction:vertical-bar-rule-no-upcase":
-    "iss273.htm",
+    "print-case-print-escape-interaction:vertical-bar-rule-no-upcase": "iss273.htm",
     "print-circle-shared:respect-print-circle": "iss274.htm",
     "print-circle-structure:user-functions-work": "iss275.htm",
     "print-readably-behavior:clarify": "iss276.htm",
@@ -1398,7 +1397,8 @@ ISSUES = {
     "with-open-file-setq:explicitly-vague": "iss363.htm",
     "with-open-file-stream-extent:dynamic-extent": "iss364.htm",
     "with-output-to-string-append-style:vector-push-extend": "iss365.htm",
-    "with-standard-io-syntax-readtable:x3j13-mar-91": "iss366.htm"}
+    "with-standard-io-syntax-readtable:x3j13-mar-91": "iss366.htm",
+}
 
 
 def symbol_url(symbol_name):
@@ -1407,9 +1407,8 @@ def symbol_url(symbol_name):
 
 
 def hyperspec_reference(app, env, node, contnode):
-    """Attempt to resolve a missing common lisp package symbol reference.
-    """
-    domain = node.get('refdomain')
+    """Attempt to resolve a missing common lisp package symbol reference."""
+    domain = node.get("refdomain")
 
     if not domain:
         # only objects in domains are in the inventory
@@ -1419,7 +1418,7 @@ def hyperspec_reference(app, env, node, contnode):
         # only objects in the CL domain.
         return
 
-    target = node['reftarget'].upper()
+    target = node["reftarget"].upper()
     if not target.startswith("COMMON-LISP:"):
         # only objects in the common-lisp package are in the
         # hyperspec.
@@ -1429,11 +1428,12 @@ def hyperspec_reference(app, env, node, contnode):
     if name.lower() not in SYMBOLS:
         return
 
-    newnode = nodes.reference('', '', internal=False, refuri=symbol_url(name),
-                              reftitle='(in Hyperspec)')
+    newnode = nodes.reference(
+        "",
+        "",
+        internal=False,
+        refuri=symbol_url(name),
+        reftitle="(in Hyperspec)",
+    )
     newnode.append(contnode.__class__(name, name))
     return newnode
-
-
-def setup(app):
-    app.connect('missing-reference', hyperspec_reference)

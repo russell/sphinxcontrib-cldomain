@@ -5,8 +5,6 @@ exec ros -Q -- $0 "$@"
 |#
 (progn ;;init forms
   (ros:ensure-asdf)
-  #+quicklisp(ql:quickload '() :silent t)
-
   (push (make-pathname :directory (pathname-directory (truename (uiop:current-lisp-file-pathname))))
         asdf:*central-registry*)
   (ql:quickload 'sphinxcontrib.cldomain :silent t))

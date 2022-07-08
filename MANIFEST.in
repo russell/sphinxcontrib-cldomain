@@ -1,5 +1,0 @@
-include README.*
-include LICENSE
-include CHANGELOG.*
-recursive-include doc *.asd *.lisp
-recursive-include sphinxcontrib *.asd *.lisp *.lisp-expr
