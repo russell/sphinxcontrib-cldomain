@@ -31,8 +31,7 @@ from os import path
 # ones.
 extensions = ['sphinx.ext.intersphinx',
               'sphinxcontrib.cldomain',
-              'sphinxcontrib.hyperspec',
-              'sphinxcontrib.googleanalytics']
+              'sphinxcontrib.hyperspec']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -49,12 +48,6 @@ master_doc = 'index'
 # General information about the project.
 project = u'cldomain'
 copyright = u'2011-2015, Russell Sim'
-
-googleanalytics_id = "UA-28069739-3"
-if os.environ.get("GOOGLE_ANALYTICS"):
-    googleanalytics_enabled = True
-else:
-    googleanalytics_enabled = False
 
 cl_systems = [{"name": "sphinxcontrib.cldomain.doc",
                "path": path.dirname(path.realpath(__file__)),
