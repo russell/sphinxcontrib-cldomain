@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# cldomain is a Common Lisp domain for the Sphinx documentation tool.
+# hyperspec is a Common Lisp Hyperspec symbol referencer for sphinx.
 # Copyright (C) 2011-2014 Russell Sim <russell.sim@gmail.com>
 
 # This program is free software: you can redistribute it and/or modify
@@ -14,13 +14,9 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
-    sphinxcontrib
-    ~~~~~~~~~~~~~
 
-    This package is a namespace package that contains all extensions
-    distributed in the ``sphinx-contrib`` distribution.
 
-"""
+def setup(app):
+    from .hyperspec import hyperspec_reference
 
-__import__('pkg_resources').declare_namespace(__name__)
+    app.connect("missing-reference", hyperspec_reference)
