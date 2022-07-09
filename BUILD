@@ -50,7 +50,7 @@ python_distribution(
         ],
 
         urls = {
-            "documentation": "http://cldomain.russellsim.org/",
+            "documentation": "https://russell.github.io/sphinxcontrib-cldomain/",
             "source": "https://github.com/russell/sphinxcontrib-cldomain",
             "tracker": "https://github.com/russell/sphinxcontrib-cldomain/issues",
         },
