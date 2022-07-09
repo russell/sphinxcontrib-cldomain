@@ -1422,21 +1422,21 @@ def hyperspec_reference(
 
     if not domain:
         # only objects in domains are in the inventory
-        return
+        return None
 
     if domain.upper() != "CL":
         # only objects in the CL domain.
-        return
+        return None
 
     target = node["reftarget"].upper()
     if not target.startswith("COMMON-LISP:"):
         # only objects in the common-lisp package are in the
         # hyperspec.
-        return
+        return None
 
     name = target.split(":")[-1]
     if name.lower() not in SYMBOLS:
-        return
+        return None
 
     newnode = nodes.reference(
         "",

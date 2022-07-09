@@ -34,19 +34,26 @@ import tempfile
 from collections import defaultdict
 from io import StringIO
 from os import path
+from typing import List, Optional, Tuple, Union
 
 from docutils import nodes
+from docutils.nodes import Element, Node
 from docutils.parsers.rst import Directive
 from docutils.statemachine import StringList, string2lines
 from sphinx import addnodes
+from sphinx.addnodes import desc_signature, pending_xref
+from sphinx.application import Sphinx
+from sphinx.builders import Builder
 from sphinx.directives import ObjectDescription
 from sphinx.domains import Domain, ObjType
+from sphinx.environment import BuildEnvironment
 from sphinx.locale import _
 from sphinx.roles import XRefRole
 from sphinx.util import logging
 from sphinx.util.console import red
 from sphinx.util.docfields import Field, GroupedField
 from sphinx.util.nodes import make_refnode
+from sphinx.util.typing import OptionSpec
 
 __version__ = (
     open(path.join(path.dirname(__file__), "version.lisp-expr"))
@@ -99,13 +106,13 @@ def debug_print(node):
     pprint.pprint(node)
 
 
-def record_use(package, symbol_name, objtype):
+def record_use(package: Optional[str], symbol_name: str, objtype: str) -> None:
     """Record unused package symbols."""
     symbol = symbol_name.upper()
     USED_SYMBOLS[package].setdefault(symbol, []).append(objtype)
 
 
-def bool_option(arg):
+def bool_option(arg: None) -> bool:
     """Used to convert flag options to directives.
 
     (Instead of directives.flag(), which returns None).
@@ -120,7 +127,7 @@ def _read(s):
     return _read_from(_tokenize(s))
 
 
-def _tokenize(s):
+def _tokenize(s: str) -> List[str]:
     """Convert a string into a list of tokens."""
     return s.replace("(", " ( ").replace(")", " ) ").split()
 
@@ -145,7 +152,7 @@ def _read_from(tokens):
 # end of http://norvig.com/lispy.html
 
 
-def parse_specializer_symbol(symbol, package):
+def parse_specializer_symbol(symbol: str, package: str) -> str:
     """Parse symbols, for specializers."""
     symbol = symbol.upper()
     if symbol.startswith(":"):
@@ -326,7 +333,7 @@ def specializer_xref(symbol, sexp, state, package, node_type=nodes.inline):
     return node
 
 
-def qualify_sexp(package, sexp):
+def qualify_sexp(package: str, sexp: List[str]) -> List[str]:
     """If the sexp contains atoms that don't have a package then qualify
     them."""
     sexp_ret = []
@@ -340,7 +347,7 @@ def qualify_sexp(package, sexp):
     return sexp_ret
 
 
-def local_atom(package, atom):
+def local_atom(package: str, atom: str) -> str:
     """If the atom has a package qualifier then remove it."""
     split = [atom]
     if "::" in atom:
@@ -473,14 +480,15 @@ class CLsExp(ObjectDescription):
         ),
     ]
 
-    option_spec = {
+    option_spec: OptionSpec = {
         "nodoc": bool_option,
         "noindex": bool_option,
         "noinitargs": bool_option,
     }
 
-    def handle_signature(self, sig, signode):
-        symbol_name = []
+    def handle_signature(
+        self, sig: str, signode: desc_signature
+    ) -> Tuple[str, str]:
         package = self.env.temp_data.get("cl:package")
         objtype = self.get_signature_prefix(sig)
         sig_split = sig.split(" ")
@@ -623,7 +631,7 @@ class CLsExp(ObjectDescription):
 
 class CLGeneric(CLsExp):
 
-    option_spec = {
+    option_spec: OptionSpec = {
         "nodoc": bool_option,
         "noindex": bool_option,
         "nospecializers": bool_option,
@@ -652,7 +660,7 @@ class CLGeneric(CLsExp):
             )
         return result
 
-    def run(self):
+    def run(self) -> List[Node]:
         result = super(CLGeneric, self).run()
         if "nospecializers" not in self.options:
             self.run_add_specializers(result)
@@ -661,7 +669,7 @@ class CLGeneric(CLsExp):
 
 class CLMethod(CLGeneric):
 
-    option_spec = {
+    option_spec: OptionSpec = {
         "nodoc": bool_option,
         "noindex": bool_option,
         "noinherit": bool_option,
@@ -713,9 +721,11 @@ class CLMethod(CLGeneric):
             type,
         )
 
-    def add_target_and_index(self, name, sig, signode):
+    def add_target_and_index(
+        self, name_obj: Tuple[str, str], sig: str, signode: desc_signature
+    ) -> None:
         # node target
-        type, name = name
+        type, name = name_obj
 
         if "cl:package" in self.env.temp_data:
             package = self.options.get(
@@ -778,7 +788,7 @@ class CLMethod(CLGeneric):
             return super(CLMethod, self).cl_doc_string("generic")
         return ""
 
-    def run(self):
+    def run(self) -> List[Node]:
         result = super(CLMethod, self).run()
         field_list = self.get_field_list(result)
         package = self.env.temp_data.get("cl:package")
@@ -811,7 +821,7 @@ class CLCurrentPackage(Directive):
     required_arguments = 1
     optional_arguments = 0
     final_argument_whitespace = True
-    option_spec = {}
+    option_spec: OptionSpec = {}
 
     def run(self):
         env = self.state.document.settings.env
@@ -821,7 +831,14 @@ class CLCurrentPackage(Directive):
 
 
 class CLXRefRole(XRefRole):
-    def process_link(self, env, refnode, has_explicit_title, title, target):
+    def process_link(
+        self,
+        env: BuildEnvironment,
+        refnode: Element,
+        has_explicit_title: bool,
+        title: str,
+        target: str,
+    ) -> Tuple[str, str]:
         if not has_explicit_title:
             target = target.lstrip("~")  # only has a meaning for the title
             # if the first character is a tilde, don't display the package
@@ -874,13 +891,16 @@ class CLDomain(Domain):
         "methods": {},
     }
 
-    def clear_doc(self, docname):
+    def clear_doc(self, docname: str) -> None:
         for fullname, docs in self.data["symbols"].items():
             for (fn, _ignored) in docs:
                 if fn == docname:
                     del self.data["symbols"][fullname]
+        return None
 
-    def find_obj(self, env, name):
+    def find_obj(
+        self, env: BuildEnvironment, name: str
+    ) -> Optional[Union[List[Tuple[str, List[Tuple[str, str]]]], filter]]:
         """Find a Lisp symbol for "name", perhaps using the given package
         Return a list of (name, object entry) tuples."""
         symbols = self.data["symbols"]
@@ -902,7 +922,9 @@ class CLDomain(Domain):
 
             return filter(filter_symbols, symbols.items())
 
-    def find_method(self, env, name, node):
+    def find_method(
+        self, env: BuildEnvironment, name: str, node: pending_xref
+    ) -> Optional[List[Tuple[str, str]]]:
         """Find a Lisp symbol for "name", perhaps using the given package
         Return a list of (name, object entry) tuples."""
         methods = self.data["methods"]
@@ -919,8 +941,15 @@ class CLDomain(Domain):
             logger.warning("can't find generic %s" % (name), location=node)
 
     def resolve_xref(
-        self, env, fromdocname, builder, typ, target, node, contnode
-    ):
+        self,
+        env: BuildEnvironment,
+        fromdocname: str,
+        builder: Builder,
+        typ: str,
+        target: str,
+        node: pending_xref,
+        contnode: Element,
+    ) -> Optional[Element]:
         if " " in target:
             matches = self.find_method(env, target.upper(), node)
         else:
@@ -975,11 +1004,16 @@ def save_cldomain_output(output):
     return path
 
 
-def index_packages(systems, system_paths, packages, cl_debug):
+def index_packages(
+    systems: List[str],
+    system_paths: List[str],
+    packages: List[str],
+    cl_debug: bool,
+) -> None:
     """Call an external lisp program that will return a dictionary of doc
     strings for all public symbols."""
     cldomain_exe = [
-        pathlib.Path(__file__).parent.resolve().joinpath("cldomain.ros")
+        str(pathlib.Path(__file__).parent.resolve().joinpath("cldomain.ros"))
     ]
     cldomain_args = [
         "--package",
@@ -1089,7 +1123,7 @@ def index_packages(systems, system_paths, packages, cl_debug):
             )
 
 
-def load_packages(app):
+def load_packages(app: Sphinx) -> None:
     packages = []
     systems = []
     system_paths = []
@@ -1117,7 +1151,7 @@ def load_packages(app):
 
     if not packages:
         logger.warn("No CL packages specified.")
-        return
+        return None
 
     logger.info(
         "Collecting Lisp docstrings from %s..."
@@ -1140,7 +1174,7 @@ def uppercase_symbols(app, docname, source):
 
 def list_unused_symbols(app, exception):
     if exception:
-        return
+        return None
     # TODO (RS) this initial implementation will not be able to detect
     # if each method specialisation has been used.
     for p, sym_doc in DOC_STRINGS.items():
@@ -1171,7 +1205,7 @@ def add_node(class_name, node, visit, depart=None):
     try:
         translator = import_class(class_name)
     except (ImportError, AttributeError):
-        return
+        return None
     setattr(translator, "visit_" + node.__name__, visit)
     if depart:
         setattr(translator, "depart_" + node.__name__, depart)
