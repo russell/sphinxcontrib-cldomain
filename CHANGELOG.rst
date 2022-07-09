@@ -1,3 +1,16 @@
+Release 0.14 UNRELEASED
+-----------------------
+* convert to unix-opts, because i couldn't get clon to work
+* strip packages from symbols if it's the current package, so
+  CL-GIT::BODY would become BODY.
+* add whitespace between method arguments so method ``(full-name
+  (objectreference))`` will print as method ``(full-name (object
+  reference))``
+* symbols that a appear at the start of newlines are now correctly
+  rendered, this might break CLISP, but will work in SBCL.  The bug
+  was introduced by trying to support CLISP, but i think valid
+  rendering trumps multiplatform support for now.
+
 Release 0.13 06-09-2015
 -----------------------
 * updated com.dvlsoft.clon to net.didierverna.clon.
