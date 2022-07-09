@@ -15,10 +15,8 @@ Installation
 Requirements
 ------------
 
-* `Sphinx <http://sphinx-doc.org/>`_ 3.21.7
-* `cl-launch <http://cliki.net/cl-launch>`_ 3.21.7
-* `asdf <http://common-lisp.net/project/asdf/>`_ 3.1
-* `quicklisp <http://www.quicklisp.org/beta/>`_
+* `Sphinx <http://sphinx-doc.org/>`_
+* `roswell <https://roswell.github.io/>`_
 * `pygments-cl-repl <https://pypi.python.org/pypi/pygments-cl-repl>`_
 
 
@@ -68,91 +66,12 @@ extension list, (b) telling CLDomain the systems and packages to load.
   cl_systems = [{"name": "my-system",
                  "path": join(dirname(realpath(__file__)), "../"),
                  "packages": ["my-package-1", "my-package-2"]}]
-  # cl_quicklisp: The default is $HOME/quicklisp. Shown here for completeness,
-  # and you can comment it out:
-  cl_quicklisp = expandvars('$HOME/quicklisp')
-  # cl_lisps: You could hardcode this to a string, or use an environment variable
-  # as shown:
-  cl_lisps = environ.get('CL_LISPS', None)
   # Ensure that the default highlighting language is CL:
   highlight_language = 'common-lisp'
 
   # For developer debugging only (and the curious, although, it did kill the cat!)
   # Currently ``True`` or ``False`` to output the JSON collected from cl-launch.
   cl_debug = False
-
-LISP to use
-^^^^^^^^^^^
-
-``cl-launch`` searches for a Lisp interpreter/compiler in a parciular order:
-*sbcl*, *clisp*, *ccl*, *ecl*, *cmucl*, *gclcvs*, *lispworks*, *allegro*,
-*gcl*, *abcl*, *scl* (refer to ``cl-launch -h`` for the current search list).
-
-From time to time, you may run into issues with ``cl-launch``, CLDomain and one
-of the Lisp interpreters/compilers. For example, you use **sbcl** and some
-random package decides it needs to modify the standard readtable, causing
-*sbcl* to complain loudly and exit with an error. Solution: Yell loudly at the
-package owner or use another Lisp.
-
-You can force ``cl-launch`` to use a different Lisp or change its search order
-though the ``cl_lisps`` configuration option:
-
-.. code-block:: python
-
-   cl_lisps = "sbcl ecl"
-
-Instead of hard coding the string, an environment variable is a somewhat
-cleaner, more flexible approach, as is shown in the :ref:`configuration code
-snippet <conf_py_block>`.  Here is how you would use it:
-
-.. code-block:: sh
-
-  ## If you use 'make html' (bash and zsh):
-
-  $ CL_LISPS="ccl ecl" make html
-
-  ## If you use a script (bash and zsh):
-
-  $ CL_LISPS="ccl ecl" ./script-to-generate-documentation
-
-  ## Build script for C-shell derivatives (tcsh) and non-bash/zsh
-  ## and works for bash/zsh as well:
-
-  % env CL_LISPS="ccl ecl" make html
-  % env CL_LISPS="ccl ecl" ./script-to-generate-documentation
-
-``cl-launch`` can't find *ASDF*
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-If you get the following message, followed by an enormous traceback:
-
-.. code-block:: shell
-
-   *** - Could not load ASDF.
-
-Then ensure that you've properly installed *ASDF* so that ``cl-launch`` can find it
-in ``$HOME/common-lisp/asdf`` and that
-``$HOME/common-lisp/asdf/build/asdf.lisp`` exists.  If you don't have ASDF
-installed, here's the quick start recipe:
-
-.. code-block:: shell
-
-   $ cd $HOME
-   $ mkdir common-lisp
-   $ cd common-lisp
-
-   # If you use curl:
-   $ curl -O http://common-lisp.net/project/asdf/asdf.tar.gz
-
-   # Alternatively, wget:
-   $ wget http://common-lisp.net/project/asdf/asdf.tar.gz
-
-   $ tar xzf asdf.tar.gz
-
-   # You should now have an asdf-X.Y.Z subdirectory, e.g., asdf-3.1.6:
-   $ ln -sf asdf-3.1.6 asdf
-   $ cd asdf
-   $ make
 
 Documenting Your Common Lisp Code
 =================================
