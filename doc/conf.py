@@ -61,16 +61,6 @@ cl_systems = [
     }
 ]
 
-# Russell's Quicklisp is in $HOME/.quicklisp, so look there first:
-if path.exists(path.expandvars("$HOME/.quicklisp/")):
-    cl_quicklisp = path.expandvars("$HOME/.quicklisp/")
-else:
-    # Everyone else who isn't Russell Sim... :-)
-    cl_quicklisp = path.expandvars("$HOME/quicklisp/")
-
-# Grab alternative lisps from the CL_LISPS environment variable:
-cl_lisps = os.environ.get("CL_LISPS", None)
-
 # cl_debug = True
 
 # The version info for the project you're documenting, acts as replacement for
