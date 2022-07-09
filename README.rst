@@ -1,9 +1,5 @@
-CLDomain 
+CLDomain
 ========
-
-.. image:: https://travis-ci.org/travis-ci/travis-build.png?branch=master
-   :target: https://travis-ci.org/russell/sphinxcontrib-cldomain/
-
 
 CLDomain is a Common Lisp domain for `Sphinx Documentation Generator`_.
 Sphinx is a mulit-language documentation tool.  This project extends
@@ -20,10 +16,9 @@ GitHub `Bug Tracker`_.
 
 An example of the generated documentation is the `cl-git`_ project.
 
-.. _Documentation: http://cldomain.russellsim.org/
+.. _Documentation: https://russell.github.io/sphinxcontrib-cldomain/
 .. _rendered example: http://cl-git.russellsim.org/#CL-GIT:ENSURE-GIT-REPOSITORY-EXIST
 .. _cl-git: http://cl-git.russellsim.org/
 .. _Sphinx Documentation Generator: http://sphinx.pocoo.org/
 .. _Bug Tracker: https://github.com/russell/sphinxcontrib-cldomain/issues
 .. _GPLv3: https://www.gnu.org/licenses/gpl-3.0-standalone.html
-
