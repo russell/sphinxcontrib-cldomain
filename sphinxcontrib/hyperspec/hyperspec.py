@@ -15,9 +15,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from typing import Optional, Union
 from urllib.parse import urljoin
 
 from docutils import nodes
+from docutils.nodes import literal, reference
+from sphinx.addnodes import desc_type, pending_xref
+from sphinx.application import Sphinx
+from sphinx.environment import BuildEnvironment
 
 ROOT = "http://www.lispworks.com/reference/HyperSpec/"
 
@@ -1401,12 +1406,17 @@ ISSUES = {
 }
 
 
-def symbol_url(symbol_name):
+def symbol_url(symbol_name: str) -> str:
     """return a url to documentation for a symbol."""
     return urljoin(urljoin(ROOT, "Body/"), SYMBOLS[symbol_name.lower()])
 
 
-def hyperspec_reference(app, env, node, contnode):
+def hyperspec_reference(
+    app: Sphinx,
+    env: BuildEnvironment,
+    node: pending_xref,
+    contnode: Union[literal, desc_type],
+) -> Optional[reference]:
     """Attempt to resolve a missing common lisp package symbol reference."""
     domain = node.get("refdomain")
 
