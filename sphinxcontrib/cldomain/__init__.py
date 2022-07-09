@@ -54,7 +54,6 @@ def setup(app):
     app.add_config_value("cl_packages", {}, "env")
     app.add_config_value("cl_systems", [], "env")
     app.add_config_value("cl_show_defaults", False, True)
-    app.add_config_value("cl_lisps", None, "env")
     app.add_config_value("cl_debug", False, "env")
     app.connect("builder-inited", load_packages)
     app.connect("build-finished", list_unused_symbols)

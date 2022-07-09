@@ -975,7 +975,7 @@ def save_cldomain_output(output):
     return path
 
 
-def index_packages(systems, system_paths, packages, lisps, cl_debug):
+def index_packages(systems, system_paths, packages, cl_debug):
     """Call an external lisp program that will return a dictionary of doc
     strings for all public symbols."""
     cldomain_exe = [
@@ -1127,7 +1127,6 @@ def load_packages(app):
         systems,
         system_paths,
         packages,
-        app.config.cl_lisps,
         app.config.cl_debug,
     )
 
