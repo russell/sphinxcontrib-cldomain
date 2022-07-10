@@ -39,6 +39,7 @@ from typing import List, Optional, Tuple, Union
 from docutils import nodes
 from docutils.nodes import Element, Node
 from docutils.parsers.rst import Directive
+from docutils.parsers.rst.states import Inliner
 from docutils.statemachine import StringList, string2lines
 from sphinx import addnodes
 from sphinx.addnodes import desc_signature, pending_xref
@@ -301,7 +302,9 @@ def specializer(symbol, sexp, state, package, node_type=nodes.inline):
     return node
 
 
-def specializer_xref(symbol, sexp, state, package, node_type=nodes.inline):
+def specializer_xref(
+    symbol: str, sexp, inliner: Inliner, package: str, lineno: int
+):
     result = StringIO()
     first = True
     for atom in sexp:
@@ -321,16 +324,17 @@ def specializer_xref(symbol, sexp, state, package, node_type=nodes.inline):
             result.write(atom)
 
     target = " ".join([a.lower() for a in sexp])
-    node = node_type()
     result.seek(0)
-    xref = ":cl:method:`({}) <{} {}>`".format(
+
+    target = "({}) <{} {}>".format(
         result.read().lower(),
         symbol,
         target,
     )
-    lines = string2lines(xref)
-    state.nested_parse(StringList(lines), 0, node)
-    return node
+
+    xref = ":cl:method:`{}`".format(target)
+    node = CLXRefRole()("cl:method", xref, target, lineno, inliner)
+    return nodes.inline("", "", node[0][0])
 
 
 def qualify_sexp(package: str, sexp: List[str]) -> List[str]:
@@ -641,11 +645,18 @@ class CLGeneric(CLsExp):
         package = self.env.temp_data.get("cl:package")
         name = self.cl_symbol_name()
         specializers = METHODS[package].get(name, {}).keys()
+        # import pdb; pdb.set_trace()
+
+        # self.lineno  <- is the line number
         if specializers:
             spec = nodes.bullet_list()
             for s in specializers:
                 spec_xref = specializer_xref(
-                    package + ":" + name, s, self.state, package
+                    package + ":" + name,
+                    s,
+                    self.state.inliner,
+                    package,
+                    self.lineno,
                 )
                 item = nodes.list_item("", spec_xref)
                 spec.append(item)
