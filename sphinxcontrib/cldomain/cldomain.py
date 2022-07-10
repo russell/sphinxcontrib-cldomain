@@ -792,6 +792,7 @@ class CLMethod(CLGeneric):
                 % (package, name, key, method_doc.keys())
             )
         doc = method_doc.get(key, "")
+
         if doc:
             return doc
 
@@ -816,7 +817,7 @@ class CLMethod(CLGeneric):
             field_list.append(
                 nodes.field(
                     "",
-                    nodes.field_name("", "Specializer"),
+                    nodes.field_name("", "Generic"),
                     nodes.field_body("", spec),
                 )
             )
