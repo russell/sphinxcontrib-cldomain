@@ -40,9 +40,4 @@ lockfile_generator = "pex"
 # [python.resolves]
 # python-default = "lockfile_path.txt" 
 
-[source]
-root_patterns = [
-    "/src",
-    "/",
-]   
  

@@ -9,9 +9,10 @@ python_sources(
 )
 
 resources(
-    name="cldomain_files",
+    name="docs",
     sources=[
         "README.rst",
+        "CHANGELOG.rst",
         "LICENSE",
     ]
 )
@@ -21,7 +22,7 @@ python_distribution(
     dependencies=[
         "sphinxcontrib/cldomain:lisp_lib",
         ":lib",
-        ":cldomain_files",
+        ":docs",
     ],
     provides=python_artifact(
         name="sphinxcontrib-cldomain",
