@@ -290,7 +290,7 @@ def specializer(symbol, sexp, state, package, node_type=nodes.inline):
     result.write(")")
     result.seek(0)
 
-    xref = ":cl:generic:`%s <%s:%s>`" % (
+    xref = ":cl:generic:`{} <{}:{}>`".format(
         result.read().lower(),
         package,
         symbol,
@@ -323,7 +323,7 @@ def specializer_xref(symbol, sexp, state, package, node_type=nodes.inline):
     target = " ".join([a.lower() for a in sexp])
     node = node_type()
     result.seek(0)
-    xref = ":cl:method:`(%s) <%s %s>`" % (
+    xref = ":cl:method:`({}) <{} {}>`".format(
         result.read().lower(),
         symbol,
         target,
@@ -608,7 +608,7 @@ class CLsExp(ObjectDescription):
         except KeyError:
             string = ""
             self.state_machine.reporter.warning(
-                "Can't find symbol %s:%s" % (package, name)
+                "Can't find symbol {}:{}".format(package, name)
             )
         if not string:
             return
@@ -773,7 +773,7 @@ class CLMethod(CLGeneric):
         specializer = self.arguments
         spec = specializer[0].split(" ")[1:]
         method_doc = METHODS[package].get(name, {})
-        key = tuple([parse_specializer_symbol(sym, package) for sym in spec])
+        key = tuple(parse_specializer_symbol(sym, package) for sym in spec)
         if key not in method_doc:
             self.state_machine.reporter.warning(
                 "Can't find method %s:%s specializer %s, "
@@ -1080,12 +1080,10 @@ def index_packages(
                     doc = ""
                 return doc
 
-            methods = dict(
-                [
-                    (parse_method(method), parse_doc(doc))
-                    for method, doc in v["methods"].items()
-                ]
-            )
+            methods = {
+                parse_method(method): parse_doc(doc)
+                for method, doc in v["methods"].items()
+            }
             METHODS[package][name] = methods
 
         # extract slots
@@ -1185,11 +1183,13 @@ def list_unused_symbols(app, exception):
                         objtype = "generic"
                     if objtype not in USED_SYMBOLS[p][s]:
                         logger.warn(
-                            "Unused symbol doc %s:%s type %s" % (p, s, objtype)
+                            "Unused symbol doc {}:{} type {}".format(
+                                p, s, objtype
+                            )
                         )
                 else:
                     logger.warn(
-                        "Unused symbol doc %s:%s type %s" % (p, s, objtype)
+                        "Unused symbol doc {}:{} type {}".format(p, s, objtype)
                     )
 
 
