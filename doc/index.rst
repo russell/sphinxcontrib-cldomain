@@ -341,16 +341,47 @@ Output:
 .. cl:method:: example-generic example-class :test
 
 
-Note: The output for a specializing method will include its parent generic
-function's documentation string, i.e., specializing methods inherit their
-parent generic's docstring. The ``:noinherit:`` option suppresses this
-behavior::
+Disable inheriting documentation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-       .. cl:method:: example-generic example-class :test
+Note: The output for a specializing method will include its parent
+generic function's documentation string if there is no documentation
+for the method, i.e., specializing methods will inherit their parent
+generic's docstring. The ``:noinherit:`` option suppresses this
+behavior and will result in no docstring::
+
+       .. cl:method:: example-generic example-class :test1
           :noinherit:
 
-.. cl:method:: example-generic example-class :test
+.. cl:method:: example-generic example-class :test1
    :noinherit:
+
+
+Disable listing specializers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Note: all methods will also list other specializing methods by default
+this behaviour can be disabled by passing the ``::nospecializers::``
+option::
+
+       .. cl:method:: example-generic example-class :test
+          :nospecializers:
+
+.. cl:method:: example-generic example-class :test
+   :nospecializers:
+
+
+Linking back to the generic
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Note: A link to the generic function can be added by specifying
+the ``::linkgeneric::` option::
+
+       .. cl:method:: example-generic example-class :test
+          :linkgeneric:
+
+.. cl:method:: example-generic example-class :test
+   :linkgeneric:
 
 
 Cross-references

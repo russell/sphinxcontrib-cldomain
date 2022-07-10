@@ -61,7 +61,6 @@ for example :KEYWORD."
   (list arg1 arg2 arg3))
 
 (defmethod example-generic ((arg1 example-class) (arg2 (eql :test1)) &optional arg3)
-  "The second test method."
   (list arg1 arg2 arg3))
 
 (defmethod example-generic ((arg1 example-class) (arg2 (eql :test2)) &optional arg3)
