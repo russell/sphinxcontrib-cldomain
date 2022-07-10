@@ -24,12 +24,14 @@ python_distribution(
         ":lib",
         ":docs",
     ],
+    long_description_path = "README.rst",
     provides=python_artifact(
         name="sphinxcontrib-cldomain",
         version="0.14",
         description = "Sphinx domain for Common Lisp",
         requires_python = ">=3.7",
         license = "GPLv3+",
+        long_description_content_type = "text/x-rst",
         readme = { "file": "README.rst", "content_type": "text/x-rst" },
         authors = [
             { "name": "Russell Sim", "email": "russell.sim@gmail.com" }
