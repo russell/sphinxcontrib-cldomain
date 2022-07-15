@@ -16,7 +16,20 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from sphinxcontrib.cldomain import cldomain
+
+
 def test_import():
     import sphinxcontrib.cldomain
 
     print(sphinxcontrib.cldomain)
+
+
+def test_local_atom():
+    # Test public symbols
+    assert cldomain.local_atom("foo", "foo:bar") == "bar"
+    assert cldomain.local_atom("fooo", "foo:bar") == "foo:bar"
+
+    # Test private symbols
+    assert cldomain.local_atom("foo", "foo::bar") == "bar"
+    assert cldomain.local_atom("fooo", "foo::bar") == "foo::bar"
