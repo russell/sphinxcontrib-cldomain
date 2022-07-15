@@ -56,10 +56,12 @@
 
 (test scope-symbols-in-text-with-newlines
   (let ((*current-package* *package*))
-    (is (equal "example text :cl:symbol:`~COMMON-LISP:LIST` ``CAR`` ``:KEY`` ``:ANOTHER`` ignore MORE text."
+    (is (equal "example text :cl:symbol:`~COMMON-LISP:LIST` ``CAR`` ``:KEY``
+``:ANOTHER`` ignore MORE text."
                (scope-symbols-in-text
                 "example text LIST CAR :KEY
 :ANOTHER ignore MORE text." '(car))))))
+
 
 
 (defun run-tests ()
