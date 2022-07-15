@@ -33,3 +33,9 @@ def test_local_atom():
     # Test private symbols
     assert cldomain.local_atom("foo", "foo::bar") == "bar"
     assert cldomain.local_atom("fooo", "foo::bar") == "foo::bar"
+
+
+def test_qualify_sexp():
+    assert cldomain.qualify_sexp(
+        "foo", ["test-fn", "test", "&key", ":foo"]
+    ) == ["foo:test-fn", "foo:test", "&key", "keyword:foo"]

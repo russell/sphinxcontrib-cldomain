@@ -344,6 +344,8 @@ def qualify_sexp(package: str, sexp: List[str]) -> List[str]:
     for atom in sexp:
         if atom.startswith(":"):
             sexp_ret.append("keyword" + atom)
+        elif atom.lower() in lambda_list_keywords:
+            sexp_ret.append(atom)
         elif ":" in atom:
             sexp_ret.append(atom)
         else:
