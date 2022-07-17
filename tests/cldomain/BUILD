@@ -1,0 +1,9 @@
+python_tests(
+    name="tests-cldomain",
+    dependencies=[
+        "//:lib",
+        "sphinxcontrib/cldomain:lisp_lib",
+        "tests:fixtures",
+        "tests:support",
+    ],
+)
