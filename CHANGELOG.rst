@@ -1,3 +1,9 @@
+Release 0.15 2022-07-23
+-----------------------
+* stop qualifying lambda list symbols with a package
+* fix display of method specializer links #16
+* fix labelling of link back to generic
+
 Release 0.14 2022-07-10
 -----------------------
 * convert to unix-opts, because i couldn't get clon to work
