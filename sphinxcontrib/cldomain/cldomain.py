@@ -1013,7 +1013,7 @@ class CLDomain(Domain):
 def save_cldomain_output(output: bytes):
     """Save a copy of the clgit output for debugging."""
     fd, path = tempfile.mkstemp(".log", "cldomain-err-")
-    os.write(fd, output.decode("utf-8"))
+    os.write(fd, output)
     os.close(fd)
     return path
 
