@@ -1,6 +1,10 @@
-Release 0.15.1 2022-07-24
+Release 0.15.2 2022-07-24
 -------------------------
 * fix don't decode bytes before writing them
+
+Release 0.15.1 2022-07-24
+-------------------------
+* fix decode bytes before writing them
 
 Release 0.15 2022-07-23
 -----------------------
