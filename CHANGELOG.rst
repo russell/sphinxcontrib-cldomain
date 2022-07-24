@@ -1,3 +1,7 @@
+Release 0.15.1 2022-07-24
+-------------------------
+* fix don't decode bytes before writing them
+
 Release 0.15 2022-07-23
 -----------------------
 * stop qualifying lambda list symbols with a package
