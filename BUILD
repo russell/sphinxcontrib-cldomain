@@ -27,7 +27,7 @@ python_distribution(
     long_description_path = "README.rst",
     provides=python_artifact(
         name="sphinxcontrib-cldomain",
-        version="0.15.2",
+        version="0.15.3",
         description = "Sphinx domain for Common Lisp",
         requires_python = ">=3.7",
         license = "GPLv3+",

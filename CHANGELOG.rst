@@ -1,3 +1,7 @@
+Release 0.15.3 2022-07-24
+-------------------------
+* assign *TRACE-OUTPUT* and *DEBUG-IO* to *ERROR-OUTPUT*
+
 Release 0.15.2 2022-07-24
 -------------------------
 * fix don't decode bytes before writing them
