@@ -283,6 +283,11 @@ possible symbol names."
    type
    (scope-symbols-in-text (or (documentation symbol type) ""))))
 
+(defun encode-type-documentation* (symbol type)
+  (encode-object-member
+   type
+   (scope-symbols-in-text (or (documentation symbol 'type) ""))))
+
 (defgeneric encode-object-documentation (symbol type)
   (:documentation
    "Encode documentation for a symbol as a JSON object member."))
@@ -316,8 +321,8 @@ possible symbol names."
 (defmethod encode-value-documentation (symbol (type (eql 'setf)))
   (encode-function-documentation* symbol type (or (documentation symbol 'setf) "")))
 
-(defmethod encode-value-documentation (symbol (type (eql 'type)))
-  (encode-variable-documentation* symbol type)
+(defmethod encode-value-documentation (symbol (type (eql 'class)))
+  (encode-type-documentation* symbol type)
   (as-object-member ('slots)
     (encode-object-class symbol)))
 
@@ -363,7 +368,7 @@ possible symbol names."
           ;; (format *error-output* "symbol ~S type ~S~%"symbol (symbol-function-type symbol))
           (encode-function-documentation symbol (symbol-function-type symbol)))
         (when (class-p symbol)
-          (encode-value-documentation symbol 'type))
+          (encode-value-documentation symbol 'class))
         (when (variable-p symbol)
           (encode-value-documentation symbol 'variable))))))
 

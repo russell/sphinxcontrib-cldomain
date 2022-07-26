@@ -268,19 +268,21 @@ Output:
 .. cl:macro:: example-macro
 
 
-Types (aka CLOS Classes)
-------------------------
+CLOS Class
+----------
 
-.. rst:directive:: .. cl:type:: symbol-name
+Documentation for CLOS Classes is configured like
 
-   The ``:cl:type:`` directive emits Common Lisp Object System (CLOS) class documentation::
+.. rst:directive:: .. cl:class:: symbol-name
 
-       .. cl:type:: example-class
+   The ``:cl:class:`` directive emits Common Lisp Object System (CLOS) class documentation::
+
+       .. cl:class:: example-class
 
    The ``:noinitargs:`` option can be specified to exclude the class' list of ``:initarg``
    initialzers that are ordinarily included in the class' signature::
 
-       .. cl:type:: example-class
+       .. cl:class:: example-class
           :noinitargs:
 
 
@@ -300,7 +302,7 @@ Code:
 
 Output:
 
-.. cl:type:: example-class
+.. cl:class:: example-class
 
 
 Generics and Methods
@@ -417,10 +419,10 @@ found:
    References a variable, as in ``:cl:variable:`*example-variable*``` (link:
    :cl:variable:`*example-variable*`).
 
-.. rst:role:: cl:type
+.. rst:role:: cl:class
 
-   References a type/CLOS class, as in ``:cl:type:`example-class``` (link:
-   :cl:type:`example-class`).
+   References a type/CLOS class, as in ``:cl:class:`example-class``` (link:
+   :cl:class:`example-class`).
 
 .. FIXME rst:role:: cl:method
 .. FIXME

@@ -69,7 +69,7 @@ ALL_TYPES = [
     "genericFunction",
     "setf",
     "variable",
-    "type",
+    "class",
 ]
 upper_symbols = re.compile(r"([^a-z\s\"`]*[A-Z]{2,}[^a-z\s\"`:]*)($|\s)")
 
@@ -892,7 +892,7 @@ class CLDomain(Domain):
         "function": ObjType(_("function"), "function"),
         "macro": ObjType(_("macro"), "macro"),
         "variable": ObjType(_("variable"), "variable"),
-        "type": ObjType(_("type"), "type"),
+        "class": ObjType(_("class"), "class"),
         "generic": ObjType(_("generic"), "generic"),
         "method": ObjType(_("method"), "method"),
     }
@@ -903,7 +903,7 @@ class CLDomain(Domain):
         "generic": CLGeneric,
         "macro": CLsExp,
         "variable": CLsExp,
-        "type": CLsExp,
+        "class": CLsExp,
         "method": CLMethod,
     }
 
@@ -913,7 +913,7 @@ class CLDomain(Domain):
         "generic": CLXRefRole(),
         "macro": CLXRefRole(),
         "variable": CLXRefRole(),
-        "type": CLXRefRole(),
+        "class": CLXRefRole(),
         "method": CLXRefRole(),
     }
     initial_data = {

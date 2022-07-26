@@ -1,3 +1,3 @@
 .. cl:package:: sphinxcontrib.cldomain.doc
 
-.. cl:type:: example-class
+.. cl:class:: example-class

@@ -17,7 +17,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-(defsystem :sphinxcontrib.cldomain.doc-test
+(defsystem "sphinxcontrib.cldomain.doc-test"
   :description "The documentation for the SPHINXCONTRIB.CLDOMAIN
   documentation tool."
   :components ((:static-file "sphinxcontrib.cldomain.doc-test.asd")

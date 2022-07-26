@@ -4,6 +4,8 @@ Release 0.15.4 UNRELEASED
   <https://github.com/russell/sphinxcontrib-cldomain/issues/7>`_
 * fix dictionary filter bug
 * add PDF and Info examples to documentation
+* rename type to class, in reality we are documenting classes, not
+  types.
 
 Release 0.15.3 2022-07-24
 -------------------------

@@ -19,7 +19,7 @@ from ..support.nodes import sphinx_render_file
 
 
 def test_function():
-    assert sphinx_render_file("type") == {
+    assert sphinx_render_file("class") == {
         "document": [
             {"index": []},
             {
