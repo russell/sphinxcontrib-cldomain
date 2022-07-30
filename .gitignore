@@ -16,3 +16,4 @@
 *.pyc
 /.pids/
 /.pants.d/
+/doc/build/
