@@ -187,13 +187,26 @@ def d_clparameterlist(self, node):
 
 
 def v_latex_clparameterlist(self, node):
-    self.body.append("}{")
-    self.first_param = True
+    if not hasattr(self, "parameter_stack"):
+        self.parameter_stack = []
+
+    if len(self.parameter_stack) == 0:
+        # close name, open parameterlist
+        self.body.append("}{")
+    else:
+        self.body.append(" (")
+
+    self.parameter_stack.append(node)
     self.param_separator = node.child_text_separator
 
 
 def d_latex_clparameterlist(self, node):
-    self.body.append("}{")
+    self.parameter_stack.pop()
+    if len(self.parameter_stack) == 0:
+        # close parameterlist, open return annotation
+        self.body.append("}{")
+    else:
+        self.body.append(" )")
 
 
 class desc_clparameter(addnodes.desc_parameter):
@@ -225,16 +238,18 @@ def d_html_clparameter(self, node):
 
 
 def v_latex_clparameter(self, node):
-    if not self.first_param:
+    if self.body[-1] != ("("):
         self.body.append(self.param_separator)
-    else:
-        self.first_param = False
-    if not node.hasattr("noemph"):
+    if node.hasattr("lambda_keyword") or node.hasattr("keyword"):
+        pass
+    elif not node.hasattr("noemph"):
         self.body.append(r"\emph{")
 
 
 def d_latex_clparameter(self, node):
-    if not node.hasattr("noemph"):
+    if node.hasattr("lambda_keyword") or node.hasattr("keyword"):
+        pass
+    elif not node.hasattr("noemph"):
         self.body.append("}")
 
 
@@ -457,10 +472,11 @@ class SEXP(object):
                 param["lambda_keyword"] = True
             if token.startswith(":"):
                 param["keyword"] = True
+            signode.append(param)
+            signode.append(addnodes.desc_sig_space())
         else:
             param = token
-        signode.append(param)
-        signode.append(addnodes.desc_sig_space())
+            signode.append(param)
 
 
 class CLsExp(ObjectDescription):
