@@ -61,15 +61,3 @@
                (scope-symbols-in-text
                 "example text LIST CAR :KEY
 :ANOTHER ignore MORE text." '(car))))))
-
-
-
-(defun run-tests ()
-  (let ((result-list (fiveam:run :cldomain)))
-    (explain! result-list)
-    (if (remove-if
-         (lambda (test) (equal (symbol-name (class-name (class-of test)))
-                               "TEST-PASSED"))
-         result-list)
-        (uiop:quit 1)
-        (uiop:quit 0))))
