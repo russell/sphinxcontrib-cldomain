@@ -16,26 +16,21 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-(defsystem :sphinxcontrib.cldomain
+(defsystem "sphinxcontrib.cldomain"
   :version (:read-file-form "version.lisp-expr")
-  :depends-on (:unix-opts :cl-json :alexandria :closer-mop
-               #+sbcl :sb-introspect)
-  :defsystem-depends-on (:asdf)
+  :depends-on ("unix-opts" "cl-json" "alexandria" "closer-mop"
+               #+sbcl "sb-introspect")
   :entry-point "sphinxcontrib.cldomain:main"
   :description "A documentation tool."
   :components ((:static-file "sphinxcontrib.cldomain.asd")
                (:file "package")
-               (:file "cldomain" :depends-on ("package"))))
+               (:file "cldomain" :depends-on ("package")))
+  :in-order-to ((test-op (test-op "sphinxcontrib.cldomain/test"))))
 
 
-(defmethod perform ((op asdf:test-op) (system (eql (find-system :sphinxcontrib.cldomain))))
-  (asdf:oos 'asdf:load-op :sphinxcontrib.cldomain-test)
-  (funcall (intern (string :run!) (string :it.bese.FiveAM))
-           :cldomain))
-
-
-(defsystem :sphinxcontrib.cldomain/test
-  :depends-on (:swank :sphinxcontrib.cldomain :fiveam :uiop)
-  :defsystem-depends-on (:asdf)
+(defsystem "sphinxcontrib.cldomain/test"
+  :depends-on ("swank" "sphinxcontrib.cldomain" "fiveam" "uiop")
   :description "A tests for the sphinxcontrib.cldomain documentation tool."
-  :components ((:file "test")))
+  :components ((:file "test"))
+  :in-order-to ((compile-op (load-op :sphinxcontrib.cldomain)))
+  :perform (test-op (o c) (symbol-call :fiveam '#:run! :cldomain)))
