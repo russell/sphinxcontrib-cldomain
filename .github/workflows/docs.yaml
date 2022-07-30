@@ -23,13 +23,16 @@ jobs:
           LISP: "sbcl-bin"
         run: |
           curl -L https://raw.githubusercontent.com/roswell/roswell/master/scripts/install-for-ci.sh | sh
+      - name: Install texlive
+        run: |
+          sudo apt install -y latexmk texlive-latex-base texlive-latex-extra
       - name: Build Documentation
         run: |
           ./pants package //:sphinxcontrib-cldomain
           pip install ./dist/*.tar.gz
-          ./doc/build
+          ./build_docs.sh
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./doc/html
+          publish_dir: ./doc/build/html
