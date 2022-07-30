@@ -21,6 +21,13 @@ jobs:
           LISP: ${{ matrix.lisp }}
         run: |
           curl -L https://raw.githubusercontent.com/roswell/roswell/master/scripts/install-for-ci.sh | sh
+          ros install qlot
+
+          # Install dependencies, this is caching because later on we
+          # will run a lot of things in parallel and Quicklisp can't
+          # pull dependencies in parallel without race's
+          ros -e '(ql:quickload (list "sb-introspect" "unix-opts" "cl-json" "alexandria" "closer-mop" "swank" "fiveam"))'
+
       - name: Test with pants
         run: |
           ./pants test ::
