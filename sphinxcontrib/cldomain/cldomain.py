@@ -922,7 +922,7 @@ class CLDomain(Domain):
     }
 
     def clear_doc(self, docname: str) -> None:
-        for fullname, docs in self.data["symbols"].items():
+        for fullname, docs in self.data["symbols"].copy().items():
             for (fn, _ignored) in docs:
                 if fn == docname:
                     del self.data["symbols"][fullname]
