@@ -1,3 +1,10 @@
+Release 0.15.4 UNRELEASED
+-------------------------
+* fix method arguments in PDF output closes `#7
+  <https://github.com/russell/sphinxcontrib-cldomain/issues/7>`_
+* fix dictionary filter bug
+* add PDF and Info examples to documentation
+
 Release 0.15.3 2022-07-24
 -------------------------
 * assign *TRACE-OUTPUT* and *DEBUG-IO* to *ERROR-OUTPUT*
