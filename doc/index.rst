@@ -23,16 +23,16 @@ Requirements
 Download
 --------
 
-Releases are hosted on `github`_ or `pypi`_.  The `source`_ is also available.
+Releases are available via `pypi`_ or as `git tags`_.  The `source`_ is also available.
 
 
 .. code-block:: sh
 
     pip install sphinxcontrib-cldomain
 
-.. _github: https://github.com/russell/sphinxcontrib-cldomain/releases
+.. _git tags: https://git.sr.ht/~rsl/sphinxcontrib-cldomain/refs
 .. _pypi: https://pypi.python.org/pypi/sphinxcontrib-cldomain
-.. _source: https://github.com/russell/sphinxcontrib-cldomain
+.. _source: https://git.sr.ht/~rsl/sphinxcontrib-cldomain
 
 Configuration
 -------------

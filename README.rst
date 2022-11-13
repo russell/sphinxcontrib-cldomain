@@ -12,13 +12,13 @@ symbols.
 `Documentation`_
 
 CLDomain is licensed under the `GPLv3`_. Please report any bugs in the
-GitHub `Bug Tracker`_.
+`Mailing List`_.
 
 An example of the generated documentation is the `cl-git`_ project.
 
-.. _Documentation: https://russell.github.io/sphinxcontrib-cldomain/
+.. _Documentation: https://sphinxcontrib-cldomain.russellsim.org/
 .. _rendered example: http://cl-git.russellsim.org/#CL-GIT:ENSURE-GIT-REPOSITORY-EXIST
 .. _cl-git: http://cl-git.russellsim.org/
 .. _Sphinx Documentation Generator: http://sphinx.pocoo.org/
-.. _Bug Tracker: https://github.com/russell/sphinxcontrib-cldomain/issues
+.. _Mailing List: https://lists.sr.ht/~rsl/sphinxcontrib-cldomain
 .. _GPLv3: https://www.gnu.org/licenses/gpl-3.0-standalone.html
