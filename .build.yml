@@ -1,14 +1,37 @@
 image: debian/bullseye
 arch: amd64
+secrets:
+  - 9e3bc7b6-11d3-4f20-85a0-ac35c55b0548
+  - 698684d9-bdb1-48fa-bc8c-d4795edc367e
 environment:
   ROSWELL_DIST: https://raw.githubusercontent.com/roswell/roswell/master/scripts/install-for-ci.sh
   CI: true
 packages:
-  - python3.9-full
-  - curl
-  - make
   - bzip2
+  - curl
+  - fonts-freefont-otf
+  - graphviz
+  - imagemagick
+  - jq
+  - latexmk
   - libcurl3-gnutls
+  - lmodern
+  - make
+  - python3-pip
+  - python3.9-full
+  - s3cmd
+  - tex-gyre
+  - texinfo
+  - texlive-fonts-extra
+  - texlive-fonts-recommended
+  - texlive-lang-chinese
+  - texlive-lang-cjk
+  - texlive-lang-japanese
+  - texlive-latex-extra
+  - texlive-latex-recommended
+  - texlive-luatex
+  - texlive-xetex
+  - xindy
   - zlib1g-dev
 sources:
   - https://git.sr.ht/~rsl/sphinxcontrib-cldomain
@@ -16,12 +39,21 @@ shell: false
 tasks:
   - build: |
       curl -L $ROSWELL_DIST | sh
-      export PATH="~/.roswell/bin:$PATH"
+      export PATH="$HOME/.roswell/bin:$PATH"
       ros -e '(ql:quickload (list "sb-introspect" "unix-opts" "cl-json" "alexandria" "closer-mop" "swank" "fiveam"))'
 
       cd sphinxcontrib-cldomain
       ./pants package ::
   - test: |
-      export PATH="~/.roswell/bin:$PATH"
+      export PATH="$HOME/.roswell/bin:$PATH"
       cd sphinxcontrib-cldomain
       ./pants test ::
+  - docs: |
+      export PATH="$HOME/.roswell/bin:$HOME/.local/bin:$PATH"
+      cd sphinxcontrib-cldomain
+      ./pants package ::
+
+      pip install ./dist/*.tar.gz
+      export SOURCEHUT_TOKEN=$(cat ~/.source_hut_token)
+      ./scripts/build_docs.sh
+      s3cmd sync doc/build/html/ s3://sphinxcontrib-cldomain/
