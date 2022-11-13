@@ -55,5 +55,6 @@ tasks:
 
       pip install ./dist/*.tar.gz
       export SOURCEHUT_TOKEN=$(cat ~/.source_hut_token)
+      ./scripts/update_sourcehut_readme.sh
       ./scripts/build_docs.sh
       s3cmd sync doc/build/html/ s3://sphinxcontrib-cldomain/
