@@ -1,0 +1,27 @@
+image: debian/bullseye
+arch: amd64
+environment:
+  ROSWELL_DIST: https://raw.githubusercontent.com/roswell/roswell/master/scripts/install-for-ci.sh
+  CI: true
+packages:
+  - python3.9-full
+  - curl
+  - make
+  - bzip2
+  - libcurl3-gnutls
+  - zlib1g-dev
+sources:
+  - https://git.sr.ht/~rsl/sphinxcontrib-cldomain
+shell: false
+tasks:
+  - build: |
+      curl -L $ROSWELL_DIST | sh
+      export PATH="~/.roswell/bin:$PATH"
+      ros -e '(ql:quickload (list "sb-introspect" "unix-opts" "cl-json" "alexandria" "closer-mop" "swank" "fiveam"))'
+
+      cd sphinxcontrib-cldomain
+      ./pants package ::
+  - test: |
+      export PATH="~/.roswell/bin:$PATH"
+      cd sphinxcontrib-cldomain
+      ./pants test ::
