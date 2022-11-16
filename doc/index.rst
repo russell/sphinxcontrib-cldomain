@@ -76,7 +76,7 @@ extension list, (b) telling CLDomain the systems and packages to load.
 Documenting Your Common Lisp Code
 =================================
 
-Sphinx can output HTML, :download:`latex <build/latex/cldomain.pdf>`,
+Sphinx can output HTML, :download:`pdf <build/latex/cldomain.pdf>`,
 :download:`info <build/texinfo/cldomain.info>`
 
 To test the ``info`` file you can open it in Emacs using ``C-u C-h i
