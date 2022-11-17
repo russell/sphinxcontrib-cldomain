@@ -78,7 +78,6 @@ TYPES = defaultdict(dict, {})
 ARGS = defaultdict(dict, {})
 METHODS = defaultdict(dict, {})
 SLOTS = defaultdict(dict, {})
-USED_SYMBOLS = defaultdict(dict, {})
 
 lambda_list_keywords = [
     "&allow-other-keys",
@@ -105,12 +104,6 @@ def debug_print(node):
     """Useful in pdb sessions."""
     node = node_to_dict(node)
     pprint.pprint(node)
-
-
-def record_use(package: Optional[str], symbol_name: str, objtype: str) -> None:
-    """Record unused package symbols."""
-    symbol = symbol_name.upper()
-    USED_SYMBOLS[package].setdefault(symbol, []).append(objtype)
 
 
 def bool_option(arg: None) -> bool:
@@ -554,7 +547,6 @@ class CLsExp(ObjectDescription):
         symbol_name = sig
         if not symbol_name:
             raise Exception("Unknown symbol type for signature %s" % sig)
-        record_use(package, symbol_name, self.objtype)
         return objtype.strip(), symbol_name
 
     def get_field_list(self, node):
@@ -1198,29 +1190,6 @@ def uppercase_symbols(app, docname, source):
     references."""
     for i, line in enumerate(source):
         source[i] = re.sub(upper_symbols, r":cl:symbol:`~\g<1>`\g<2>", line)
-
-
-def list_unused_symbols(app, exception):
-    if exception:
-        return None
-    # TODO (RS) this initial implementation will not be able to detect
-    # if each method specialisation has been used.
-    for p, sym_doc in DOC_STRINGS.items():
-        for s, docs in sym_doc.items():
-            for objtype in docs.keys():
-                if s in USED_SYMBOLS[p]:
-                    if objtype == "genericFunction":
-                        objtype = "generic"
-                    if objtype not in USED_SYMBOLS[p][s]:
-                        logger.warn(
-                            "Unused symbol doc {}:{} type {}".format(
-                                p, s, objtype
-                            )
-                        )
-                else:
-                    logger.warn(
-                        "Unused symbol doc {}:{} type {}".format(p, s, objtype)
-                    )
 
 
 def add_node(class_name, node, visit, depart=None):

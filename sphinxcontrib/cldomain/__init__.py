@@ -28,7 +28,6 @@ def setup(app: Sphinx) -> None:
         d_latex_clparameterlist,
         desc_clparameter,
         desc_clparameterlist,
-        list_unused_symbols,
         load_packages,
         v_clparameterlist,
         v_html_clparameter,
@@ -58,5 +57,4 @@ def setup(app: Sphinx) -> None:
     app.add_config_value("cl_show_defaults", False, True)
     app.add_config_value("cl_debug", False, "env")
     app.connect("builder-inited", load_packages)
-    app.connect("build-finished", list_unused_symbols)
     # app.connect('source-read', uppercase_symbols)
