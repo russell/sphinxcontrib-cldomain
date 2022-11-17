@@ -4,14 +4,14 @@ resources(
     name="fixtures",
     sources=[
         "fixtures/*",
-    ]
+    ],
 )
 
 resources(
     name="support",
     sources=[
         "support/*",
-    ]
+    ],
 )
 
 python_tests(
