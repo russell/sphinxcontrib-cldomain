@@ -957,10 +957,10 @@ class CLDomain(Domain):
         if generic in methods:
             if specializer in methods[generic]:
                 return [methods[generic][specializer]]
-            else:
-                logger.warning("can't find method %s" % (name), location=node)
-        else:
-            logger.warning("can't find generic %s" % (name), location=node)
+        #     else:
+        #         logger.warning("can't find method %s" % (name), location=node)
+        # else:
+        #     logger.warning("can't find generic %s" % (name), location=node)
 
     def resolve_xref(
         self,
