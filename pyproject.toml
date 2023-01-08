@@ -1,3 +1,43 @@
+[project]
+name = "sphinxcontrib-cldomain"
+version = "0.15.3"
+description = "Sphinx domain for Common Lisp"
+
+authors = [
+  { name = "Russell Sim", email = "rsl@simopolis.xyz" }
+]
+
+readme = "README.rst"
+requires-python = ">=3.7"
+license = { text = "GPL-3.0-or-later" }
+
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Environment :: Web Environment",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+  "Natural Language :: English",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Topic :: Documentation",
+  "Topic :: Utilities",
+]
+dependencies = [
+    'pygments',
+]
+
+[project.urls]
+"Homepage" = "https://sr.ht/~rsl/sphinxcontrib-cldomain/"
+"Bug Reports" = "https://todo.sr.ht/~rsl/sphinxcontrib-cldomain"
+"Source" = "https://git.sr.ht/~rsl/sphinxcontrib-cldomain"
+
+[build-system]
+requires = ["setuptools>=43.0.0"]
+build-backend = "setuptools.build_meta"
+
 [tool.black]
 line-length = 79
 
