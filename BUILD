@@ -26,6 +26,6 @@ python_distribution(
     ],
     provides=python_artifact(
         name="sphinxcontrib-cldomain",
-        version="0.15.3",
+        version="0.0.0",
     ),
 )
