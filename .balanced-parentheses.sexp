@@ -6,14 +6,13 @@
   (with-changes (:changes (changes-from-git))
     (with-semantic-version (:current (highest-git-tag))
       (setf (next-version*) (version-from-conventional-commits))
-      (write-changelog-file "CHANGELOG.rst" :rst
-                            :style :conventional-commits
-                            :header-char "-")
+      (write-changelog-file "CHANGELOG.rst"
+                            (changelog-heading :rst)
+                            (changelog-lines :rst :conventional-commits))
 
       (write-file ".git/RELEASE_CHANGELOG"
-                  (format nil "Release ~a~%~%~a"
-                          (next-version*)
-                          (changelog-lines :markdown :conventional-commits))))))
+                  (format nil "Release ~a~%~%" (next-version*))
+                  (changelog-lines :markdown :conventional-commits)))))
 
 (deftask build-release-artifacts (:summary "Build the release artifacts.")
   (run-program '("python" "-m" "build")))
