@@ -1,0 +1,8 @@
+layout python3
+
+export PANTS_DYNAMIC_UI=false
+DIR=$(readlink -f $(dirname "${BASH_SOURCE[0]}"))
+
+export PYTHONPATH=$DIR:$PYTHONPATH
+
+export CL_SOURCE_REGISTRY="$DIR/sphinxcontrib/cldomain:$DIR/doc:$CL_SOURCE_REGISTRY"
