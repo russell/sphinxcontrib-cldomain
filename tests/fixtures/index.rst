@@ -1,4 +1,4 @@
-.. cl:package:: sphinxcontrib.cldomain.doc
+.. cl:package:: sphinxcontrib.cldomain.doc-test
 
 .. cl:macro:: example-macro-ignored-doc
    :nodoc:
@@ -9,7 +9,7 @@
 
 .. cl:variable:: *example-variable-2*
 
-.. cl:type:: example-class
+.. cl:class:: example-class
 
 :cl:function:`example-function`
 :cl:generic:`example-generic`

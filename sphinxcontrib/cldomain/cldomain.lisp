@@ -18,6 +18,79 @@
 
 (defvar *current-package* nil)
 
+(defclass cldomain-base ()
+  ((name
+    :initarg :name
+    :accessor cldomain-name)
+   (documentation
+    :initarg :documentation
+    :accessor cldomain-documentation)))
+
+(defclass cldomain-variable (cldomain-base)
+  ())
+
+(defclass cldomain-slot (cldomain-base)
+  ((initarg
+    :initarg :initarg
+    :accessor cldomain-slot-initarg)
+   (readers
+    :initarg :readers
+    :accessor cldomain-slot-readers)
+   (writers
+    :initarg :writers
+    :accessor cldomain-slot-writers)
+   (type
+    :initarg :type
+    :accessor cldomain-slot-type)))
+
+
+(defclass cldomain-class (cldomain-base)
+  ((direct-superclass
+    :initarg :direct-superclasses
+    :accessor cldomain-class-direct-superclasses)
+   (metaclass
+    :initarg :metaclass
+    :accessor cldomain-class-metaclass)
+   (slots
+    :initarg :slots
+    :accessor cldomain-class-slots)))
+
+
+(defclass cldomain-function (cldomain-base)
+  ((arguments
+    :initarg :arguments
+    :accessor cldomain-symbol-arguments)
+   (type
+    :initarg :type
+    :accessor cldomain-symbol-type)))
+
+(defclass cldomain-method (cldomain-function)
+  ((specializer
+    :initarg :specializer
+    :accessor cldomain-method-specializer)))
+
+(defclass cldomain-generic (cldomain-function)
+  ((methods
+    :initarg :methods
+    :accessor cldomain-generic-methods)))
+
+(defclass cldomain-symbol ()
+  ((name
+    :initarg :name
+    :accessor cldomain-symbol-name)
+   (external
+    :initarg :external
+    :accessor cldomain-symbol-external)
+   (variable
+    :initarg :variable
+    :accessor cldomain-symbol-variable)
+   (function
+    :initarg :function
+    :accessor cldomain-symbol-function)
+   (class
+    :initarg :class
+    :accessor cldomain-symbol-class)))
+
 (defun print-message (message)
   (format t "~A~%" message))
 
@@ -109,16 +182,22 @@ is a string then just return the string."
         (t (encode-symbol atom))))
 
 (defun encode-methods (generic-function)
-  (let ((methods (closer-mop:generic-function-methods generic-function)))
-    (with-object ()
-      (dolist (method methods)
-        (let ((specializer (closer-mop:method-specializers method))
-              (lambda-list (closer-mop:method-lambda-list method)))
-          (encode-object-member
-           (mapcar #'encode-specializer specializer)
-           (scope-symbols-in-text
-            (or (documentation method t) "")
-            (simplify-arglist lambda-list))))))))
+  (let ((methods (closer-mop:generic-function-methods generic-function))
+        meth-descriptions)
+    (dolist (method methods meth-descriptions)
+      (let ((specializer (closer-mop:method-specializers method))
+            (lambda-list (closer-mop:method-lambda-list method)))
+        (push
+         (make-instance
+          'cldomain-method
+          :name (generic-function-name generic-function)
+          :type 'method
+          :arguments lambda-list
+          :specializer (mapcar #'encode-specializer specializer)
+          :documentation (scope-symbols-in-text
+                          (or (documentation method t) "")
+                          (simplify-arglist lambda-list)))
+         meth-descriptions)))))
 
 (defun intern-keyword (keyword)
   (let ((keyword (if (eql (char keyword 0) #\:)
@@ -255,76 +334,89 @@ possible symbol names."
   #+ecl   (ext:function-lambda-list symbol)
   #-(or sbcl clisp ccl ecl) (error "arglist not available for this Lisp."))
 
-(defun encode-symbol-status (symbol package)
+(defun encode-symbol-external (symbol)
   (multiple-value-bind
         (sym internal)
-      (find-symbol (symbol-name symbol) package)
+      (find-symbol (symbol-name symbol)
+                   (symbol-package symbol))
     (declare (ignore sym))
     (case internal
-      (:internal
-       (encode-object-member 'external nil))
-      (:external
-       (encode-object-member 'external t))
-      (:inherited
-       (encode-object-member 'external nil)))))
+      (:internal nil)
+      (:external t)
+      (:inherited nil))))
 
 (defun encode-function-documentation* (symbol type doc)
-  (encode-object-member
-   type
+  (make-instance
+   (if (eql type 'generic-function) 'cldomain-generic 'cldomain-function)
+   :name symbol
+   :type type
+   :arguments (format nil "~S" (arglist symbol))
+   :documentation
    (scope-symbols-in-text
-    doc
-    (simplify-arglist (arglist symbol))))
-  (encode-object-member
-   'arguments
-   (format nil "~S" (arglist symbol))))
+    doc (simplify-arglist (arglist symbol)))))
 
 (defun encode-variable-documentation* (symbol type)
-  (encode-object-member
-   type
-   (scope-symbols-in-text (or (documentation symbol type) ""))))
+  (make-instance
+   'cldomain-variable
+   :documentation (scope-symbols-in-text (or (documentation symbol type) ""))))
 
 (defun encode-type-documentation* (symbol type)
-  (encode-object-member
-   type
-   (scope-symbols-in-text (or (documentation symbol 'type) ""))))
+  (scope-symbols-in-text (or (documentation symbol 'type) "")))
 
 (defgeneric encode-object-documentation (symbol type)
   (:documentation
    "Encode documentation for a symbol as a JSON object member."))
 
+(defmethod encode-function-documentation (symbol type))
+
 (defmethod encode-function-documentation (symbol (type (eql 'function)))
-  (encode-function-documentation*
-   symbol type (or (documentation symbol type) "")))
+  (when (symbol-function-type symbol)
+   (encode-function-documentation*
+    symbol type (or (documentation symbol type) ""))))
 
 ;; CLISP-ism (might be other CL's as well): compiled functions are still
 ;; functions:
 (defmethod encode-function-documentation (symbol (type (eql 'compiled-function)))
-  (encode-function-documentation*
-   symbol 'function (or (documentation symbol 'function) "")))
+  (when (symbol-function-type symbol)
+   (encode-function-documentation*
+    symbol 'function (or (documentation symbol 'function) ""))))
 
 (defmethod encode-function-documentation (symbol (type (eql 'macro)))
-  (encode-function-documentation*
-   symbol type (or (documentation symbol 'function) "")))
+  (when (symbol-function-type symbol)
+    (encode-function-documentation*
+     symbol type (or (documentation symbol 'function) ""))))
 
 (defmethod encode-function-documentation (symbol (type (eql 'generic-function)))
-  (encode-function-documentation*
-   symbol type (or (documentation symbol 'function) ""))
-  (as-object-member ('methods)
-    (encode-methods (symbol-function symbol))))
+  (when (symbol-function-type symbol)
+    (let ((function
+           (encode-function-documentation*
+            symbol type (or (documentation symbol 'function) ""))))
+      (setf (cldomain-generic-methods function)
+            (encode-methods (symbol-function symbol)))
+      function)))
 
 (defmethod encode-function-documentation (symbol (type (eql 'cl:standard-generic-function)))
-  (encode-function-documentation symbol 'generic-function))
+  (when (symbol-function-type symbol)
+    (encode-function-documentation symbol 'generic-function)))
 
 (defmethod encode-value-documentation (symbol (type (eql 'variable)))
-  (encode-variable-documentation* symbol type))
+  (when (variable-p symbol)
+    (encode-variable-documentation* symbol type)))
 
 (defmethod encode-value-documentation (symbol (type (eql 'setf)))
-  (encode-function-documentation* symbol type (or (documentation symbol 'setf) "")))
+  (encode-function-documentation*
+   symbol type (or (documentation symbol 'setf) "")))
 
 (defmethod encode-value-documentation (symbol (type (eql 'class)))
-  (encode-type-documentation* symbol type)
-  (as-object-member ('slots)
-    (encode-object-class symbol)))
+  (when (class-p symbol)
+    (make-instance
+     'cldomain-class
+     :metaclass (class-name (class-of (find-class symbol)))
+     :documentation (encode-type-documentation* symbol type)
+     :direct-superclasses
+     (mapcar #'class-name
+             (closer-mop:class-direct-superclasses (class-of symbol)))
+     :slots (encode-object-slots symbol))))
 
 (defun symbol-function-type (symbol)
   (cond
@@ -337,17 +429,19 @@ possible symbol names."
   (loop :for slot :in (class-direct-slots (find-class class))
         :collect (car (slot-definition-initargs slot))))
 
-(defun encode-object-class (sym)
-  (with-array ()
-    (dolist (slot (class-direct-slots (find-class sym)))
-      (as-array-member ()
-        (with-object ()
-          (encode-object-member 'name (slot-definition-name slot))
-          (encode-object-member 'initarg (write-to-string (car (slot-definition-initargs slot))))
-          (encode-object-member 'readers (write-to-string (car (slot-definition-readers slot))))
-          (encode-object-member 'writers (write-to-string (car (slot-definition-writers slot))))
-          (encode-object-member 'type (write-to-string (class-name (class-of slot))))
-          (encode-object-member 'documentation (scope-symbols-in-text (or (documentation slot t) ""))))))))
+(defun encode-object-slots (sym)
+  (let (slots)
+    (dolist (slot (class-direct-slots (find-class sym)) slots)
+      (push
+       (make-instance
+        'cldomain-slot
+        :name (slot-definition-name slot)
+        :initarg (write-to-string (car (slot-definition-initargs slot)))
+        :readers (write-to-string (car (slot-definition-readers slot)))
+        :writers (write-to-string (car (slot-definition-writers slot)))
+        :type (write-to-string (class-name (class-of slot)))
+        :documentation (scope-symbols-in-text (or (documentation slot t) "")))
+       slots))))
 
 (defun class-p (symbol)
   "Return T if the symbol is a class."
@@ -359,23 +453,33 @@ possible symbol names."
   (and #+sbcl (sb-int:info :variable :kind symbol)
               (boundp symbol)))
 
-(defun symbols-to-json (&optional (package *current-package*))
-  (do-external-symbols (symbol package)
-    (as-object-member ((encode-symbol symbol))
-      (with-object ()
-        (encode-symbol-status symbol package)
-        (when (symbol-function-type symbol)
-          ;; (format *error-output* "symbol ~S type ~S~%"symbol (symbol-function-type symbol))
-          (encode-function-documentation symbol (symbol-function-type symbol)))
-        (when (class-p symbol)
-          (encode-value-documentation symbol 'class))
-        (when (variable-p symbol)
-          (encode-value-documentation symbol 'variable))))))
+(defun external-symbols (&optional (package *current-package*))
+  "Return all external symbols from a package."
+  (let (symbols)
+    (do-external-symbols (symbol package symbols)
+      (push symbol symbols))))
+
+(defun package-to-domain-model (&optional (package *current-package*))
+  (loop :for symbol :in (external-symbols package)
+        ;; :when
+        ;; :do (loop :for field :in
+        ;;           :do (push field symbol-details))
+        :collect
+        (make-instance
+         'cldomain-symbol
+         :name symbol
+         :external (encode-symbol-external symbol)
+         :variable (encode-value-documentation symbol 'variable)
+         :function (encode-function-documentation
+                    symbol (symbol-function-type symbol))
+         :class (encode-value-documentation symbol 'class))))
 
 (defun print-packages (&rest packages)
   (let ((*json-output* *standard-output*))
     (cl-json:with-object ()
       (dolist (package packages)
         (let ((*current-package*
-                (find-package (intern (string-upcase package)))))
-          (symbols-to-json))))))
+               (find-package (intern (string-upcase package)))))
+          (dolist (sym (package-to-domain-model))
+            (cl-json:as-object-member ((encode-symbol (cldomain-symbol-name sym)))
+              (cl-json:encode-json sym))))))))

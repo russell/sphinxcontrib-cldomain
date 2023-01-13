@@ -132,6 +132,7 @@ Code:
 
 Output:
 
+.. cl:package:: sphinxcontrib.cldomain.doc
 .. cl:macro:: example-macro
    :nodoc:
 

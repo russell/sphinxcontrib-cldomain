@@ -73,11 +73,7 @@ ALL_TYPES = [
 ]
 upper_symbols = re.compile(r"([^a-z\s\"`]*[A-Z]{2,}[^a-z\s\"`:]*)($|\s)")
 
-DOC_STRINGS = defaultdict(dict, {})
-TYPES = defaultdict(dict, {})
-ARGS = defaultdict(dict, {})
-METHODS = defaultdict(dict, {})
-SLOTS = defaultdict(dict, {})
+LISP_DATA = defaultdict(dict, {})
 
 lambda_list_keywords = [
     "&allow-other-keys",
@@ -150,7 +146,7 @@ def parse_specializer_symbol(symbol: str, package: str) -> str:
     """Parse symbols, for specializers."""
     symbol = symbol.upper()
     if symbol.startswith(":"):
-        return "KEYWORD" + symbol
+        return "(EQ KEYWORD%s)" % symbol
     # TODO (RS) this needs to be smarter what happens if there is an
     # internal symbol instead of an external one?
     if ":" not in symbol:
@@ -291,10 +287,9 @@ def specializer(symbol, sexp, state, package, node_type=nodes.inline):
             result.write(" ")
 
         if atom.startswith("KEYWORD:"):
-            result.write("(EQL :%s)" % atom.split(":")[-1])
+            result.write("(EQ :%s)" % atom.split(":")[-1])
         else:
             result.write(atom)
-        result.write(" ")
 
     result.write(")")
     result.seek(0)
@@ -313,6 +308,11 @@ def specializer(symbol, sexp, state, package, node_type=nodes.inline):
 def specializer_xref(
     symbol: str, sexp, inliner: Inliner, package: str, lineno: int
 ):
+    """Generate a link to a method
+
+    The output of this function is the partner to the output of
+    CLMethod.get_index_name
+    """
     result = StringIO()
     first = True
     for atom in sexp:
@@ -322,7 +322,7 @@ def specializer_xref(
             result.write(" ")
 
         if atom.startswith("KEYWORD:"):
-            result.write("(EQL :%s)" % atom.split(":")[-1])
+            result.write("(EQ :%s)" % atom.split(":")[-1])
         elif package:
             if atom.startswith(package + ":"):
                 result.write(atom.split(":")[-1])
@@ -336,7 +336,7 @@ def specializer_xref(
 
     target = "({}) <{} {}>".format(
         result.read().lower(),
-        symbol,
+        symbol.lower(),
         target,
     )
 
@@ -392,6 +392,18 @@ def get_content_node(node):
             for subsubnode in subnode:
                 if isinstance(subsubnode, addnodes.desc_content):
                     return subsubnode
+
+
+def get_lisp_object(package, name, objtype):
+    symbol = ("%s:%s" % (package, name)).upper()
+    objtype = objtype.strip()
+    if objtype == "variable":
+        return LISP_DATA[symbol]["variable"]
+    if objtype in ["function", "macro", "generic", "method"]:
+        return LISP_DATA[symbol]["function"]
+    if objtype == "class":
+        return LISP_DATA[symbol]["class"]
+    # Should error
 
 
 class SpecializerField(Field):
@@ -509,40 +521,43 @@ class CLsExp(ObjectDescription):
         sig_split = sig.split(" ")
         sig = sig_split[0]
         signode.append(addnodes.desc_annotation(objtype, objtype))
-        lisp_args = ARGS[package].get(sig.upper(), "")
+        lispobj = get_lisp_object(package, sig, objtype)
         function_name = addnodes.desc_name(sig, sig)
 
-        if not lisp_args.strip() and self.objtype in ["function"]:
-            lisp_args = "()"
-        if lisp_args.strip():
-            types = []
-            if self.objtype in ["method"]:
-                types = self.arguments[0].split(" ")[1:]
-            sexp = SEXP(
-                lisp_args,
-                types=types,
-                show_defaults=self.env.app.config.cl_show_defaults,
-                package=self.env.temp_data.get("cl:package"),
-            )
-            arg_list = sexp.as_parameterlist(function_name)
-            signode.append(arg_list)
+        if self.objtype in ["method", "macro", "function", "generic"]:
+            lisp_args = lispobj["arguments"]
+            if not lisp_args.strip() and self.objtype in ["function"]:
+                lisp_args = "()"
+            if lisp_args.strip():
+                types = []
+                if self.objtype in ["method"]:
+                    types = self.arguments[0].split(" ")[1:]
+                sexp = SEXP(
+                    lisp_args,
+                    types=types,
+                    show_defaults=self.env.app.config.cl_show_defaults,
+                    package=self.env.temp_data.get("cl:package"),
+                )
+                arg_list = sexp.as_parameterlist(function_name)
+                signode.append(arg_list)
         else:
             signode.append(function_name)
 
-        # Add Slots
-        slots = SLOTS[package].get(sig.upper())
-        if slots and "noinitargs" not in self.options:
-            # TODO add slot details if describing a class
-            for slot in slots:
-                initarg = slot.get("initarg")
-                if initarg and initarg.lower() != "nil":
-                    slotarg = addnodes.literal_emphasis(
-                        slot.get("name"), slot.get("name")
-                    )
-                    slotsig = initarg.lower() + " "
-                    signode.append(
-                        addnodes.desc_optional(slotsig, slotsig, slotarg)
-                    )
+        if self.objtype == "class":
+            # Add CLOS Slots
+            slots = lispobj["slots"]
+            if slots and "noinitargs" not in self.options:
+                # TODO add slot details if describing a class
+                for slot in slots:
+                    initarg = slot.get("initarg")
+                    if initarg and initarg.lower() != "nil":
+                        slotarg = addnodes.literal_emphasis(
+                            slot.get("name"), slot.get("name")
+                        )
+                        slotsig = initarg.lower() + " "
+                        signode.append(
+                            addnodes.desc_optional(slotsig, slotsig, slotarg)
+                        )
 
         symbol_name = sig
         if not symbol_name:
@@ -617,13 +632,7 @@ class CLsExp(ObjectDescription):
                 "No package specified for symbol %s." % name
             )
             return
-        try:
-            string = self.cl_doc_string()
-        except KeyError:
-            string = ""
-            self.state_machine.reporter.warning(
-                "Can't find symbol {}:{}".format(package, name)
-            )
+        string = self.cl_doc_string()
         if not string:
             return
         lines = string2lines(string) + [""]
@@ -636,11 +645,16 @@ class CLsExp(ObjectDescription):
         """
         package = self.env.temp_data.get("cl:package")
         name = self.cl_symbol_name()
+        self.state_machine.reporter.warning("doing something for  %s" % name)
         objtype = objtype or self.objtype
-        possible_strings = DOC_STRINGS[package][name]
+        lispobj = get_lisp_object(package, name, objtype)
+        if "documentation" in lispobj:
+            return lispobj["documentation"]
 
-        string = possible_strings.get(objtype, "")
-        return string
+        self.state_machine.reporter.warning(
+            "Can't find symbol {}:{}".format(package, name)
+        )
+        return ""
 
 
 class CLGeneric(CLsExp):
@@ -654,7 +668,8 @@ class CLGeneric(CLsExp):
     def run_add_specializers(self, result):
         package = self.env.temp_data.get("cl:package")
         name = self.cl_symbol_name()
-        specializers = METHODS[package].get(name, {}).keys()
+        lispobj = get_lisp_object(package, name, self.objtype)
+        specializers = [m["specializer"] for m in lispobj["methods"]]
         # import pdb; pdb.set_trace()
 
         # self.lineno  <- is the line number
@@ -725,17 +740,27 @@ class CLMethod(CLGeneric):
         ),
     ]
 
-    def get_index_name(self, name, type):
+    def cl_method_index_name(self):
+        """"""
         package = self.env.temp_data.get("cl:package")
-        specializer = self.arguments
-        spec_args = qualify_sexp(package, specializer[0].split(" ")[1:])
-        specializer = " ".join(spec_args)
-        return type + ":" + name + "(" + specializer.lower() + ")"
+
+        # Trim off the method name
+        specializer = self.arguments[0].split(" ")
+        specializer = " ".join(parse_specializer_symbol(sym, package)
+                               for sym in specializer).lower()
+        return specializer
+
+    def get_index_name(self, name, type):
+        """Generate a name that will be used to create anchors on the page for
+        each method."""
+        return type + ":" + self.cl_method_index_name()
 
     def get_index_text(self, name, type):
+        package = self.env.temp_data.get("cl:package")
         specializer = self.arguments
         spec_args = specializer[0].split(" ")[1:]
-        specializer = " ".join(spec_args)
+        specializer = " ".join(parse_specializer_symbol(sym, package)
+                               for sym in spec_args).lower()
         return _("%s (%s) (Lisp %s)") % (
             name.lower().split(":")[-1],
             specializer.lower(),
@@ -769,9 +794,11 @@ class CLMethod(CLGeneric):
             #         'duplicate symbol description of %s, ' % name +
             #         'other instance in ' + self.env.doc2path(inv[name][0]),
             #         line=self.lineno)
-            sig = " ".join(
-                qualify_sexp(package.lower(), sig.split(" ")[1:])
-            )  # trim method name
+
+            sig = self.cl_method_index_name()
+            # sig = " ".join(tuple(parse_specializer_symbol(sym, package)
+            #                      for       in sig.split(" ")
+            #    )
             if name in inv:
                 inv[name][sig] = (self.env.docname, self.objtype)
             else:
@@ -793,16 +820,21 @@ class CLMethod(CLGeneric):
 
         specializer = self.arguments
         spec = specializer[0].split(" ")[1:]
-        method_doc = METHODS[package].get(name, {})
+
+        lispobj = get_lisp_object(package, name, "method")
         key = tuple(parse_specializer_symbol(sym, package) for sym in spec)
-        if key not in method_doc:
+        doc = ""
+        try:
+            method = next(m for m in lispobj["methods"]
+                          if tuple(m["specializer"]) == key)
+            doc = method["documentation"]
+        except StopIteration:
+            specializers = [m["specializer"] for m in lispobj["methods"]]
             self.state_machine.reporter.warning(
                 "Can't find method %s:%s specializer %s, "
                 "available specializers are %s"
-                % (package, name, key, method_doc.keys())
+                % (package, name, key, specializers)
             )
-        doc = method_doc.get(key, "")
-
         if doc:
             return doc
 
@@ -819,7 +851,7 @@ class CLMethod(CLGeneric):
             # TODO (RS) this will probably be removed in the future.
             spec = specializer(
                 self.cl_symbol_name(),
-                self.arguments[0].split()[1:],
+                [self.cl_symbol_name()],
                 self.state,
                 package=package,
             )
@@ -953,14 +985,14 @@ class CLDomain(Domain):
         name = name.lower()
         sexp = name.split(" ")
         generic = sexp[0]
-        specializer = " ".join(sexp[1:])
+        specializer = " ".join(sexp)
         if generic in methods:
             if specializer in methods[generic]:
                 return [methods[generic][specializer]]
-        #     else:
-        #         logger.warning("can't find method %s" % (name), location=node)
-        # else:
-        #     logger.warning("can't find generic %s" % (name), location=node)
+            else:
+                logger.warning("can't find method %s" % (name), location=node)
+        else:
+            logger.warning("can't find generic %s" % (name), location=node)
 
     def resolve_xref(
         self,
@@ -999,10 +1031,10 @@ class CLDomain(Domain):
         if " " in target:
             sexp = target.split(" ")
             generic = sexp[0].lower()
-            specializer = " ".join(sexp[1:])
+            specializer = " ".join(sexp).lower()
             name = generic
             filename = matches[0][0]  # the first filename
-            link = "method" + ":" + generic + "(" + specializer + ")"
+            link = "method" + ":" + specializer
         else:
             name = matches[0][0]  # the symbol name
             filename = matches[0][1][0][0]  # the first filename
@@ -1063,84 +1095,7 @@ def index_packages(
             file=sys.stderr,
         )
         raise
-
-    for k, v in lisp_data.items():
-        symbol_name = k.split(":")
-        package, name = symbol_name[0], symbol_name[-1]
-        # extract doc strings
-        DOC_STRINGS[package][name] = {}
-        for type in ALL_TYPES:
-            if type not in v:
-                continue
-            # XXX This isn't the best, the objtype is generic but the
-            # docstring will be under genericFunction because of the JSON
-            # encoder and changing the directive name doesn't seem to help
-            # either.
-            if type == "genericFunction":
-                cl_type = "generic"
-            else:
-                cl_type = type
-
-            # enable symbol references for symbols
-            DOC_STRINGS[package][name][cl_type] = v[type]
-
-        # extract methods
-        if "methods" in v:
-
-            def parse_method(method):
-                sexp = []
-                for atom in json.loads(method):
-                    if atom.startswith("("):
-                        eql = _read(atom)
-                        sexp.append(eql[-1])
-                    else:
-                        sexp.append(atom)
-                return tuple(sexp)
-
-            def parse_doc(doc):
-                if doc is None:
-                    doc = ""
-                return doc
-
-            methods = {
-                parse_method(method): parse_doc(doc)
-                for method, doc in v["methods"].items()
-            }
-            METHODS[package][name] = methods
-
-        # extract slots
-        if "slots" in v:
-            SLOTS[package][name] = v["slots"]
-
-    def lower_symbols(text):
-        if '"' in text:
-            return text
-
-        symbol_name = text.split(":")
-        if len(symbol_name) > 1:
-            spackage, symbol = symbol_name[0], symbol_name[-1]
-        else:
-            spackage = ""
-            symbol = ""
-
-        if spackage.upper() in packages:
-            return symbol.lower()
-
-        return text.lower()
-
-    # extract arguments
-    packages = map(operator.methodcaller("upper"), packages)
-    for k, v in lisp_data.items():
-        spackage, symbol = k.split(":")
-        if not v.get("arguments"):
-            pass
-        elif v["arguments"] == "NIL":
-            ARGS[spackage][symbol] = ""
-        else:
-            v_arg = v["arguments"].replace("(", " ( ").replace(")", " ) ")
-            ARGS[spackage][symbol] = " ".join(
-                map(lower_symbols, v_arg.split(" "))
-            )
+    LISP_DATA.update(lisp_data)
 
 
 def load_packages(app: Sphinx) -> None:

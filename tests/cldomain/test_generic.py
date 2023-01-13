@@ -19,7 +19,10 @@ from ..support.nodes import sphinx_render_file
 
 
 def test_generic():
-    assert sphinx_render_file("generic") == {
+    result = sphinx_render_file("generic")
+    # import pprint
+    # pprint.pp(result)
+    assert result == {
         "document": [
             {"index": []},
             {
@@ -28,14 +31,18 @@ def test_generic():
                     {
                         "desc_content": [
                             {
-                                "paragraph": (
-                                    "Example generic CL Domain\n"
-                                    "Reference :cl:symbol:`~SPHINXCONTRIB.CLDOMAIN.DOC-TEST:EXAMPLE-FUNCTION`\n"
-                                    "Package references :cl:symbol:`~COMMON-LISP:CDR`\n"
-                                    "Hyperspec :cl:symbol:`~COMMON-LISP:LIST`\n"
-                                    "Arguments ``ARG1``, ``ARG2`` and ``ARG3``\n"
-                                    "Keyword ``:TEST``"
-                                )
+                                "paragraph": "Example generic CL "
+                                "Domain\n"
+                                "Reference "
+                                ":cl:symbol:`~SPHINXCONTRIB.CLDOMAIN.DOC-TEST:EXAMPLE-FUNCTION`\n"
+                                "Package references "
+                                ":cl:symbol:`~COMMON-LISP:CDR`\n"
+                                "Hyperspec "
+                                ":cl:symbol:`~COMMON-LISP:LIST`\n"
+                                "Arguments ``ARG1``, "
+                                "``ARG2`` and "
+                                "``ARG3``\n"
+                                "Keyword ``:TEST``"
                             },
                             {
                                 "field_list": [
@@ -49,28 +56,35 @@ def test_generic():
                                                             {
                                                                 "list_item": [
                                                                     {
-                                                                        "inline": "(example-class common-lisp:t)"
+                                                                        "inline": "(example-class "
+                                                                        "(eq "
+                                                                        "keyword:test))"
                                                                     }
                                                                 ]
                                                             },
                                                             {
                                                                 "list_item": [
                                                                     {
-                                                                        "inline": "(example-class (eql :test2))"
+                                                                        "inline": "(example-class "
+                                                                        "(eq "
+                                                                        "keyword:test1))"
                                                                     }
                                                                 ]
                                                             },
                                                             {
                                                                 "list_item": [
                                                                     {
-                                                                        "inline": "(example-class (eql :test1))"
+                                                                        "inline": "(example-class "
+                                                                        "(eq "
+                                                                        "keyword:test2))"
                                                                     }
                                                                 ]
                                                             },
                                                             {
                                                                 "list_item": [
                                                                     {
-                                                                        "inline": "(example-class (eql :test))"
+                                                                        "inline": "(example-class "
+                                                                        "common-lisp:t)"
                                                                     }
                                                                 ]
                                                             },
@@ -86,5 +100,5 @@ def test_generic():
                     },
                 ]
             },
-        ],
+        ]
     }

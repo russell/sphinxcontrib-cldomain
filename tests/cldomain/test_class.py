@@ -19,13 +19,16 @@ from ..support.nodes import sphinx_render_file
 
 
 def test_function():
-    assert sphinx_render_file("class") == {
+    result = sphinx_render_file("class")
+    # import pprint
+    # pprint.pp(result)
+    assert result == {
         "document": [
             {"index": []},
             {
                 "desc": [
                     {"desc_signature": "example-class"},
-                    {"desc_content": []},
+                    {"desc_content": [{"paragraph": "An example class."}]},
                 ]
             },
         ]

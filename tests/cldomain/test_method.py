@@ -19,7 +19,10 @@ from ..support.nodes import sphinx_render_file
 
 
 def test_method():
-    assert sphinx_render_file("method") == {
+    result = sphinx_render_file("method")
+    # import pprint
+    # pprint.pp(result)
+    assert result == {
         "document": [
             {"index": []},
             {
@@ -47,28 +50,35 @@ def test_method():
                                                             {
                                                                 "list_item": [
                                                                     {
-                                                                        "inline": "(example-class common-lisp:t)"
+                                                                        "inline": "(example-class "
+                                                                        "(eq "
+                                                                        "keyword:test))"
                                                                     }
                                                                 ]
                                                             },
                                                             {
                                                                 "list_item": [
                                                                     {
-                                                                        "inline": "(example-class (eql :test2))"
+                                                                        "inline": "(example-class "
+                                                                        "(eq "
+                                                                        "keyword:test1))"
                                                                     }
                                                                 ]
                                                             },
                                                             {
                                                                 "list_item": [
                                                                     {
-                                                                        "inline": "(example-class (eql :test1))"
+                                                                        "inline": "(example-class "
+                                                                        "(eq "
+                                                                        "keyword:test2))"
                                                                     }
                                                                 ]
                                                             },
                                                             {
                                                                 "list_item": [
                                                                     {
-                                                                        "inline": "(example-class (eql :test))"
+                                                                        "inline": "(example-class "
+                                                                        "common-lisp:t)"
                                                                     }
                                                                 ]
                                                             },
@@ -85,80 +95,15 @@ def test_method():
                     },
                 ]
             },
-        ],
+        ]
     }
 
 
 def test_method_noinherit():
+    result = sphinx_render_file("method_noinherit")
+    # import pprint
+    # pprint.pp(result)
     assert sphinx_render_file("method_noinherit") == {
-        "document": [
-            {"index": []},
-            {
-                "desc": [
-                    {"desc_signature": "example-generic example-class :test"},
-                    {
-                        "desc_content": [
-                            {
-                                "paragraph": "This is the first "
-                                "specialized version "
-                                "of example-generic."
-                            },
-                            {
-                                "field_list": [
-                                    {
-                                        "field": [
-                                            {"field_name": "Specializers"},
-                                            {
-                                                "field_body": [
-                                                    {
-                                                        "bullet_list": [
-                                                            {
-                                                                "list_item": [
-                                                                    {
-                                                                        "inline": "(example-class common-lisp:t)"
-                                                                    }
-                                                                ]
-                                                            },
-                                                            {
-                                                                "list_item": [
-                                                                    {
-                                                                        "inline": "(example-class (eql :test2))"
-                                                                    }
-                                                                ]
-                                                            },
-                                                            {
-                                                                "list_item": [
-                                                                    {
-                                                                        "inline": "(example-class (eql :test1))"
-                                                                    }
-                                                                ]
-                                                            },
-                                                            {
-                                                                "list_item": [
-                                                                    {
-                                                                        "inline": "(example-class (eql :test))"
-                                                                    }
-                                                                ]
-                                                            },
-                                                        ]
-                                                    }
-                                                ]
-                                            },
-                                        ]
-                                    }
-                                ]
-                            },
-                            {"field_list": []},
-                        ]
-                    },
-                ],
-            },
-        ],
-    }
-
-
-def test_method_linkgeneric():
-    assert sphinx_render_file("method_linkgeneric") == {
         "document": [
             {"index": []},
             {
@@ -186,28 +131,116 @@ def test_method_linkgeneric():
                                                             {
                                                                 "list_item": [
                                                                     {
-                                                                        "inline": "(example-class common-lisp:t)"
+                                                                        "inline": "(example-class "
+                                                                        "(eq "
+                                                                        "keyword:test))"
                                                                     }
                                                                 ]
                                                             },
                                                             {
                                                                 "list_item": [
                                                                     {
-                                                                        "inline": "(example-class (eql :test2))"
+                                                                        "inline": "(example-class "
+                                                                        "(eq "
+                                                                        "keyword:test1))"
                                                                     }
                                                                 ]
                                                             },
                                                             {
                                                                 "list_item": [
                                                                     {
-                                                                        "inline": "(example-class (eql :test1))"
+                                                                        "inline": "(example-class "
+                                                                        "(eq "
+                                                                        "keyword:test2))"
                                                                     }
                                                                 ]
                                                             },
                                                             {
                                                                 "list_item": [
                                                                     {
-                                                                        "inline": "(example-class (eql :test))"
+                                                                        "inline": "(example-class "
+                                                                        "common-lisp:t)"
+                                                                    }
+                                                                ]
+                                                            },
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                        ]
+                                    }
+                                ]
+                            },
+                            {"field_list": []},
+                        ]
+                    },
+                ]
+            },
+        ]
+    }
+
+
+def test_method_linkgeneric():
+    result = sphinx_render_file("method_linkgeneric")
+    # import pprint
+    # pprint.pp(result)
+    assert result == {
+        "document": [
+            {"index": []},
+            {
+                "desc": [
+                    {
+                        "desc_signature": "example-generic example-class "
+                        ":test"
+                    },
+                    {
+                        "desc_content": [
+                            {
+                                "paragraph": "This is the first "
+                                "specialized version "
+                                "of example-generic."
+                            },
+                            {
+                                "field_list": [
+                                    {
+                                        "field": [
+                                            {"field_name": "Specializers"},
+                                            {
+                                                "field_body": [
+                                                    {
+                                                        "bullet_list": [
+                                                            {
+                                                                "list_item": [
+                                                                    {
+                                                                        "inline": "(example-class "
+                                                                        "(eq "
+                                                                        "keyword:test))"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            {
+                                                                "list_item": [
+                                                                    {
+                                                                        "inline": "(example-class "
+                                                                        "(eq "
+                                                                        "keyword:test1))"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            {
+                                                                "list_item": [
+                                                                    {
+                                                                        "inline": "(example-class "
+                                                                        "(eq "
+                                                                        "keyword:test2))"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            {
+                                                                "list_item": [
+                                                                    {
+                                                                        "inline": "(example-class "
+                                                                        "common-lisp:t)"
                                                                     }
                                                                 ]
                                                             },
@@ -227,7 +260,7 @@ def test_method_linkgeneric():
                                             {
                                                 "field_body": [
                                                     {
-                                                        "inline": "(example-class  :test )"
+                                                        "inline": "(example-generic)"
                                                     }
                                                 ]
                                             },
@@ -239,12 +272,14 @@ def test_method_linkgeneric():
                     },
                 ]
             },
-        ],
+        ]
     }
 
 
 def test_method_nospecializers():
     result = sphinx_render_file("method_nospecializers")
+    # import pprint
+    # pprint.pp(result)
     assert result == {
         "document": [
             {"index": []},
