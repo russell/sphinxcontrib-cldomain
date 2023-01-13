@@ -8,7 +8,8 @@
       (setf (next-version*) (version-from-conventional-commits))
       (write-changelog-file "CHANGELOG.rst"
                             (changelog-heading :rst)
-                            (changelog-lines :rst :conventional-commits))
+                            (changelog-lines :rst :conventional-commits
+                                             :header-char "~"))
 
       (write-file ".git/RELEASE_CHANGELOG"
                   (format nil "Release ~a~%~%" (next-version*))

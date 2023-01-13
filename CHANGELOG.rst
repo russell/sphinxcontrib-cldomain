@@ -2,7 +2,7 @@
 -------------------
 
 Minor Fixes
-^^^^^^^^^^^
+~~~~~~~~~~~
 
 * add missing roswell file
 
@@ -10,7 +10,7 @@ Minor Fixes
 -------------------
 
 Minor Fixes
-^^^^^^^^^^^
+~~~~~~~~~~~
 
 * add back files missing from dist
 
@@ -18,12 +18,12 @@ Minor Fixes
 -------------------
 
 Features
-^^^^^^^^
+~~~~~~~~
 
 * rename type to class
 
 Minor Fixes
-^^^^^^^^^^^
+~~~~~~~~~~~
 
 * fix method arguments in PDF output closes `#7
   <https://github.com/russell/sphinxcontrib-cldomain/issues/7>`_
@@ -35,7 +35,7 @@ Minor Fixes
 * disable more warnings
 
 Documentation
-^^^^^^^^^^^^^
+~~~~~~~~~~~~~
 
 * add PDF and Info examples to documentation
 * update changelog
@@ -44,18 +44,18 @@ Documentation
 * fix reference to pdf
 
 Tests
-^^^^^
+~~~~~
 
 * add tests for types, clos classes
 * hookup lisp tests
 
 Build Tooling
-^^^^^^^^^^^^^
+~~~~~~~~~~~~~
 
 * migrate from pants to pyproject for building
 
 Cleanups
-^^^^^^^^
+~~~~~~~~
 
 * modernise system definition
 
