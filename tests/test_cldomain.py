@@ -33,7 +33,14 @@ def test_specializer_qualify_symbols():
         ["test-fn", "test", "&key", ":foo"], "foo"
     ) == ["FOO:TEST-FN", "FOO:TEST", "&KEY", "(EQ KEYWORD:FOO)"]
 
+
 def test_specializer_unqualify_symbols():
     assert cldomain.specializer_unqualify_symbols(
         ["foo:test-fn", "foo:test", "&key", "(eq keyword:foo)"], "foo"
     ) == ["TEST-FN", "TEST", "&KEY", "(EQ :FOO)"]
+
+
+def test_specializer_to_rst_input():
+    assert cldomain.specializer_to_rst_input(
+        ["foo:test-fn", "foo:test", "&key", "(eq keyword:foo)"], "foo"
+    ) == ["TEST-FN", "TEST", "&KEY", ":FOO"]

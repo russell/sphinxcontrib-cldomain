@@ -305,6 +305,26 @@ def specializer_unqualify_symbols(
     return [qualify(symbol).upper() for symbol in symbols]
 
 
+def specializer_to_rst_input(
+    symbols: List[str], package: Optional[str]
+) -> List[str]:
+    """Unqualify symbols, for specializers, converting them into the format
+    that would be given if it was an RST directive."""
+
+    def qualify(sym):
+        symbol = sym
+        if symbol.upper().startswith("(EQ KEYWORD:"):
+            return symbol.upper().replace("(EQ KEYWORD:", ":").replace(")", "")
+        # TODO (RS) this needs to be smarter what happens if there is an
+        # internal symbol instead of an external one?
+        if package and symbol.startswith(package + ":"):
+            return symbol.split(":")[-1]
+        else:
+            return symbol
+
+    return [qualify(symbol).upper() for symbol in symbols]
+
+
 def specializer_list_to_sexp_ref(
     sexp: List[str], package: Optional[str]
 ) -> str:
@@ -356,6 +376,25 @@ def specializer_xref(
     target = " ".join([a.lower() for a in sexp])
     target = "({}) <{} {}>".format(
         result,
+        symbol.lower(),
+        target,
+    )
+    xref = ":cl:method:`{}`".format(target)
+    node = CLXRefRole()("cl:method", xref, target, lineno, inliner)
+    return nodes.inline("", "", node[0][0])
+
+
+def specializer_name_xref(
+    symbol: str, sexp, inliner: Inliner, package: str, lineno: int
+):
+    """Generate a link to a method.
+
+    The output of this function is the partner to the output of
+    CLMethod.get_index_name
+    """
+    target = " ".join([a.lower() for a in sexp])
+    target = "{} <{} {}>".format(
+        local_atom(package, symbol.lower()),
         symbol.lower(),
         target,
     )
@@ -441,12 +480,13 @@ class SEXP(object):
         self.types = types
         if self.types:
             for i, type in enumerate(self.types):
+                type_name = type.lower()
                 type_node = addnodes.pending_xref(
                     "", refdomain="cl", reftype="type", reftarget=type
                 )
                 # type = " " + type
-                type_node += addnodes.desc_type(type, type)
-                self.sexp[i] = [self.sexp[i], type_node]
+                type_node += addnodes.desc_type(type_name, type_name)
+                self.sexp[i] = [self.sexp[i].lower(), type_node]
         self.show_defaults = show_defaults
         self.show_defaults = True
         self.package = package
@@ -521,8 +561,7 @@ class CLsExp(ObjectDescription):
     ) -> Tuple[str, str]:
         package = self.env.temp_data.get("cl:package")
         objtype = self.get_signature_prefix(sig)
-        sig_split = sig.split(" ")
-        sig = sig_split[0]
+        sig = sig.split(" ")[0]
         signode.append(addnodes.desc_annotation(objtype, objtype))
         lispobj = get_lisp_object(package, sig, objtype)
         function_name = addnodes.desc_name(sig, sig)
@@ -675,29 +714,44 @@ class CLGeneric(CLsExp):
         specializers = [m["specializer"] for m in lispobj["methods"]]
         # import pdb; pdb.set_trace()
 
-        # self.lineno  <- is the line number
-        if specializers:
-            spec = nodes.bullet_list()
-            for s in specializers:
-                spec_xref = specializer_xref(
-                    package + ":" + name,
-                    s,
-                    self.state.inliner,
-                    package,
-                    self.lineno,
-                )
-                item = nodes.list_item("", spec_xref)
-                spec.append(item)
-
-            field_list = self.get_field_list(result)
-            field_list.append(
-                nodes.field(
-                    "",
-                    nodes.field_name("", "Specializers"),
-                    nodes.field_body("", spec),
-                )
-            )
         return result
+
+    def transform_content(self, contentnode: addnodes.desc_content) -> None:
+        if self.objtype != "generic":
+            return
+        package = self.env.temp_data.get("cl:package")
+        name = self.cl_symbol_name()
+        lispobj = get_lisp_object(package, name, self.objtype)
+        dl = addnodes.desc()
+        dd = addnodes.desc_content()
+        dd.append(dl)
+        contentnode.children.insert(0, dl)
+        for method in lispobj["methods"]:
+            signode = addnodes.desc_signature("", "")
+            signode.append(addnodes.desc_annotation("method", "method"))
+            arguments = method["arguments"]
+            name = local_atom(package, method["name"]).lower()
+            ref = specializer_name_xref(
+                method["name"],
+                method["specializer"],
+                self.state.inliner,
+                package,
+                self.lineno,
+            )
+            function_name = addnodes.desc_name()
+            function_name.append(ref)
+            types = specializer_unqualify_symbols(
+                method["specializer"], package
+            )
+            sexp = SEXP(
+                arguments.lower(),
+                types=types,
+                show_defaults=self.env.app.config.cl_show_defaults,
+                package=self.env.temp_data.get("cl:package"),
+            )
+            arg_list = sexp.as_parameterlist(function_name)
+            signode.append(arg_list)
+            dl.append(signode)
 
     def run(self) -> List[Node]:
         result = super(CLGeneric, self).run()

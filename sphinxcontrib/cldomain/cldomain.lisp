@@ -190,9 +190,9 @@ is a string then just return the string."
         (push
          (make-instance
           'cldomain-method
-          :name (generic-function-name generic-function)
+          :name (prin1-to-string (generic-function-name generic-function))
           :type 'method
-          :arguments lambda-list
+          :arguments (format nil "~S" lambda-list)
           :specializer (mapcar #'encode-specializer specializer)
           :documentation (scope-symbols-in-text
                           (or (documentation method t) "")
@@ -348,7 +348,7 @@ possible symbol names."
 (defun encode-function-documentation* (symbol type doc)
   (make-instance
    (if (eql type 'generic-function) 'cldomain-generic 'cldomain-function)
-   :name symbol
+   :name (prin1-to-string symbol)
    :type type
    :arguments (format nil "~S" (arglist symbol))
    :documentation
@@ -436,6 +436,8 @@ possible symbol names."
        (make-instance
         'cldomain-slot
         :name (slot-definition-name slot)
+        ;; TODO this probably needs to change to this
+        ;; (prin1-to-string (slot-definition-name slot))
         :initarg (write-to-string (car (slot-definition-initargs slot)))
         :readers (write-to-string (car (slot-definition-readers slot)))
         :writers (write-to-string (car (slot-definition-writers slot)))
