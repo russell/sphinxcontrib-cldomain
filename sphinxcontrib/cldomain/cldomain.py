@@ -291,6 +291,8 @@ def specializer_unqualify_symbols(
 
     def qualify(sym):
         symbol = sym
+        if symbol.upper().startswith("(EQ KEYWORD:"):
+            return symbol.upper().replace("(EQ KEYWORD:", "(EQ :")
         if symbol.startswith(":"):
             return "(EQ %s)" % symbol
         # TODO (RS) this needs to be smarter what happens if there is an

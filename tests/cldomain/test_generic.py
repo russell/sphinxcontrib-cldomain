@@ -58,7 +58,7 @@ def test_generic():
                                                                     {
                                                                         "inline": "(example-class "
                                                                         "(eq "
-                                                                        "keyword:test))"
+                                                                        ":test))"
                                                                     }
                                                                 ]
                                                             },
@@ -67,7 +67,7 @@ def test_generic():
                                                                     {
                                                                         "inline": "(example-class "
                                                                         "(eq "
-                                                                        "keyword:test1))"
+                                                                        ":test1))"
                                                                     }
                                                                 ]
                                                             },
@@ -76,7 +76,7 @@ def test_generic():
                                                                     {
                                                                         "inline": "(example-class "
                                                                         "(eq "
-                                                                        "keyword:test2))"
+                                                                        ":test2))"
                                                                     }
                                                                 ]
                                                             },

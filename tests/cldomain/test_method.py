@@ -52,7 +52,7 @@ def test_method():
                                                                     {
                                                                         "inline": "(example-class "
                                                                         "(eq "
-                                                                        "keyword:test))"
+                                                                        ":test))"
                                                                     }
                                                                 ]
                                                             },
@@ -61,7 +61,7 @@ def test_method():
                                                                     {
                                                                         "inline": "(example-class "
                                                                         "(eq "
-                                                                        "keyword:test1))"
+                                                                        ":test1))"
                                                                     }
                                                                 ]
                                                             },
@@ -70,7 +70,7 @@ def test_method():
                                                                     {
                                                                         "inline": "(example-class "
                                                                         "(eq "
-                                                                        "keyword:test2))"
+                                                                        ":test2))"
                                                                     }
                                                                 ]
                                                             },
@@ -133,7 +133,7 @@ def test_method_noinherit():
                                                                     {
                                                                         "inline": "(example-class "
                                                                         "(eq "
-                                                                        "keyword:test))"
+                                                                        ":test))"
                                                                     }
                                                                 ]
                                                             },
@@ -142,7 +142,7 @@ def test_method_noinherit():
                                                                     {
                                                                         "inline": "(example-class "
                                                                         "(eq "
-                                                                        "keyword:test1))"
+                                                                        ":test1))"
                                                                     }
                                                                 ]
                                                             },
@@ -151,7 +151,7 @@ def test_method_noinherit():
                                                                     {
                                                                         "inline": "(example-class "
                                                                         "(eq "
-                                                                        "keyword:test2))"
+                                                                        ":test2))"
                                                                     }
                                                                 ]
                                                             },
@@ -214,7 +214,7 @@ def test_method_linkgeneric():
                                                                     {
                                                                         "inline": "(example-class "
                                                                         "(eq "
-                                                                        "keyword:test))"
+                                                                        ":test))"
                                                                     }
                                                                 ]
                                                             },
@@ -223,7 +223,7 @@ def test_method_linkgeneric():
                                                                     {
                                                                         "inline": "(example-class "
                                                                         "(eq "
-                                                                        "keyword:test1))"
+                                                                        ":test1))"
                                                                     }
                                                                 ]
                                                             },
@@ -232,7 +232,7 @@ def test_method_linkgeneric():
                                                                     {
                                                                         "inline": "(example-class "
                                                                         "(eq "
-                                                                        "keyword:test2))"
+                                                                        ":test2))"
                                                                     }
                                                                 ]
                                                             },
