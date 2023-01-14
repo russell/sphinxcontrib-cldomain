@@ -28,7 +28,7 @@ def test_local_atom():
     assert cldomain.local_atom("fooo", "foo::bar") == "foo::bar"
 
 
-def test_qualify_sexp():
-    assert cldomain.qualify_sexp(
-        "foo", ["test-fn", "test", "&key", ":foo"]
-    ) == ["foo:test-fn", "foo:test", "&key", "keyword:foo"]
+def test_specializer_qualify_symbols():
+    assert cldomain.specializer_qualify_symbols(
+        ["test-fn", "test", "&key", ":foo"], "foo"
+    ) == ["FOO:TEST-FN", "FOO:TEST", "&KEY", "(EQ KEYWORD:FOO)"]

@@ -23,7 +23,6 @@
 
 """
 import json
-import operator
 import os
 import pathlib
 import pprint
@@ -32,7 +31,6 @@ import subprocess
 import sys
 import tempfile
 from collections import defaultdict
-from io import StringIO
 from os import path
 from typing import List, Optional, Tuple, Union
 
@@ -140,18 +138,6 @@ def _read_from(tokens):
 
 
 # end of http://norvig.com/lispy.html
-
-
-def parse_specializer_symbol(symbol: str, package: str) -> str:
-    """Parse symbols, for specializers."""
-    symbol = symbol.upper()
-    if symbol.startswith(":"):
-        return "(EQ KEYWORD%s)" % symbol
-    # TODO (RS) this needs to be smarter what happens if there is an
-    # internal symbol instead of an external one?
-    if ":" not in symbol:
-        return package + ":" + symbol
-    return symbol
 
 
 class desc_clparameterlist(addnodes.desc_parameterlist):
@@ -276,26 +262,77 @@ def v_html_desc_type(self, node):
     self.body.append(self.param_separator)
 
 
-def specializer(symbol, sexp, state, package, node_type=nodes.inline):
-    result = StringIO()
-    result.write("(")
-    first = True
-    for atom in sexp:
-        if first:
-            first = False
+def specializer_qualify_symbols(
+    symbols: List[str], package: Optional[str]
+) -> List[str]:
+    """Qualify symbols, for specializers."""
+
+    def qualify(sym):
+        symbol = sym
+        if symbol.startswith(":"):
+            return "(EQ KEYWORD%s)" % symbol
+        if symbol.lower() in lambda_list_keywords:
+            return symbol
+
+        # TODO (RS) this needs to be smarter what happens if there is an
+        # internal symbol instead of an external one?
+        if ":" not in symbol and package:
+            return package + ":" + symbol
         else:
-            result.write(" ")
+            return symbol
 
-        if atom.startswith("KEYWORD:"):
-            result.write("(EQ :%s)" % atom.split(":")[-1])
+    return [qualify(symbol).upper() for symbol in symbols]
+
+
+def specializer_unqualify_symbols(
+    symbols: List[str], package: Optional[str]
+) -> List[str]:
+    """Unqualify symbols, for specializers."""
+
+    def qualify(sym):
+        symbol = sym
+        if symbol.startswith(":"):
+            return "(EQ %s)" % symbol
+        # TODO (RS) this needs to be smarter what happens if there is an
+        # internal symbol instead of an external one?
+        if package and symbol.startswith(package + ":"):
+            return symbol.split(":")[-1]
         else:
-            result.write(atom)
+            return symbol
 
-    result.write(")")
-    result.seek(0)
+    return [qualify(symbol).upper() for symbol in symbols]
 
-    xref = ":cl:generic:`{} <{}:{}>`".format(
-        result.read().lower(),
+
+def specializer_list_to_sexp_ref(
+    sexp: List[str], package: Optional[str]
+) -> str:
+    """Convert a list of symbols into a list form similar to what a specialized
+    list would be.
+
+    e.g. ['EXAMPLE-CLASS', ':TEST'] =>
+    ['sphinxcontrib.cldomain.doc:example-class', '(eq keyword:test)']
+    """
+    symbols = specializer_qualify_symbols(sexp, package)
+    return " ".join(symbols).lower()
+
+
+def specializer_argument_to_sexp_ref(
+    argument: str, package: Optional[str]
+) -> str:
+    """Convert the users arguments into a sexp like above.
+
+    e.g. "EXAMPLE-GENERIC EXAMPLE-CLASS :TEST1" => "package:example-
+    generic package:example-class (eq keyword:test1)"
+    """
+    return specializer_list_to_sexp_ref(argument.split(" "), package)
+
+
+def specializer(
+    symbol: str, sexp, state, package: str, node_type=nodes.inline
+):
+    result = specializer_list_to_sexp_ref(sexp, None)
+    xref = ":cl:generic:`({}) <{}:{}>`".format(
+        result,
         package,
         symbol,
     )
@@ -308,57 +345,21 @@ def specializer(symbol, sexp, state, package, node_type=nodes.inline):
 def specializer_xref(
     symbol: str, sexp, inliner: Inliner, package: str, lineno: int
 ):
-    """Generate a link to a method
+    """Generate a link to a method.
 
     The output of this function is the partner to the output of
     CLMethod.get_index_name
     """
-    result = StringIO()
-    first = True
-    for atom in sexp:
-        if first:
-            first = False
-        else:
-            result.write(" ")
-
-        if atom.startswith("KEYWORD:"):
-            result.write("(EQ :%s)" % atom.split(":")[-1])
-        elif package:
-            if atom.startswith(package + ":"):
-                result.write(atom.split(":")[-1])
-            else:
-                result.write(atom)
-        else:
-            result.write(atom)
-
+    result = " ".join(specializer_unqualify_symbols(sexp, package)).lower()
     target = " ".join([a.lower() for a in sexp])
-    result.seek(0)
-
     target = "({}) <{} {}>".format(
-        result.read().lower(),
+        result,
         symbol.lower(),
         target,
     )
-
     xref = ":cl:method:`{}`".format(target)
     node = CLXRefRole()("cl:method", xref, target, lineno, inliner)
     return nodes.inline("", "", node[0][0])
-
-
-def qualify_sexp(package: str, sexp: List[str]) -> List[str]:
-    """If the sexp contains atoms that don't have a package then qualify
-    them."""
-    sexp_ret = []
-    for atom in sexp:
-        if atom.startswith(":"):
-            sexp_ret.append("keyword" + atom)
-        elif atom.lower() in lambda_list_keywords:
-            sexp_ret.append(atom)
-        elif ":" in atom:
-            sexp_ret.append(atom)
-        else:
-            sexp_ret.append(package + ":" + atom)
-    return sexp_ret
 
 
 def local_atom(package: str, atom: str) -> str:
@@ -743,12 +744,7 @@ class CLMethod(CLGeneric):
     def cl_method_index_name(self):
         """"""
         package = self.env.temp_data.get("cl:package")
-
-        # Trim off the method name
-        specializer = self.arguments[0].split(" ")
-        specializer = " ".join(parse_specializer_symbol(sym, package)
-                               for sym in specializer).lower()
-        return specializer
+        return specializer_argument_to_sexp_ref(self.arguments[0], package)
 
     def get_index_name(self, name, type):
         """Generate a name that will be used to create anchors on the page for
@@ -757,10 +753,9 @@ class CLMethod(CLGeneric):
 
     def get_index_text(self, name, type):
         package = self.env.temp_data.get("cl:package")
-        specializer = self.arguments
-        spec_args = specializer[0].split(" ")[1:]
-        specializer = " ".join(parse_specializer_symbol(sym, package)
-                               for sym in spec_args).lower()
+        specializer = specializer_argument_to_sexp_ref(
+            self.arguments[0], package
+        )
         return _("%s (%s) (Lisp %s)") % (
             name.lower().split(":")[-1],
             specializer.lower(),
@@ -796,9 +791,6 @@ class CLMethod(CLGeneric):
             #         line=self.lineno)
 
             sig = self.cl_method_index_name()
-            # sig = " ".join(tuple(parse_specializer_symbol(sym, package)
-            #                      for       in sig.split(" ")
-            #    )
             if name in inv:
                 inv[name][sig] = (self.env.docname, self.objtype)
             else:
@@ -818,15 +810,17 @@ class CLMethod(CLGeneric):
         package = self.env.temp_data.get("cl:package")
         name = self.cl_symbol_name()
 
-        specializer = self.arguments
-        spec = specializer[0].split(" ")[1:]
-
         lispobj = get_lisp_object(package, name, "method")
-        key = tuple(parse_specializer_symbol(sym, package) for sym in spec)
+        key = tuple(
+            specializer_qualify_symbols(
+                self.arguments[0].split(" ")[1:], package
+            )
+        )
         doc = ""
         try:
-            method = next(m for m in lispobj["methods"]
-                          if tuple(m["specializer"]) == key)
+            method = next(
+                m for m in lispobj["methods"] if tuple(m["specializer"]) == key
+            )
             doc = method["documentation"]
         except StopIteration:
             specializers = [m["specializer"] for m in lispobj["methods"]]
