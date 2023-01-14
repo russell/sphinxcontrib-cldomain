@@ -384,7 +384,7 @@ Linking back to the generic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Note: A link to the generic function can be added by specifying
-the ``::linkgeneric::` option::
+the ``::linkgeneric::`` option::
 
        .. cl:method:: example-generic example-class :test
           :linkgeneric:
