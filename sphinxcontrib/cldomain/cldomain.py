@@ -387,12 +387,14 @@ def specializer_name_xref(
     return nodes.inline("", "", node[0][0])
 
 
-def local_atom(package: str, atom: str) -> str:
+def local_atom(package: str, atom: str, private: bool = True) -> str:
     """If the atom has a package qualifier then remove it."""
     split = [atom]
     if "::" in atom:
-        # Private symbols should present as such
-        split = [atom]
+        if private:
+            split = atom.split("::", 1)
+        else:
+            split = [atom]
     elif ":" in atom:
         split = atom.split(":", 1)
 
@@ -487,7 +489,9 @@ class SEXP(object):
                     % (types, sexp)
                 )
             for i, type in enumerate(self.types):
-                self.sexp[i] = [self.sexp[i].lower()] + self._type_node(type, package)
+                self.sexp[i] = [self.sexp[i].lower()] + self._type_node(
+                    type, package
+                )
         self.show_defaults = show_defaults
         self.show_defaults = True
         self.package = package
@@ -498,14 +502,16 @@ class SEXP(object):
             type_node = addnodes.pending_xref(
                 "", refdomain="cl", reftype="type", reftarget=type_name
             )
-            name = local_atom(package.lower(), type_name.lower())
+            name = local_atom(
+                package.lower(), type_name.lower(), private=False
+            )
             type_node += addnodes.desc_type(name, name)
             return ["(eq ", type_node, ")"]
 
         type_node = addnodes.pending_xref(
             "", refdomain="cl", reftype="type", reftarget=type_name
         )
-        name = local_atom(package.lower(), type_name.lower())
+        name = local_atom(package.lower(), type_name.lower(), private=False)
         type_node += addnodes.desc_type(name, name)
         return [type_node]
 
