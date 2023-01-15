@@ -411,9 +411,10 @@ possible symbol names."
   (when (class-p symbol)
     (make-instance
      'cldomain-class
-     :metaclass (class-name (class-of (find-class symbol)))
+     :metaclass (prin1-to-string (class-name (class-of (find-class symbol))))
      :documentation (encode-type-documentation* symbol type)
      :direct-superclasses
+     ;; TODO this class name should be coherced with PRIN1-TO-STRING
      (mapcar #'class-name
              (closer-mop:class-direct-superclasses (class-of symbol)))
      :slots (encode-object-slots symbol))))
@@ -435,9 +436,7 @@ possible symbol names."
       (push
        (make-instance
         'cldomain-slot
-        :name (slot-definition-name slot)
-        ;; TODO this probably needs to change to this
-        ;; (prin1-to-string (slot-definition-name slot))
+        :name (prin1-to-string (slot-definition-name slot))
         :initarg (write-to-string (car (slot-definition-initargs slot)))
         :readers (write-to-string (car (slot-definition-readers slot)))
         :writers (write-to-string (car (slot-definition-writers slot)))
@@ -469,7 +468,7 @@ possible symbol names."
         :collect
         (make-instance
          'cldomain-symbol
-         :name symbol
+         :name (prin1-to-string symbol)
          :external (encode-symbol-external symbol)
          :variable (encode-value-documentation symbol 'variable)
          :function (encode-function-documentation

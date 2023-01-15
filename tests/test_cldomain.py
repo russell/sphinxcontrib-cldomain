@@ -44,3 +44,12 @@ def test_specializer_to_rst_input():
     assert cldomain.specializer_to_rst_input(
         ["foo:test-fn", "foo:test", "&key", "(eq keyword:foo)"], "foo"
     ) == ["TEST-FN", "TEST", "&KEY", ":FOO"]
+
+
+def test_specializer_argument_to_sexp_ref():
+    assert (
+        cldomain.specializer_argument_to_sexp_ref(
+            "(eq tag) common-lisp:t common-lisp:t", "cl-git"
+        )
+        == "(eq cl-git:tag) common-lisp:t common-lisp:t"
+    )
