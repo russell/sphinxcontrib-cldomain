@@ -38,7 +38,15 @@ def test_method():
                                 "specialized version "
                                 "of example-generic."
                             },
-                            {"field_list": []},
+                            {
+                                "field_list": [
+                                    {
+                                        "inline": "See "
+                                        "also: "
+                                        "example-generic"
+                                    }
+                                ]
+                            },
                         ]
                     },
                 ]
@@ -67,7 +75,15 @@ def test_method_noinherit():
                                 "specialized version "
                                 "of example-generic."
                             },
-                            {"field_list": []},
+                            {
+                                "field_list": [
+                                    {
+                                        "inline": "See "
+                                        "also: "
+                                        "example-generic"
+                                    }
+                                ]
+                            },
                         ]
                     },
                 ]
@@ -77,7 +93,36 @@ def test_method_noinherit():
 
 
 def test_method_linkgeneric():
-    result = sphinx_render_file("method_linkgeneric")
+    result = sphinx_render_file("method_nolinkgeneric")
+    # import pprint
+    # pprint.pp(result)
+    assert result == {
+        "document": [
+            {"index": []},
+            {
+                "desc": [
+                    {
+                        "desc_signature": "example-generic example-class "
+                        ":test"
+                    },
+                    {
+                        "desc_content": [
+                            {
+                                "paragraph": "This is the first "
+                                "specialized version "
+                                "of example-generic."
+                            },
+                            {"field_list": []},
+                        ]
+                    },
+                ]
+            },
+        ]
+    }
+
+
+def test_method_nospecializers():
+    result = sphinx_render_file("method_nospecializers")
     # import pprint
     # pprint.pp(result)
     assert result == {
@@ -99,16 +144,9 @@ def test_method_linkgeneric():
                             {
                                 "field_list": [
                                     {
-                                        "field": [
-                                            {"field_name": "Generic"},
-                                            {
-                                                "field_body": [
-                                                    {
-                                                        "inline": "(example-generic)"
-                                                    }
-                                                ]
-                                            },
-                                        ]
+                                        "inline": "See "
+                                        "also: "
+                                        "example-generic"
                                     }
                                 ]
                             },
@@ -117,30 +155,4 @@ def test_method_linkgeneric():
                 ]
             },
         ]
-    }
-
-
-def test_method_nospecializers():
-    result = sphinx_render_file("method_nospecializers")
-    # import pprint
-    # pprint.pp(result)
-    assert result == {
-        "document": [
-            {"index": []},
-            {
-                "desc": [
-                    {"desc_signature": "example-generic example-class :test"},
-                    {
-                        "desc_content": [
-                            {
-                                "paragraph": "This is the first "
-                                "specialized version "
-                                "of example-generic."
-                            },
-                            {"field_list": []},
-                        ]
-                    },
-                ],
-            },
-        ],
     }

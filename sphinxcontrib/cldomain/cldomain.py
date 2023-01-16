@@ -333,7 +333,7 @@ def specializer_to_str(specializer):
 
 
 def generic_xref(symbol: str, state, package: str, node_type=nodes.inline):
-    xref = ":cl:generic:`({}) <{}:{}>`".format(
+    xref = "See also: :cl:generic:`{} <{}:{}>`".format(
         symbol,
         package,
         symbol,
@@ -830,7 +830,7 @@ class CLMethod(CLGeneric):
         "noindex": bool_option,
         "noinherit": bool_option,
         "nospecializers": bool_option,
-        "linkgeneric": bool_option,
+        "nolinkgeneric": bool_option,
     }
 
     doc_field_types = [
@@ -995,20 +995,13 @@ class CLMethod(CLGeneric):
         field_list = self.get_field_list(result)
         package = self.env.temp_data.get("cl:package")
 
-        if "linkgeneric" in self.options:
+        if "nolinkgeneric" not in self.options:
             spec = generic_xref(
                 self.cl_symbol_name,
                 self.state,
                 package=package,
             )
-
-            field_list.append(
-                nodes.field(
-                    "",
-                    nodes.field_name("", "Generic"),
-                    nodes.field_body("", spec),
-                )
-            )
+            field_list.append(spec)
 
         return result
 
