@@ -22,6 +22,7 @@
     The Common Lisp domain
 
 """
+import io
 import json
 import os
 import pathlib
@@ -30,7 +31,6 @@ import re
 import subprocess
 import sys
 import tempfile
-from collections import defaultdict
 from os import path
 from typing import List, Optional, Tuple, Union
 
@@ -267,98 +267,74 @@ def specializer_qualify_symbols(
 ) -> List[str]:
     """Qualify symbols, for specializers."""
 
-    def qualify(sym):
-        symbol = sym
+    def qualify(symbol):
+        if isinstance(symbol, list):
+            return [symbol[0].upper(), qualify(symbol[1])]
         # Depending on the splitting, it might be that EQ is a single
         # token, or split in 2.
         if symbol.startswith(":"):
-            return "(EQ KEYWORD%s)" % symbol
-        if symbol.upper().startswith("(EQ"):
-            return symbol.upper()
+            return ["EQ", "KEYWORD%s" % symbol.upper()]
         if symbol.lower() in lambda_list_keywords:
-            return symbol
+            return symbol.upper()
 
         # TODO (RS) this needs to be smarter what happens if there is an
         # internal symbol instead of an external one?
         if ":" not in symbol and package:
-            return package + ":" + symbol
+            return (package + ":" + symbol).upper()
         else:
-            return symbol
+            return symbol.upper()
 
-    return [qualify(symbol).upper() for symbol in symbols]
-
-
-def specializer_unqualify_symbols(
-    symbols: List[str], package: Optional[str]
-) -> List[str]:
-    """Unqualify symbols, for specializers."""
-
-    def qualify(sym):
-        symbol = sym
-        if symbol.upper().startswith("(EQ KEYWORD:"):
-            return symbol.upper().replace("(EQ KEYWORD:", "(EQ :")
-        if symbol.startswith(":"):
-            return "(EQ %s)" % symbol
-        # TODO (RS) this needs to be smarter what happens if there is an
-        # internal symbol instead of an external one?
-        if package and symbol.startswith(package + ":"):
-            return symbol.split(":")[-1]
-        else:
-            return symbol
-
-    return [qualify(symbol).upper() for symbol in symbols]
+    return [qualify(symbol) for symbol in symbols]
 
 
-def specializer_to_rst_input(
-    symbols: List[str], package: Optional[str]
-) -> List[str]:
-    """Unqualify symbols, for specializers, converting them into the format
-    that would be given if it was an RST directive."""
-
-    def qualify(sym):
-        symbol = sym
-        if symbol.upper().startswith("(EQ KEYWORD:"):
-            return symbol.upper().replace("(EQ KEYWORD:", ":").replace(")", "")
-        # TODO (RS) this needs to be smarter what happens if there is an
-        # internal symbol instead of an external one?
-        if package and symbol.startswith(package + ":"):
-            return symbol.split(":")[-1]
-        else:
-            return symbol
-
-    return [qualify(symbol).upper() for symbol in symbols]
+def parse_specializer_argument(argument: str, package: Optional[str]):
+    """Convert the users arguments into a sexp string."""
+    argument = argument.strip()
+    # Always wrap in paren
+    if not (argument.startswith("(") and argument.endswith(")")):
+        argument = "(%s)" % argument
+    return specializer_qualify_symbols(_read(argument), package)
 
 
-def specializer_list_to_sexp_ref(
-    sexp: List[str], package: Optional[str]
-) -> str:
-    """Convert a list of symbols into a list form similar to what a specialized
-    list would be.
-
-    e.g. ['EXAMPLE-CLASS', ':TEST'] =>
-    ['sphinxcontrib.cldomain.doc:example-class', '(eq keyword:test)']
-    """
-    symbols = specializer_qualify_symbols(sexp, package)
-    return " ".join(symbols).lower()
+def parse_specializer_lisp_data(argument: str, package: Optional[str]):
+    """Process the specializer from LISP data to make sure it has the same
+    formatting as the processed argument string."""
+    argument = " ".join(argument).strip()
+    return parse_specializer_argument(argument, package)
 
 
-def specializer_argument_to_sexp_ref(
-    argument: str, package: Optional[str]
-) -> str:
-    """Convert the users arguments into a sexp like above.
-
-    e.g. "EXAMPLE-GENERIC EXAMPLE-CLASS :TEST1" => "package:example-
-    generic package:example-class (eq keyword:test1)"
-    """
-    return specializer_list_to_sexp_ref(argument.split(" "), package)
+def normalize_specializer(specializer, package):
+    """Convert the specializer into it's normal form as a string."""
+    if isinstance(specializer, list):
+        specializer = parse_specializer_lisp_data(specializer, package)
+    else:
+        specializer = parse_specializer_argument(specializer, package)
+    return specializer_to_str(specializer)
 
 
-def specializer(
-    symbol: str, sexp, state, package: str, node_type=nodes.inline
-):
-    result = specializer_list_to_sexp_ref(sexp, None)
+def specializer_to_str(specializer):
+    output = io.StringIO()
+
+    def join_sexp(sexp):
+        output.write("(")
+        for i, atom in enumerate(sexp):
+            if isinstance(atom, list):
+                join_sexp(atom)
+            else:
+                output.write(atom)
+            # Don't print a space after the last item.
+            if i < len(sexp) - 1:
+                output.write(" ")
+        output.write(")")
+
+    join_sexp(specializer)
+    output.seek(0)
+    return output.read()
+
+
+def generic_xref(symbol: str, state, package: str, node_type=nodes.inline):
     xref = ":cl:generic:`({}) <{}:{}>`".format(
-        result,
+        symbol,
         package,
         symbol,
     )
@@ -376,11 +352,11 @@ def specializer_name_xref(
     The output of this function is the partner to the output of
     CLMethod.get_index_name
     """
-    target = " ".join([a.lower() for a in sexp])
+    target = normalize_specializer(sexp, package)
     target = "{} <{} {}>".format(
         local_atom(package, symbol.lower()),
         symbol.lower(),
-        target,
+        target.lower(),
     )
     xref = ":cl:method:`{}`".format(target)
     node = CLXRefRole()("cl:method", xref, target, lineno, inliner)
@@ -404,7 +380,20 @@ def local_atom(package: str, atom: str, private: bool = True) -> str:
     if split[0].upper() == package.upper():
         return split[-1]
 
+    # Remove the KEYWORD from those symbols
+    if split[0].upper() == "KEYWORD":
+        return ":" + split[-1]
+
     return atom
+
+
+def qualify_atom(package: str, atom: str) -> str:
+    """If the atom is not qualified then quailify it."""
+    if "::" in atom:
+        return atom
+    elif ":" in atom:
+        return atom
+    return package + ":" + atom
 
 
 def fieldlist_index(node):
@@ -489,9 +478,10 @@ class SEXP(object):
                     % (types, sexp)
                 )
             for i, type in enumerate(self.types):
-                self.sexp[i] = [self.sexp[i].lower()] + self._type_node(
-                    type, package
-                )
+                self.sexp[i] = [
+                    self.sexp[i].lower(),
+                    self._type_node(type, package),
+                ]
         self.show_defaults = show_defaults
         self.show_defaults = True
         self.package = package
@@ -500,18 +490,18 @@ class SEXP(object):
         if type_name.lower().startswith("(eq "):
             type_name = type_name.strip("()").split()[1]
             type_node = addnodes.pending_xref(
-                "", refdomain="cl", reftype="type", reftarget=type_name
+                "", refdomain="cl", reftype="class", reftarget=type_name
             )
             name = local_atom(package, type_name, private=False)
             type_node += addnodes.desc_type(name, name)
-            return ["(eq ", type_node, ")"]
+            return [addnodes.desc_sig_keyword("eq", "eq"), type_node]
 
         type_node = addnodes.pending_xref(
-            "", refdomain="cl", reftype="type", reftarget=type_name
+            "", refdomain="cl", reftype="class", reftarget=type_name
         )
         name = local_atom(package, type_name, private=False)
         type_node += addnodes.desc_type(name, name)
-        return [type_node]
+        return type_node
 
     def as_parameterlist(self, function_name):
         return self.render_parameterlist(prepend_node=function_name)
@@ -526,6 +516,7 @@ class SEXP(object):
             if isinstance(atom, list):
                 if self.show_defaults:
                     self.render_parameterlist(signode=desc_sexplist, sexp=atom)
+                    desc_sexplist.append(addnodes.desc_sig_space())
                 else:
                     self.render_atom(atom[0], desc_sexplist)
             else:
@@ -539,14 +530,17 @@ class SEXP(object):
         if not isinstance(token, nodes.Element):
             param = desc_clparameter(token, local_atom(self.package, token))
             if token.lower() in lambda_list_keywords:
+                param = addnodes.desc_sig_keyword(
+                    token, local_atom(self.package, token)
+                )
                 param["lambda_keyword"] = True
             if token.startswith(":"):
                 param["keyword"] = True
             signode.append(param)
             signode.append(addnodes.desc_sig_space())
         else:
-            param = token
-            signode.append(param)
+            signode.append(token)
+            signode.append(addnodes.desc_sig_space())
 
 
 class CLsExp(ObjectDescription):
@@ -578,94 +572,51 @@ class CLsExp(ObjectDescription):
         "noinitargs": bool_option,
     }
 
-    def cl_method(self, sig: str, package: str):
-        symbol_name = sig.split(" ")[0]
-        lispobj = get_lisp_object(package, symbol_name, "method")
-        key = specializer_list_to_sexp_ref(sig.split(" ")[1:], package).upper()
+    lispobj = False
 
+    def cl_lisp_data(self):
+        """Initialize the self.lispobj object.
+
+        This is done using data that is passed to the application from a
+        CL lisp process.
+        """
+        if self.lispobj is not False:
+            return self.lispobj
+
+        self.lispobj = None
         try:
-            return next(
-                m
-                for m in lispobj["methods"]
-                if " ".join(m["specializer"]) == key
+            self.lispobj = get_lisp_object(
+                self.cl_package, self.cl_symbol_name, self.objtype
             )
-        except StopIteration:
-            specializers = [m["specializer"] for m in lispobj["methods"]]
-            self.state_machine.reporter.warning(
-                "Can't find method %s:%s specializer %s, "
-                "available specializers are %s"
-                % (package, symbol_name, key, specializers)
-            )
+        except LispDataError as e:
+            self.state_machine.reporter.warning(e)
+
+        return self.lispobj
+
+    def cl_handle_signature(self, sig: str, signode: desc_signature):
+        pass
 
     def handle_signature(
         self, sig: str, signode: desc_signature
     ) -> Tuple[str, str]:
-        package = self.env.temp_data.get("cl:package")
-        objtype = self.get_signature_prefix(sig).strip()
-        symbol_name = sig.split(" ")[0]
-        signode.append(addnodes.desc_annotation(objtype, objtype))
+        """This method sets up the entire object, it's the first."""
+        self.cl_package = self.env.temp_data.get("cl:package").lower()
+        self.cl_symbol_name = sig.split(" ")[0].lower()
 
-        lispobj = None
-        try:
-            lispobj = get_lisp_object(package, symbol_name, objtype)
-        except LispDataError as e:
-            self.state_machine.reporter.warning(e)
+        signode.append(
+            addnodes.desc_annotation(
+                str(self.get_signature_prefix()), self.get_signature_prefix()
+            )
+        )
 
-        function_name = addnodes.desc_name(symbol_name, symbol_name)
+        self.cl_handle_signature(sig, signode)
 
-        if lispobj and self.objtype in [
-            "method",
-            "macro",
-            "function",
-            "generic",
-        ]:
-            lisp_args = lispobj["arguments"]
-            if not lisp_args.strip() and self.objtype in ["function"]:
-                lisp_args = "()"
-            if lisp_args.strip():
-                types = []
-
-                if self.objtype in ["method"]:
-                    # returns none if not found
-                    types = self.cl_method(sig, package)
-                    if types:
-                        types = types["specializer"]
-                try:
-                    sexp = SEXP(
-                        lisp_args,
-                        types=types,
-                        show_defaults=self.env.app.config.cl_show_defaults,
-                        package=self.env.temp_data.get("cl:package"),
-                    )
-                    arg_list = sexp.as_parameterlist(function_name)
-                    signode.append(arg_list)
-                except ValueError as e:
-                    self.state_machine.reporter.warning(e)
-        else:
-            signode.append(function_name)
-
-        if lispobj and self.objtype == "class":
-            # Add CLOS Slots
-            slots = lispobj["slots"]
-            if slots and "noinitargs" not in self.options:
-                # TODO add slot details if describing a class
-                for slot in slots:
-                    initarg = slot.get("initarg")
-                    if initarg and initarg.lower() != "nil":
-                        slotarg = addnodes.literal_emphasis(
-                            slot.get("name"), slot.get("name")
-                        )
-                        slotsig = initarg.lower() + " "
-                        signode.append(
-                            addnodes.desc_optional(slotsig, slotsig, slotarg)
-                        )
-
-        if not symbol_name:
+        if not self.cl_symbol_name:
             self.state_machine.reporter.warning(
-                "Unknown symbol type for signature %s" % symbol_name
+                "Unknown symbol type for signature %s" % self.cl_symbol_name
             )
 
-        return objtype, symbol_name
+        return self.objtype, self.cl_symbol_name
 
     def get_field_list(self, node):
         """Return the node's field list, if there isn't one then create it
@@ -683,11 +634,8 @@ class CLsExp(ObjectDescription):
     def get_index_name(self, name, type):
         return type + ":" + name
 
-    def get_signature_prefix(self, sig):
+    def get_signature_prefix(self):
         return self.objtype + " "
-
-    def cl_symbol_name(self):
-        return self.names[0][1].upper()
 
     def add_target_and_index(self, name, sig, signode):
         # node target
@@ -746,36 +694,78 @@ class CLsExp(ObjectDescription):
 
         Will raise KeyError if the symbol can't be found.
         """
-        package = self.env.temp_data.get("cl:package")
-        name = self.cl_symbol_name()
         objtype = objtype or self.objtype
-        lispobj = get_lisp_object(package, name, objtype)
+        lispobj = get_lisp_object(
+            self.cl_package, self.cl_symbol_name, objtype
+        )
         if "documentation" in lispobj:
             return lispobj["documentation"]
 
         self.state_machine.reporter.warning(
-            "Can't find symbol {}:{}".format(package, name)
+            "Can't find symbol {}:{}".format(
+                self.cl_package, self.cl_symbol_name
+            )
         )
         return ""
 
 
 class CLVariable(CLsExp):
-    pass
+    def cl_handle_signature(self, sig: str, signode: desc_signature):
+        """Perform CLOS specific signature additions."""
+        name = addnodes.desc_name(self.cl_symbol_name, self.cl_symbol_name)
+        signode.append(name)
 
 
 class CLClass(CLsExp):
-    pass
+    def cl_handle_signature(self, sig: str, signode: desc_signature):
+        """Perform CLOS specific signature additions."""
+        name = addnodes.desc_name(self.cl_symbol_name, self.cl_symbol_name)
+        signode.append(name)
+
+        # Add CLOS Slots
+        lispobj = self.cl_lisp_data()
+        slots = lispobj["slots"]
+        if slots and "noinitargs" not in self.options:
+            # TODO add slot details if describing a class
+            for slot in slots:
+                initarg = slot.get("initarg")
+                if initarg and initarg.lower() != "nil":
+                    slotarg = addnodes.literal_emphasis(
+                        slot.get("name"), slot.get("name")
+                    )
+                    slotsig = initarg.lower() + " "
+                    signode.append(
+                        addnodes.desc_optional(slotsig, slotsig, slotarg)
+                    )
 
 
 class CLFunction(CLsExp):
+    def get_signature_prefix(self):
+        return self.objtype
+
+    def cl_handle_signature(self, sig: str, signode: desc_signature):
+        """Perform CLOS specific signature additions."""
+        name = addnodes.desc_name(self.cl_symbol_name, self.cl_symbol_name)
+
+        lispobj = self.cl_lisp_data()
+        lisp_args = lispobj["arguments"].strip() or "()"
+        try:
+            sexp = SEXP(
+                lisp_args,
+                show_defaults=self.env.app.config.cl_show_defaults,
+                package=self.env.temp_data.get("cl:package"),
+            )
+            arg_list = sexp.as_parameterlist(name)
+            signode.append(arg_list)
+        except ValueError as e:
+            self.state_machine.reporter.warning(e)
+
+
+class CLMacro(CLFunction):
     pass
 
 
-class CLMacro(CLsExp):
-    pass
-
-
-class CLGeneric(CLsExp):
+class CLGeneric(CLFunction):
 
     option_spec: OptionSpec = {
         "nodoc": bool_option,
@@ -789,7 +779,7 @@ class CLGeneric(CLsExp):
         if "nospecializers" in self.options:
             return
         package = self.env.temp_data.get("cl:package")
-        name = self.cl_symbol_name()
+        name = self.cl_symbol_name
         lispobj = get_lisp_object(package, name, self.objtype)
         dl = addnodes.desc()
         dd = addnodes.desc_content()
@@ -862,21 +852,73 @@ class CLMethod(CLGeneric):
         ),
     ]
 
-    def cl_method_index_name(self):
+    def cl_method_specializer(self):
         """"""
-        package = self.env.temp_data.get("cl:package")
-        return specializer_argument_to_sexp_ref(self.arguments[0], package)
+        return normalize_specializer(
+            self.arguments[0].split(" ")[1:], self.cl_package
+        )
+
+    def cl_method(self, sig: str, package: str):
+        """Convert find a method using the sig and package.
+
+        sig would be e.g. `my-method (eq foobar) my-class`
+        """
+        symbol_name = sig.split(" ")[0]  # get the name of the method
+        lispobj = get_lisp_object(package, symbol_name, "method")
+
+        # remove the function name from the specializer arguments
+        key = self.cl_method_specializer()
+        try:
+            return next(
+                m
+                for m in lispobj["methods"]
+                if normalize_specializer(m["specializer"], self.cl_package)
+                == key
+            )
+        except StopIteration:
+            specializers = [
+                normalize_specializer(m["specializer"], self.cl_package)
+                for m in lispobj["methods"]
+            ]
+            self.state_machine.reporter.warning(
+                "Can't find method %s:%s specializer %s, "
+                "available specializers are %s"
+                % (package, symbol_name, key, specializers)
+            )
+
+    def cl_handle_signature(self, sig: str, signode: desc_signature):
+        """Perform Method specific signature additions."""
+        name = addnodes.desc_name(self.cl_symbol_name, self.cl_symbol_name)
+
+        lispobj = self.cl_lisp_data()
+        lisp_args = lispobj["arguments"].strip() or "()"
+        # returns none if not found
+        types = self.cl_method(sig, self.cl_package)
+        if types:
+            types = types["specializer"]
+        try:
+            sexp = SEXP(
+                lisp_args,
+                types=types,
+                show_defaults=self.env.app.config.cl_show_defaults,
+                package=self.env.temp_data.get("cl:package"),
+            )
+            arg_list = sexp.as_parameterlist(name)
+            signode.append(arg_list)
+        except ValueError as e:
+            self.state_machine.reporter.warning(e)
 
     def get_index_name(self, name, type):
         """Generate a name that will be used to create anchors on the page for
         each method."""
-        return type + ":" + self.cl_method_index_name()
+        return "%s:%s %s" % (
+            type,
+            qualify_atom(self.cl_package, self.cl_symbol_name).lower(),
+            self.cl_method_specializer().lower(),
+        )
 
     def get_index_text(self, name, type):
-        package = self.env.temp_data.get("cl:package")
-        specializer = specializer_argument_to_sexp_ref(
-            self.arguments[0], package
-        )
+        specializer = self.cl_method_specializer()
         return _("%s (%s) (Lisp %s)") % (
             name.lower().split(":")[-1],
             specializer.lower(),
@@ -911,7 +953,7 @@ class CLMethod(CLGeneric):
             #         'other instance in ' + self.env.doc2path(inv[name][0]),
             #         line=self.lineno)
 
-            sig = self.cl_method_index_name()
+            sig = self.cl_method_specializer()
             if name in inv:
                 inv[name][sig] = (self.env.docname, self.objtype)
             else:
@@ -928,29 +970,11 @@ class CLMethod(CLGeneric):
 
         Will raise KeyError if the symbol can't be found.
         """
-        package = self.env.temp_data.get("cl:package")
-        name = self.cl_symbol_name()
-
-        lispobj = get_lisp_object(package, name, "method")
-        key = specializer_list_to_sexp_ref(
-            self.arguments[0].split(" ")[1:], package
-        ).upper()
-
         doc = ""
-        try:
-            method = next(
-                m
-                for m in lispobj["methods"]
-                if " ".join(m["specializer"]) == key
-            )
+        method = self.cl_method(self.arguments[0], self.cl_package)
+        if method:
             doc = method["documentation"]
-        except StopIteration:
-            specializers = [m["specializer"] for m in lispobj["methods"]]
-            self.state_machine.reporter.warning(
-                "Can't find method %s:%s specializer %s, "
-                "available specializers are %s"
-                % (package, name, key, specializers)
-            )
+
         if doc:
             return doc
 
@@ -964,10 +988,8 @@ class CLMethod(CLGeneric):
         package = self.env.temp_data.get("cl:package")
 
         if "linkgeneric" in self.options:
-            # TODO (RS) this will probably be removed in the future.
-            spec = specializer(
-                self.cl_symbol_name(),
-                [self.cl_symbol_name()],
+            spec = generic_xref(
+                self.cl_symbol_name,
                 self.state,
                 package=package,
             )
@@ -1101,7 +1123,8 @@ class CLDomain(Domain):
         name = name.lower()
         sexp = name.split(" ")
         generic = sexp[0]
-        specializer = " ".join(sexp)
+        specializer = " ".join(sexp[1:]).upper()
+
         if generic in methods:
             if specializer in methods[generic]:
                 return [methods[generic][specializer]]

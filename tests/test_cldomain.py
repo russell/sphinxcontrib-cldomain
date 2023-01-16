@@ -28,28 +28,28 @@ def test_local_atom():
     assert cldomain.local_atom("fooo", "foo::bar") == "foo::bar"
 
 
-def test_specializer_qualify_symbols():
-    assert cldomain.specializer_qualify_symbols(
-        ["test-fn", "test", "&key", ":foo"], "foo"
-    ) == ["FOO:TEST-FN", "FOO:TEST", "&KEY", "(EQ KEYWORD:FOO)"]
+def test_parse_specializer_arguments():
+    """Test parsing the user input for specializers."""
+    assert cldomain.parse_specializer_argument(
+        "(eq tag) :test common-lisp:t common-lisp:t", "cl-git"
+    ) == [
+        ["EQ", "CL-GIT:TAG"],
+        ["EQ", "KEYWORD:TEST"],
+        "COMMON-LISP:T",
+        "COMMON-LISP:T",
+    ]
 
 
-def test_specializer_unqualify_symbols():
-    assert cldomain.specializer_unqualify_symbols(
-        ["foo:test-fn", "foo:test", "&key", "(eq keyword:foo)"], "foo"
-    ) == ["TEST-FN", "TEST", "&KEY", "(EQ :FOO)"]
-
-
-def test_specializer_to_rst_input():
-    assert cldomain.specializer_to_rst_input(
-        ["foo:test-fn", "foo:test", "&key", "(eq keyword:foo)"], "foo"
-    ) == ["TEST-FN", "TEST", "&KEY", ":FOO"]
-
-
-def test_specializer_argument_to_sexp_ref():
+def test_specializer_to_str():
+    """Test parsing the user input for specializers."""
     assert (
-        cldomain.specializer_argument_to_sexp_ref(
-            "(eq tag) common-lisp:t common-lisp:t", "cl-git"
+        cldomain.specializer_to_str(
+            [
+                ["EQ", "CL-GIT:TAG"],
+                ["EQ", "KEYWORD:TEST"],
+                "COMMON-LISP:T",
+                "COMMON-LISP:T",
+            ]
         )
-        == "(eq cl-git:tag) common-lisp:t common-lisp:t"
+        == "((EQ CL-GIT:TAG) (EQ KEYWORD:TEST) COMMON-LISP:T COMMON-LISP:T)"
     )
