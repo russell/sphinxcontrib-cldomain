@@ -782,6 +782,8 @@ class CLGeneric(CLFunction):
         name = self.cl_symbol_name
         lispobj = get_lisp_object(package, name, self.objtype)
         dl = addnodes.desc()
+        # This objtype setting is needed to support the latex output.
+        dl["objtype"] = "method"
         dd = addnodes.desc_content()
         dd.append(dl)
         contentnode.children.insert(0, dl)
