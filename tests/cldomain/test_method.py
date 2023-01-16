@@ -38,58 +38,6 @@ def test_method():
                                 "specialized version "
                                 "of example-generic."
                             },
-                            {
-                                "field_list": [
-                                    {
-                                        "field": [
-                                            {"field_name": "Specializers"},
-                                            {
-                                                "field_body": [
-                                                    {
-                                                        "bullet_list": [
-                                                            {
-                                                                "list_item": [
-                                                                    {
-                                                                        "inline": "(example-class "
-                                                                        "(eq "
-                                                                        ":test))"
-                                                                    }
-                                                                ]
-                                                            },
-                                                            {
-                                                                "list_item": [
-                                                                    {
-                                                                        "inline": "(example-class "
-                                                                        "(eq "
-                                                                        ":test1))"
-                                                                    }
-                                                                ]
-                                                            },
-                                                            {
-                                                                "list_item": [
-                                                                    {
-                                                                        "inline": "(example-class "
-                                                                        "(eq "
-                                                                        ":test2))"
-                                                                    }
-                                                                ]
-                                                            },
-                                                            {
-                                                                "list_item": [
-                                                                    {
-                                                                        "inline": "(example-class "
-                                                                        "common-lisp:t)"
-                                                                    }
-                                                                ]
-                                                            },
-                                                        ]
-                                                    }
-                                                ]
-                                            },
-                                        ]
-                                    }
-                                ]
-                            },
                             {"field_list": []},
                         ]
                     },
@@ -119,58 +67,6 @@ def test_method_noinherit():
                                 "specialized version "
                                 "of example-generic."
                             },
-                            {
-                                "field_list": [
-                                    {
-                                        "field": [
-                                            {"field_name": "Specializers"},
-                                            {
-                                                "field_body": [
-                                                    {
-                                                        "bullet_list": [
-                                                            {
-                                                                "list_item": [
-                                                                    {
-                                                                        "inline": "(example-class "
-                                                                        "(eq "
-                                                                        ":test))"
-                                                                    }
-                                                                ]
-                                                            },
-                                                            {
-                                                                "list_item": [
-                                                                    {
-                                                                        "inline": "(example-class "
-                                                                        "(eq "
-                                                                        ":test1))"
-                                                                    }
-                                                                ]
-                                                            },
-                                                            {
-                                                                "list_item": [
-                                                                    {
-                                                                        "inline": "(example-class "
-                                                                        "(eq "
-                                                                        ":test2))"
-                                                                    }
-                                                                ]
-                                                            },
-                                                            {
-                                                                "list_item": [
-                                                                    {
-                                                                        "inline": "(example-class "
-                                                                        "common-lisp:t)"
-                                                                    }
-                                                                ]
-                                                            },
-                                                        ]
-                                                    }
-                                                ]
-                                            },
-                                        ]
-                                    }
-                                ]
-                            },
                             {"field_list": []},
                         ]
                     },
@@ -199,58 +95,6 @@ def test_method_linkgeneric():
                                 "paragraph": "This is the first "
                                 "specialized version "
                                 "of example-generic."
-                            },
-                            {
-                                "field_list": [
-                                    {
-                                        "field": [
-                                            {"field_name": "Specializers"},
-                                            {
-                                                "field_body": [
-                                                    {
-                                                        "bullet_list": [
-                                                            {
-                                                                "list_item": [
-                                                                    {
-                                                                        "inline": "(example-class "
-                                                                        "(eq "
-                                                                        ":test))"
-                                                                    }
-                                                                ]
-                                                            },
-                                                            {
-                                                                "list_item": [
-                                                                    {
-                                                                        "inline": "(example-class "
-                                                                        "(eq "
-                                                                        ":test1))"
-                                                                    }
-                                                                ]
-                                                            },
-                                                            {
-                                                                "list_item": [
-                                                                    {
-                                                                        "inline": "(example-class "
-                                                                        "(eq "
-                                                                        ":test2))"
-                                                                    }
-                                                                ]
-                                                            },
-                                                            {
-                                                                "list_item": [
-                                                                    {
-                                                                        "inline": "(example-class "
-                                                                        "common-lisp:t)"
-                                                                    }
-                                                                ]
-                                                            },
-                                                        ]
-                                                    }
-                                                ]
-                                            },
-                                        ]
-                                    }
-                                ]
                             },
                             {
                                 "field_list": [

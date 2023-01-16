@@ -502,16 +502,14 @@ class SEXP(object):
             type_node = addnodes.pending_xref(
                 "", refdomain="cl", reftype="type", reftarget=type_name
             )
-            name = local_atom(
-                package.lower(), type_name.lower(), private=False
-            )
+            name = local_atom(package, type_name, private=False)
             type_node += addnodes.desc_type(name, name)
             return ["(eq ", type_node, ")"]
 
         type_node = addnodes.pending_xref(
             "", refdomain="cl", reftype="type", reftarget=type_name
         )
-        name = local_atom(package.lower(), type_name.lower(), private=False)
+        name = local_atom(package, type_name, private=False)
         type_node += addnodes.desc_type(name, name)
         return [type_node]
 
@@ -759,6 +757,22 @@ class CLsExp(ObjectDescription):
             "Can't find symbol {}:{}".format(package, name)
         )
         return ""
+
+
+class CLVariable(CLsExp):
+    pass
+
+
+class CLClass(CLsExp):
+    pass
+
+
+class CLFunction(CLsExp):
+    pass
+
+
+class CLMacro(CLsExp):
+    pass
 
 
 class CLGeneric(CLsExp):
@@ -1025,11 +1039,11 @@ class CLDomain(Domain):
 
     directives = {
         "package": CLCurrentPackage,
-        "function": CLsExp,
+        "function": CLFunction,
         "generic": CLGeneric,
-        "macro": CLsExp,
-        "variable": CLsExp,
-        "class": CLsExp,
+        "macro": CLMacro,
+        "variable": CLVariable,
+        "class": CLClass,
         "method": CLMethod,
     }
 

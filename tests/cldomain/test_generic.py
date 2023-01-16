@@ -31,6 +31,52 @@ def test_generic():
                     {
                         "desc_content": [
                             {
+                                "desc": [
+                                    {
+                                        "desc_signature": "method(example-generic "
+                                        "(arg1   "
+                                        "EXAMPLE-CLASS) "
+                                        "(arg2   "
+                                        "(eq    "
+                                        "KEYWORD:TEST "
+                                        ")) "
+                                        "&optional   "
+                                        "arg3)"
+                                    },
+                                    {
+                                        "desc_signature": "method(example-generic "
+                                        "(arg1   "
+                                        "EXAMPLE-CLASS) "
+                                        "(arg2   "
+                                        "(eq    "
+                                        "KEYWORD:TEST1 "
+                                        ")) "
+                                        "&optional   "
+                                        "arg3)"
+                                    },
+                                    {
+                                        "desc_signature": "method(example-generic "
+                                        "(arg1   "
+                                        "EXAMPLE-CLASS) "
+                                        "(arg2   "
+                                        "(eq    "
+                                        "KEYWORD:TEST2 "
+                                        ")) "
+                                        "&optional   "
+                                        "arg3)"
+                                    },
+                                    {
+                                        "desc_signature": "method(example-generic "
+                                        "(arg1   "
+                                        "EXAMPLE-CLASS) "
+                                        "(arg2   "
+                                        "COMMON-LISP:T) "
+                                        "&optional   "
+                                        "arg3)"
+                                    },
+                                ]
+                            },
+                            {
                                 "paragraph": "Example generic CL "
                                 "Domain\n"
                                 "Reference "
@@ -42,59 +88,8 @@ def test_generic():
                                 "Arguments ``ARG1``, "
                                 "``ARG2`` and "
                                 "``ARG3``\n"
-                                "Keyword ``:TEST``"
-                            },
-                            {
-                                "field_list": [
-                                    {
-                                        "field": [
-                                            {"field_name": "Specializers"},
-                                            {
-                                                "field_body": [
-                                                    {
-                                                        "bullet_list": [
-                                                            {
-                                                                "list_item": [
-                                                                    {
-                                                                        "inline": "(example-class "
-                                                                        "(eq "
-                                                                        ":test))"
-                                                                    }
-                                                                ]
-                                                            },
-                                                            {
-                                                                "list_item": [
-                                                                    {
-                                                                        "inline": "(example-class "
-                                                                        "(eq "
-                                                                        ":test1))"
-                                                                    }
-                                                                ]
-                                                            },
-                                                            {
-                                                                "list_item": [
-                                                                    {
-                                                                        "inline": "(example-class "
-                                                                        "(eq "
-                                                                        ":test2))"
-                                                                    }
-                                                                ]
-                                                            },
-                                                            {
-                                                                "list_item": [
-                                                                    {
-                                                                        "inline": "(example-class "
-                                                                        "common-lisp:t)"
-                                                                    }
-                                                                ]
-                                                            },
-                                                        ]
-                                                    }
-                                                ]
-                                            },
-                                        ]
-                                    }
-                                ]
+                                "Keyword "
+                                "``:TEST``"
                             },
                         ]
                     },
