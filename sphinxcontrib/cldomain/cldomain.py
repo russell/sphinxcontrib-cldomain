@@ -465,6 +465,12 @@ class SpecializerField(Field):
 
 
 class SEXP(object):
+    """An SEXP argument list builder.
+
+    This class takes an sexp and some types and will create a pretty
+    argument list.
+    """
+
     def __init__(self, sexp, types=None, show_defaults=False, package=None):
         if not isinstance(sexp, list):
             self.sexp = _read(sexp)
