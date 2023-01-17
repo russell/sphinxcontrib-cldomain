@@ -87,6 +87,9 @@
    (function
     :initarg :function
     :accessor cldomain-symbol-function)
+   (setf-function
+    :initarg :setf-function
+    :accessor cldomain-symbol-setf-function)
    (class
     :initarg :class
     :accessor cldomain-symbol-class)))
@@ -328,7 +331,9 @@ possible symbol names."
                  (write-string rest out))))))))
 
 (defun arglist (symbol)
-  #+sbcl  (sb-introspect:function-lambda-list symbol)
+  #+sbcl  (if (and (consp symbol) (sb-int:info :setf :expander (second symbol)))
+              (sb-introspect:function-lambda-list (sb-int:info :setf :expander (second symbol)))
+              (sb-introspect:function-lambda-list symbol))
   #+clisp (sys::arglist symbol)
   #+ccl (ccl:arglist symbol)
   #+ecl   (ext:function-lambda-list symbol)
@@ -369,22 +374,28 @@ possible symbol names."
 
 (defmethod encode-function-documentation (symbol type))
 
-(defmethod encode-function-documentation (symbol (type (eql 'function)))
+(defun symbol-function1 (symbol)
+  (cond
+    ((and (consp symbol) (sb-int:info :setf :expander (second symbol)))
+     (sb-int:info :setf :expander (second symbol)))
+    ((fboundp symbol)
+     (fdefinition symbol))))
+
+(defun function-documentation (symbol type)
   (when (symbol-function-type symbol)
    (encode-function-documentation*
-    symbol type (or (documentation symbol type) ""))))
+    symbol type (or (documentation (symbol-function1 symbol) 'function) ""))))
+
+(defmethod encode-function-documentation (symbol (type (eql 'function)))
+  (function-documentation symbol type))
 
 ;; CLISP-ism (might be other CL's as well): compiled functions are still
 ;; functions:
 (defmethod encode-function-documentation (symbol (type (eql 'compiled-function)))
-  (when (symbol-function-type symbol)
-   (encode-function-documentation*
-    symbol 'function (or (documentation symbol 'function) ""))))
+  (function-documentation symbol type))
 
 (defmethod encode-function-documentation (symbol (type (eql 'macro)))
-  (when (symbol-function-type symbol)
-    (encode-function-documentation*
-     symbol type (or (documentation symbol 'function) ""))))
+  (function-documentation symbol type))
 
 (defmethod encode-function-documentation (symbol (type (eql 'generic-function)))
   (when (symbol-function-type symbol)
@@ -392,7 +403,7 @@ possible symbol names."
            (encode-function-documentation*
             symbol type (or (documentation symbol 'function) ""))))
       (setf (cldomain-generic-methods function)
-            (encode-methods (symbol-function symbol)))
+            (encode-methods (fdefinition symbol)))
       function)))
 
 (defmethod encode-function-documentation (symbol (type (eql 'cl:standard-generic-function)))
@@ -421,8 +432,10 @@ possible symbol names."
 
 (defun symbol-function-type (symbol)
   (cond
-    ((macro-function symbol)
+    ((and (not (consp symbol)) (macro-function symbol))
      'macro)
+    ((and (consp symbol) (sb-int:info :setf :expander (second symbol)))
+     (type-of (sb-int:info :setf :expander (second symbol))))
     ((fboundp symbol)
      (type-of (fdefinition symbol)))))
 
@@ -473,6 +486,8 @@ possible symbol names."
          :variable (encode-value-documentation symbol 'variable)
          :function (encode-function-documentation
                     symbol (symbol-function-type symbol))
+         :setf-function (encode-function-documentation
+                         `(setf ,symbol) (symbol-function-type `(setf ,symbol)))
          :class (encode-value-documentation symbol 'class))))
 
 (defun print-packages (&rest packages)

@@ -288,7 +288,7 @@ def specializer_qualify_symbols(
 
 
 def parse_specializer_argument(argument: str, package: Optional[str]):
-    """Convert the users arguments into a sexp string."""
+    """Convert the users arguments into a sexp list."""
     argument = argument.strip()
     # Always wrap in paren
     if not (argument.startswith("(") and argument.endswith(")")):
@@ -422,12 +422,10 @@ def get_lisp_object(package, name, objtype):
 
     data = None
     try:
-        if objtype == "variable":
-            data = LISP_DATA[symbol]["variable"]
         if objtype in ["function", "macro", "generic", "method"]:
             data = LISP_DATA[symbol]["function"]
-        if objtype == "class":
-            data = LISP_DATA[symbol]["class"]
+        else:
+            data = LISP_DATA[symbol][objtype]
     except KeyError:
         raise LispDataError(
             "Missing lisp data for package %s, name %s, objtype %s"
@@ -510,7 +508,30 @@ class SEXP(object):
         return type_node
 
     def as_parameterlist(self, function_name):
-        return self.render_parameterlist(prepend_node=function_name)
+        if isinstance(function_name, str) and function_name.startswith(
+            "(SETF"
+        ):
+            # split up the "(setf foo)" string
+
+            setf, name = function_name[1:-1].lower().split(" ")
+            name = local_atom(self.package, name, private=False)
+            name = addnodes.desc_name(name, name)
+            desc_sexplist = desc_clparameterlist()
+            if self.types:
+                # this is a generic, so the first parameter becomes the value
+                value = desc_clparameterlist()
+                [self.render_atom(e, value) for e in self.sexp[0]]
+                if value[-1].tagname == "desc_sig_space":
+                    value.pop()  # if the last element is whitespace pop it
+                self.sexp = self.sexp[1:]
+            else:
+                value = desc_clparameter("value", "value")
+            desc_sexplist.append(addnodes.desc_sig_keyword(setf, setf))
+            desc_sexplist.append(self.render_parameterlist(prepend_node=name))
+            desc_sexplist.append(value)
+            return desc_sexplist
+        else:
+            return self.render_parameterlist(prepend_node=function_name)
 
     def render_parameterlist(self, signode=None, prepend_node=None, sexp=None):
         desc_sexplist = desc_clparameterlist()
@@ -757,7 +778,7 @@ class CLFunction(CLsExp):
         lisp_args = lispobj["arguments"].strip() or "()"
         try:
             sexp = SEXP(
-                lisp_args,
+                lisp_args.lower(),
                 show_defaults=self.env.app.config.cl_show_defaults,
                 package=self.env.temp_data.get("cl:package"),
             )
@@ -765,6 +786,52 @@ class CLFunction(CLsExp):
             signode.append(arg_list)
         except ValueError as e:
             self.state_machine.reporter.warning(e)
+
+    def transform_content(self, contentnode: addnodes.desc_content) -> None:
+        dl = addnodes.desc()
+        dl["objtype"] = "setfFunction"
+        dd = addnodes.desc_content()
+        dd.append(dl)
+        contentnode.children.insert(0, dl)
+
+        self.cl_handle_setf(dl)
+
+    def cl_handle_setf(self, contentnode):
+        try:
+            setfobj = get_lisp_object(
+                self.cl_package, self.cl_symbol_name, "setfFunction"
+            )
+        except LispDataError:
+            return
+
+        if setfobj["type"] == "genericFunction":
+            self.cl_handle_setf_methods(contentnode, setfobj["methods"])
+        else:
+            self.cl_handle_setf_function(contentnode, setfobj)
+
+    def cl_handle_setf_function(self, methodnode, setfobj):
+        signode = addnodes.desc_signature("", "")
+        sexp = SEXP(
+            setfobj["arguments"].lower(),
+            show_defaults=self.env.app.config.cl_show_defaults,
+            package=self.cl_package,
+        )
+        arg_list = sexp.as_parameterlist(setfobj["name"])
+        signode.append(arg_list)
+        methodnode.append(signode)
+
+    def cl_handle_setf_methods(self, methodnode, methodsobj):
+        for method in methodsobj:
+            signode = addnodes.desc_signature("", "")
+            sexp = SEXP(
+                method["arguments"].lower(),
+                types=method["specializer"],
+                show_defaults=self.env.app.config.cl_show_defaults,
+                package=self.cl_package,
+            )
+            arg_list = sexp.as_parameterlist(method["name"])
+            signode.append(arg_list)
+            methodnode.append(signode)
 
 
 class CLMacro(CLFunction):
@@ -787,6 +854,7 @@ class CLGeneric(CLFunction):
         package = self.env.temp_data.get("cl:package")
         name = self.cl_symbol_name
         lispobj = get_lisp_object(package, name, self.objtype)
+
         dl = addnodes.desc()
         # This objtype setting is needed to support the latex output.
         dl["objtype"] = "method"
@@ -795,8 +863,7 @@ class CLGeneric(CLFunction):
         contentnode.children.insert(0, dl)
         for method in lispobj["methods"]:
             signode = addnodes.desc_signature("", "")
-            signode.append(addnodes.desc_annotation("method", "method"))
-            arguments = method["arguments"]
+            # signode.append(addnodes.desc_annotation("method", "method"))
             name = local_atom(package, method["name"]).lower()
             ref = specializer_name_xref(
                 method["name"],
@@ -807,23 +874,19 @@ class CLGeneric(CLFunction):
             )
             function_name = addnodes.desc_name()
             function_name.append(ref)
-            types = method["specializer"]
             sexp = SEXP(
-                arguments.lower(),
-                types=types,
+                method["arguments"],
+                types=method["specializer"],
                 show_defaults=self.env.app.config.cl_show_defaults,
                 package=self.env.temp_data.get("cl:package"),
             )
             arg_list = sexp.as_parameterlist(function_name)
             signode.append(arg_list)
             dl.append(signode)
-
-    def run(self) -> List[Node]:
-        result = super(CLGeneric, self).run()
-        return result
+        super(CLGeneric, self).cl_handle_setf(dl)
 
 
-class CLMethod(CLGeneric):
+class CLMethod(CLFunction):
 
     option_spec: OptionSpec = {
         "nodoc": bool_option,
@@ -876,6 +939,7 @@ class CLMethod(CLGeneric):
 
         # remove the function name from the specializer arguments
         key = self.cl_method_specializer()
+
         try:
             return next(
                 m
@@ -894,6 +958,52 @@ class CLMethod(CLGeneric):
                 % (package, symbol_name, key, specializers)
             )
 
+    def cl_setf_methods(self, symbol_name: str, package: str):
+        """Convert find a method using the sig and package.
+
+        sig would be e.g. `my-method (eq foobar) my-class`
+        """
+        lispobj = get_lisp_object(package, symbol_name, "setfFunction")
+
+        # remove the function name and the first type from the
+        # specializer arguments
+        key = self.cl_method_specializer()
+
+        try:
+            return [
+                m
+                for m in lispobj["methods"]
+                # Remove the first type from the specializer
+                if normalize_specializer(m["specializer"][1:], self.cl_package)
+                == key
+            ]
+        except StopIteration:
+            specializers = [
+                normalize_specializer(m["specializer"], self.cl_package)
+                for m in lispobj["methods"]
+            ]
+            self.state_machine.reporter.warning(
+                "Can't find method %s:%s specializer %s, "
+                "available specializers are %s"
+                % (package, symbol_name, key, specializers)
+            )
+
+    def cl_handle_setf(self, contentnode):
+        try:
+            setfobj = get_lisp_object(
+                self.cl_package, self.cl_symbol_name, "setfFunction"
+            )
+        except LispDataError:
+            return
+
+        if setfobj["type"] == "genericFunction":
+            self.cl_handle_setf_methods(
+                contentnode,
+                self.cl_setf_methods(self.cl_symbol_name, self.cl_package),
+            )
+        else:
+            self.cl_handle_setf_function(contentnode, setfobj)
+
     def cl_handle_signature(self, sig: str, signode: desc_signature):
         """Perform Method specific signature additions."""
         name = addnodes.desc_name(self.cl_symbol_name, self.cl_symbol_name)
@@ -906,7 +1016,7 @@ class CLMethod(CLGeneric):
             types = types["specializer"]
         try:
             sexp = SEXP(
-                lisp_args,
+                lisp_args.lower(),
                 types=types,
                 show_defaults=self.env.app.config.cl_show_defaults,
                 package=self.env.temp_data.get("cl:package"),
