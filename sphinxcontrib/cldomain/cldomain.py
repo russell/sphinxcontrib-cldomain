@@ -792,9 +792,9 @@ class CLFunction(CLsExp):
         dl["objtype"] = "setfFunction"
         dd = addnodes.desc_content()
         dd.append(dl)
-        contentnode.children.insert(0, dl)
 
-        self.cl_handle_setf(dl)
+        if self.cl_handle_setf(dl):
+            contentnode.children.insert(0, dl)
 
     def cl_handle_setf(self, contentnode):
         try:
@@ -802,12 +802,13 @@ class CLFunction(CLsExp):
                 self.cl_package, self.cl_symbol_name, "setfFunction"
             )
         except LispDataError:
-            return
+            return False
 
         if setfobj["type"] == "genericFunction":
             self.cl_handle_setf_methods(contentnode, setfobj["methods"])
         else:
             self.cl_handle_setf_function(contentnode, setfobj)
+        return True
 
     def cl_handle_setf_function(self, methodnode, setfobj):
         signode = addnodes.desc_signature("", "")
@@ -832,6 +833,9 @@ class CLFunction(CLsExp):
             arg_list = sexp.as_parameterlist(method["name"])
             signode.append(arg_list)
             methodnode.append(signode)
+
+        if methodsobj:
+            return True
 
 
 class CLMacro(CLFunction):
@@ -994,15 +998,16 @@ class CLMethod(CLFunction):
                 self.cl_package, self.cl_symbol_name, "setfFunction"
             )
         except LispDataError:
-            return
+            return False
 
         if setfobj["type"] == "genericFunction":
-            self.cl_handle_setf_methods(
+            return self.cl_handle_setf_methods(
                 contentnode,
                 self.cl_setf_methods(self.cl_symbol_name, self.cl_package),
             )
         else:
             self.cl_handle_setf_function(contentnode, setfobj)
+        return True
 
     def cl_handle_signature(self, sig: str, signode: desc_signature):
         """Perform Method specific signature additions."""

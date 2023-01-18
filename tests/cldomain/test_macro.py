@@ -32,18 +32,23 @@ def test_macro():
                     {
                         "desc_content": [
                             {
-                                "paragraph": (
-                                    "Example macro CL Domain\n"
-                                    "Reference :cl:symbol:`~SPHINXCONTRIB.CLDOMAIN.DOC-TEST:EXAMPLE-FUNCTION`\n"
-                                    "Package references :cl:symbol:`~COMMON-LISP:CDR`\n"
-                                    "Hyperspec :cl:symbol:`~COMMON-LISP:LIST`\n"
-                                    "Arguments ``ARG1``, :cl:symbol:`~SPHINXCONTRIB.CLDOMAIN.DOC-TEST::ARG2` and ``ARG3``\n"
-                                    "Keyword ``:TEST``"
-                                )
+                                "paragraph": "Example macro CL "
+                                "Domain\n"
+                                "Reference "
+                                ":cl:symbol:`~SPHINXCONTRIB.CLDOMAIN.DOC-TEST:EXAMPLE-FUNCTION`\n"
+                                "Package references "
+                                ":cl:symbol:`~COMMON-LISP:CDR`\n"
+                                "Hyperspec "
+                                ":cl:symbol:`~COMMON-LISP:LIST`\n"
+                                "Arguments ``ARG1``, "
+                                ":cl:symbol:`~SPHINXCONTRIB.CLDOMAIN.DOC-TEST::ARG2` "
+                                "and ``ARG3``\n"
+                                "Keyword "
+                                "``:TEST``"
                             }
                         ]
                     },
                 ]
             },
-        ],
+        ]
     }
