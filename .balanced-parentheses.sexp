@@ -10,7 +10,8 @@
                             (changelog-heading :rst)
                             (changelog-lines :rst :conventional-commits
                                              :header-char "~"))
-
+      (write-version-sexp-file "sphinxcontrib/cldomain/version.lisp-expr")
+      ;; TODO need to update the setup.cfg file with the version aswell
       (write-file ".git/RELEASE_CHANGELOG"
                   (format nil "Release ~a~%~%" (next-version*))
                   (changelog-lines :markdown :conventional-commits)))))

@@ -1,3 +1,28 @@
+0.17.0 - 2023-01-18
+-------------------
+Features
+~~~~~~~~
+
+* refactor object backend
+* cleanup generic/method linking
+* update the generic linking so it's less obtrusive
+* setf expander support
+
+Minor Fixes
+~~~~~~~~~~~
+
+* cleanup specializer handling
+
+Documentation
+~~~~~~~~~~~~~
+
+* changelog had the wrong title headings
+
+Build Tooling
+~~~~~~~~~~~~~
+
+* add example envrc
+
 0.16.2 - 2023-01-08
 -------------------
 
