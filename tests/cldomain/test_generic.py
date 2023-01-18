@@ -20,8 +20,9 @@ from ..support.nodes import sphinx_render_file
 
 def test_generic():
     result = sphinx_render_file("generic")
-    # import pprint
-    # pprint.pp(result)
+    import pprint
+
+    pprint.pp(result)
     assert result == {
         "document": [
             {"index": []},
@@ -33,43 +34,64 @@ def test_generic():
                             {
                                 "desc": [
                                     {
-                                        "desc_signature": "method(example-generic "
+                                        "desc_signature": "(example-generic "
                                         "(arg1   "
                                         "EXAMPLE-CLASS)   "
                                         "(arg2   "
                                         "(eq   "
                                         ":TEST))   "
-                                        "&optional   "
-                                        "arg3)"
+                                        "&OPTIONAL   "
+                                        "ARG3)"
                                     },
                                     {
-                                        "desc_signature": "method(example-generic "
+                                        "desc_signature": "(example-generic "
                                         "(arg1   "
                                         "EXAMPLE-CLASS)   "
                                         "(arg2   "
                                         "(eq   "
                                         ":TEST1))   "
-                                        "&optional   "
-                                        "arg3)"
+                                        "&OPTIONAL   "
+                                        "ARG3)"
                                     },
                                     {
-                                        "desc_signature": "method(example-generic "
+                                        "desc_signature": "(example-generic "
                                         "(arg1   "
                                         "EXAMPLE-CLASS)   "
                                         "(arg2   "
                                         "(eq   "
                                         ":TEST2))   "
-                                        "&optional   "
-                                        "arg3)"
+                                        "&OPTIONAL   "
+                                        "ARG3)"
                                     },
                                     {
-                                        "desc_signature": "method(example-generic "
+                                        "desc_signature": "(example-generic "
                                         "(arg1   "
                                         "EXAMPLE-CLASS)   "
                                         "(arg2   "
                                         "COMMON-LISP:T)   "
-                                        "&optional   "
-                                        "arg3)"
+                                        "&OPTIONAL   "
+                                        "ARG3)"
+                                    },
+                                    {
+                                        "desc_signature": "(setf "
+                                        "(example-generic "
+                                        "(arg1   "
+                                        "EXAMPLE-CLASS)   "
+                                        "(arg2   "
+                                        "(eq   "
+                                        ":TEST))) "
+                                        "(new-value   "
+                                        "COMMON-LISP:T))"
+                                    },
+                                    {
+                                        "desc_signature": "(setf "
+                                        "(example-generic "
+                                        "(arg1   "
+                                        "EXAMPLE-CLASS)   "
+                                        "(arg2   "
+                                        "COMMON-LISP:T)) "
+                                        "(new-value   "
+                                        "EXAMPLE-CLASS))"
                                     },
                                 ]
                             },

@@ -19,6 +19,7 @@
 (defpackage :sphinxcontrib.cldomain.doc-test
   (:use #:common-lisp)
   (:export #:example-function
+           #:example-function1
            #:example-class
            #:example-macro
            #:example-macro-ignored-doc
@@ -43,6 +44,17 @@ Arguments ARG1, ARG2 and ARG3
 Keyword :TEST"
   (list arg1 arg2 arg3))
 
+(define-setf-expander example-function (arg1 arg2 &environment env)
+  "Example setf with documentation."
+  (declare (ignore arg1 arg2 env)))
+
+(defun example-function1 (arg1 arg2 &optional (arg3 #'sort) &key (kw *example-variable*))
+  "An example function"
+  (list arg1 arg2 arg3))
+
+(defun (setf example-function1) (arg1 arg2 value)
+  "Example setf with documentation."
+  (declare (ignore arg1 arg2 value)))
 
 (defclass example-class ()
   ((slot1 :initarg :slot1 :accessor slot1
@@ -75,6 +87,17 @@ Keyword :TEST"))
 
 (defmethod example-generic ((arg1 example-class) (arg2 t) &optional arg3)
   "The third test method."
+  (list arg1 arg2 arg3))
+
+(defgeneric (setf example-generic) (new-value arg1 arg2)
+  (:documentation "This is the documentation for some setf magic"))
+
+(defmethod (setf example-generic) (new-value (arg1 example-class) (arg2 (eql :test)))
+  "first setf"
+  (list arg1 arg2 arg3))
+
+(defmethod (setf example-generic) ((new-value example-class) (arg1 example-class) (arg2 t))
+  "first setf"
   (list arg1 arg2 arg3))
 
 

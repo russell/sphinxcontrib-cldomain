@@ -20,8 +20,9 @@ from ..support.nodes import sphinx_render_file
 
 def test_method():
     result = sphinx_render_file("method")
-    # import pprint
-    # pprint.pp(result)
+    import pprint
+
+    pprint.pp(result)
     assert result == {
         "document": [
             {"index": []},
@@ -33,6 +34,21 @@ def test_method():
                     },
                     {
                         "desc_content": [
+                            {
+                                "desc": [
+                                    {
+                                        "desc_signature": "(setf "
+                                        "(example-generic "
+                                        "(arg1   "
+                                        "EXAMPLE-CLASS)   "
+                                        "(arg2   "
+                                        "(eq   "
+                                        ":TEST))) "
+                                        "(new-value   "
+                                        "COMMON-LISP:T))"
+                                    }
+                                ]
+                            },
                             {
                                 "paragraph": "This is the first "
                                 "specialized version "
@@ -57,8 +73,9 @@ def test_method():
 
 def test_method_noinherit():
     result = sphinx_render_file("method_noinherit")
-    # import pprint
-    # pprint.pp(result)
+    import pprint
+
+    pprint.pp(result)
     assert sphinx_render_file("method_noinherit") == {
         "document": [
             {"index": []},
@@ -70,6 +87,21 @@ def test_method_noinherit():
                     },
                     {
                         "desc_content": [
+                            {
+                                "desc": [
+                                    {
+                                        "desc_signature": "(setf "
+                                        "(example-generic "
+                                        "(arg1   "
+                                        "EXAMPLE-CLASS)   "
+                                        "(arg2   "
+                                        "(eq   "
+                                        ":TEST))) "
+                                        "(new-value   "
+                                        "COMMON-LISP:T))"
+                                    }
+                                ]
+                            },
                             {
                                 "paragraph": "This is the first "
                                 "specialized version "
@@ -94,8 +126,9 @@ def test_method_noinherit():
 
 def test_method_linkgeneric():
     result = sphinx_render_file("method_nolinkgeneric")
-    # import pprint
-    # pprint.pp(result)
+    import pprint
+
+    pprint.pp(result)
     assert result == {
         "document": [
             {"index": []},
@@ -107,6 +140,21 @@ def test_method_linkgeneric():
                     },
                     {
                         "desc_content": [
+                            {
+                                "desc": [
+                                    {
+                                        "desc_signature": "(setf "
+                                        "(example-generic "
+                                        "(arg1   "
+                                        "EXAMPLE-CLASS)   "
+                                        "(arg2   "
+                                        "(eq   "
+                                        ":TEST))) "
+                                        "(new-value   "
+                                        "COMMON-LISP:T))"
+                                    }
+                                ]
+                            },
                             {
                                 "paragraph": "This is the first "
                                 "specialized version "
@@ -123,8 +171,9 @@ def test_method_linkgeneric():
 
 def test_method_nospecializers():
     result = sphinx_render_file("method_nospecializers")
-    # import pprint
-    # pprint.pp(result)
+    import pprint
+
+    pprint.pp(result)
     assert result == {
         "document": [
             {"index": []},
@@ -136,6 +185,21 @@ def test_method_nospecializers():
                     },
                     {
                         "desc_content": [
+                            {
+                                "desc": [
+                                    {
+                                        "desc_signature": "(setf "
+                                        "(example-generic "
+                                        "(arg1   "
+                                        "EXAMPLE-CLASS)   "
+                                        "(arg2   "
+                                        "(eq   "
+                                        ":TEST))) "
+                                        "(new-value   "
+                                        "COMMON-LISP:T))"
+                                    }
+                                ]
+                            },
                             {
                                 "paragraph": "This is the first "
                                 "specialized version "

@@ -20,8 +20,9 @@ from ..support.nodes import sphinx_render_file
 
 def test_function():
     result = sphinx_render_file("class")
-    # import pprint
-    # pprint.pp(result)
+    import pprint
+
+    pprint.pp(result)
     assert result == {
         "document": [
             {"index": []},

@@ -20,8 +20,9 @@ from ..support.nodes import sphinx_render_file
 
 def test_function():
     result = sphinx_render_file("function")
-    # import pprint
-    # pprint.pp(result)
+    import pprint
+
+    pprint.pp(result)
     assert result == {
         "document": [
             {"index": []},
@@ -31,18 +32,34 @@ def test_function():
                     {
                         "desc_content": [
                             {
-                                "paragraph": (
-                                    "Example function CL Domain\n"
-                                    "Reference :cl:symbol:`~SPHINXCONTRIB.CLDOMAIN.DOC-TEST:EXAMPLE-FUNCTION`\n"
-                                    "Package references :cl:symbol:`~COMMON-LISP:CDR`\n"
-                                    "Hyperspec :cl:symbol:`~COMMON-LISP:LIST`\n"
-                                    "Arguments ``ARG1``, ``ARG2`` and ``ARG3``\n"
-                                    "Keyword ``:TEST``"
-                                )
-                            }
+                                "desc": [
+                                    {
+                                        "desc_signature": "(setf "
+                                        "(example-function "
+                                        "arg1   "
+                                        "arg2) "
+                                        "value)"
+                                    }
+                                ]
+                            },
+                            {
+                                "paragraph": "Example function CL "
+                                "Domain\n"
+                                "Reference "
+                                ":cl:symbol:`~SPHINXCONTRIB.CLDOMAIN.DOC-TEST:EXAMPLE-FUNCTION`\n"
+                                "Package references "
+                                ":cl:symbol:`~COMMON-LISP:CDR`\n"
+                                "Hyperspec "
+                                ":cl:symbol:`~COMMON-LISP:LIST`\n"
+                                "Arguments ``ARG1``, "
+                                "``ARG2`` and "
+                                "``ARG3``\n"
+                                "Keyword "
+                                "``:TEST``"
+                            },
                         ]
                     },
                 ]
             },
-        ],
+        ]
     }

@@ -20,8 +20,9 @@ from ..support.nodes import sphinx_render_file
 
 def test_macro():
     result = sphinx_render_file("macro")
-    # import pprint
-    # pprint.pp(result))
+    import pprint
+
+    pprint.pp(result)
     assert result == {
         "document": [
             {"index": []},
