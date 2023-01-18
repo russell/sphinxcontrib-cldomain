@@ -1,6 +1,6 @@
 [project]
 name = "sphinxcontrib-cldomain"
-version = "0.17.0"
+version = "0.17.1"
 description = "Sphinx domain for Common Lisp"
 
 authors = [
