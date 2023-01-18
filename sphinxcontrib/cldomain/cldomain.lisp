@@ -376,6 +376,10 @@ possible symbol names."
 
 (defun symbol-function1 (symbol)
   (cond
+    ;; Can't get documentation for a macro funciton, only normal
+    ;; functions, so get i via a symbol.
+    ((and (not (consp symbol)) (macro-function symbol))
+     symbol)
     ((and (consp symbol) (sb-int:info :setf :expander (second symbol)))
      (sb-int:info :setf :expander (second symbol)))
     ((fboundp symbol)
